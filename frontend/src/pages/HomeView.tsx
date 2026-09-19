@@ -33,6 +33,7 @@ export const HomeView: React.FC = () => {
     foods,
     canteens,
     promotions,
+    categories,
     setOrderType,
     setSelectedCanteen,
     navigateTo,
@@ -40,6 +41,8 @@ export const HomeView: React.FC = () => {
     appliedPromotion,
     applyPromotion,
   } = useApp();
+
+  const displayCategories = categories && categories.length > 0 ? categories : MOCK_CATEGORIES;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [couponInput, setCouponInput] = useState('');
@@ -179,7 +182,7 @@ export const HomeView: React.FC = () => {
 
         {/* Horizontal Swipable Categories with Smooth Scroll - Equal uniform sizing */}
         <HorizontalScrollContainer className="flex items-center gap-3 sm:gap-4 py-1.5 px-0.5">
-          {MOCK_CATEGORIES.map((cat) => (
+          {displayCategories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => navigateTo('category', { category: cat.id, categoryId: cat.id, categoryName: cat.name })}

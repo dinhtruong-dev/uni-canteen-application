@@ -239,11 +239,161 @@ export class DatabaseService {
       }
     );
 
+    const prod6 = new Product(
+      'prod-6',
+      'Trà Sữa Trân Châu Đường Đen',
+      25000,
+      'cat-3',
+      'cant-c',
+      'https://images.unsplash.com/photo-1558857563-b37cf5a31a54?auto=format&fit=crop&q=80&w=600',
+      4.8,
+      290,
+      5,
+      true,
+      {
+        originalPrice: 32000,
+        categoryName: 'Đồ Uống Giải Khát',
+        canteenName: 'Căng tin C (Thư Viện)',
+        description: 'Trà sữa đậm vị hồng trà Phúc Long, trân châu thủ công nấu đường đen dẻo thơm nức mũi.',
+        isBestSeller: true,
+        soldCount: 640,
+      }
+    );
+
+    const prod7 = new Product(
+      'prod-7',
+      'Bún Chả Hà Nội Nướng Than',
+      35000,
+      'cat-2',
+      'cant-a',
+      'https://images.unsplash.com/photo-1503764654157-729106a23422?auto=format&fit=crop&q=80&w=600',
+      4.8,
+      175,
+      10,
+      true,
+      {
+        originalPrice: 40000,
+        categoryName: 'Bún & Phở Nóng',
+        canteenName: 'Căng tin A2',
+        description: 'Chả miếng nướng vàng ươm thơm mùi than củi quyện nước chấm chua ngọt tỏi ớt đưa cơm.',
+        soldCount: 290,
+      }
+    );
+
+    const prod8 = new Product(
+      'prod-8',
+      'Khoai Tây Chiên Lắc Phô Mai',
+      18000,
+      'cat-4',
+      'cant-c',
+      'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&q=80&w=600',
+      4.7,
+      195,
+      7,
+      true,
+      {
+        originalPrice: 22000,
+        categoryName: 'Ăn Vặt & Bánh Mì',
+        canteenName: 'Căng tin C (Thư Viện)',
+        description: 'Khoai tây cắt que nhập khẩu chiên giòn tan, phủ lớp bột phô mai béo ngậy thơm nức.',
+        soldCount: 410,
+      }
+    );
+
+    const prod9 = new Product(
+      'prod-9',
+      'Mì Ý Sốt Bò Bằm Phô Mai',
+      35000,
+      'cat-5',
+      'cant-c',
+      'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&q=80&w=600',
+      4.8,
+      160,
+      12,
+      true,
+      {
+        originalPrice: 42000,
+        categoryName: 'Mì & Fast Food',
+        canteenName: 'Căng tin C (Thư Viện)',
+        description: 'Sợi mì spaghetti dai ngon quyện sốt cà chua thịt bò bằm đậm đà và phô mai Mozzarella kéo sợi.',
+        soldCount: 210,
+      }
+    );
+
+    const prod10 = new Product(
+      'prod-10',
+      'Cà Phê Muối Xứ Huế',
+      18000,
+      'cat-3',
+      'cant-c',
+      'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&q=80&w=600',
+      4.9,
+      340,
+      5,
+      true,
+      {
+        originalPrice: 22000,
+        categoryName: 'Đồ Uống Giải Khát',
+        canteenName: 'Căng tin C (Thư Viện)',
+        description: 'Cà phê Robusta Đắk Lắk pha phin nguyên chất kết hợp lớp kem mặn béo ngậy đặc trưng.',
+        isBestSeller: true,
+        soldCount: 590,
+      }
+    );
+
+    const prod11 = new Product(
+      'prod-11',
+      'Bún Bò Huế Chả Cua Thịt Bắp',
+      38000,
+      'cat-2',
+      'cant-b',
+      'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&q=80&w=600',
+      4.8,
+      190,
+      10,
+      true,
+      {
+        originalPrice: 45000,
+        categoryName: 'Bún & Phở Nóng',
+        canteenName: 'Căng tin B (KTX)',
+        description: 'Sợi bún to, thịt bắp bò hoa giòn sần sật, viên chả cua xứ Huế thơm nức mùi mắm ruốc.',
+        soldCount: 280,
+      }
+    );
+
+    const prod12 = new Product(
+      'prod-12',
+      'Cơm Rang Dưa Bò Giòn Rụm',
+      35000,
+      'cat-1',
+      'cant-a',
+      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&q=80&w=600',
+      4.8,
+      230,
+      10,
+      true,
+      {
+        originalPrice: 40000,
+        categoryName: 'Cơm Sinh Viên',
+        canteenName: 'Căng tin A2',
+        description: 'Hạt cơm đảo vàng ruộm xen lẫn cơm cháy giòn tan, thịt bò xào dưa chua ngấm gia vị cực ngon.',
+        isBestSeller: true,
+        soldCount: 370,
+      }
+    );
+
     this.products.set(prod1.id, prod1);
     this.products.set(prod2.id, prod2);
     this.products.set(prod3.id, prod3);
     this.products.set(prod4.id, prod4);
     this.products.set(prod5.id, prod5);
+    this.products.set(prod6.id, prod6);
+    this.products.set(prod7.id, prod7);
+    this.products.set(prod8.id, prod8);
+    this.products.set(prod9.id, prod9);
+    this.products.set(prod10.id, prod10);
+    this.products.set(prod11.id, prod11);
+    this.products.set(prod12.id, prod12);
 
     // 4. Group 4: Cart & CartItem
     const cart1 = new Cart('cart-user-1', user1.id, 'cant-a', [
@@ -290,22 +440,34 @@ export class DatabaseService {
     this.payments.set(payment1.id, payment1);
 
     // 6. Group 6: Marketing (Banner, FlashSale, Voucher)
-    const b1 = new Banner('ban-1', 'Đại Tiệc Khai Giảng - Giảm 50%', 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=1200', 1, true, {
-      subtitle: 'Áp dụng cho toàn bộ đồ uống và cơm trưa',
-      targetType: 'CATEGORY',
-      targetId: 'cat-1',
-    });
-    const b2 = new Banner('ban-2', 'Combo Căng Tin Tiết Kiệm Chỉ 25K', 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200', 2, true, {
-      subtitle: 'Dành riêng cho sinh viên KTX các trường Đại Học',
+    const b1 = new Banner('ban-1', 'Combo Cơm Gà Chiên Mắm Tỏi', 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=1200', 1, true, {
+      subtitle: 'TẶNG NGAY 1 Trà Đào Sảng Khoái khi đặt combo trưa',
       targetType: 'PRODUCT',
       targetId: 'prod-1',
     });
+    const b2 = new Banner('ban-2', 'Đồng Giá 19.000đ Bún & Phở Nóng', 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?auto=format&fit=crop&q=80&w=1200', 2, true, {
+      subtitle: 'Giảm tới 45% khung giờ vàng 11h30 - 13h30 tại Căng tin B',
+      targetType: 'CATEGORY',
+      targetId: 'cat-2',
+    });
+    const b3 = new Banner('ban-3', 'Giao Hàng 0 Đồng Tận Phòng KTX', 'https://images.unsplash.com/photo-1526367790999-0150786686a2?auto=format&fit=crop&q=80&w=1200', 3, true, {
+      subtitle: 'Nhập mã FREESHIPKTX - Đội shipper sinh viên giao 15 phút',
+      targetType: 'CATEGORY',
+      targetId: 'cat-1',
+    });
+    const b4 = new Banner('ban-4', 'Bữa Tối Sinh Viên Chỉ 29.000đ', 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=1200', 4, true, {
+      subtitle: 'Cơm Tấm Sườn Bì + Canh + Trà Đá cho mùa thi',
+      targetType: 'PRODUCT',
+      targetId: 'prod-2',
+    });
     this.banners.set(b1.id, b1);
     this.banners.set(b2.id, b2);
+    this.banners.set(b3.id, b3);
+    this.banners.set(b4.id, b4);
 
     const fs1 = new FlashSale(
       'fs-1',
-      'Flash Sale Giờ Vàng 11h - 13h',
+      'Flash Sale Giờ Vàng Cơm Gà',
       prod1.id,
       prod1.name,
       prod1.image,
@@ -327,14 +489,46 @@ export class DatabaseService {
       25000,
       15000,
       80,
-      42,
+      52,
       new Date(Date.now() - 10 * 60 * 1000),
       new Date(Date.now() + 3 * 3600 * 1000),
       true,
       'Chỉ 15K ly trà đào khổng lồ'
     );
+    const fs3 = new FlashSale(
+      'fs-3',
+      'Phở Bò Tái Lăn Ưu Đãi Đậm',
+      prod3.id,
+      prod3.name,
+      prod3.image,
+      42000,
+      26000,
+      60,
+      35,
+      new Date(Date.now() - 15 * 60 * 1000),
+      new Date(Date.now() + 2 * 3600 * 1000),
+      true,
+      'Tô phở nóng hổi nước dùng hầm 12h thơm lừng'
+    );
+    const fs4 = new FlashSale(
+      'fs-4',
+      'Trà Sữa Trân Châu Giờ Nghỉ',
+      prod6.id,
+      prod6.name,
+      prod6.image,
+      32000,
+      19000,
+      90,
+      61,
+      new Date(Date.now() - 20 * 60 * 1000),
+      new Date(Date.now() + 4 * 3600 * 1000),
+      true,
+      'Trân châu đường đen dẻo quánh sữa tươi béo ngậy'
+    );
     this.flashSales.set(fs1.id, fs1);
     this.flashSales.set(fs2.id, fs2);
+    this.flashSales.set(fs3.id, fs3);
+    this.flashSales.set(fs4.id, fs4);
 
     const v1 = new Voucher('vouch-1', 'KHAIGIANG20', 'Giảm 20% Chào Kỳ Mới', 'Giảm 20% tối đa 15K cho đơn từ 35.000đ', 'PERCENTAGE', 20, 35000, {
       maxDiscount: 15000,
@@ -345,13 +539,19 @@ export class DatabaseService {
       usageLimit: 1000,
       usedCount: 310,
     });
-    const v3 = new Voucher('vouch-3', 'BANMOI10K', 'Tặng 10K Sinh Viên Mới', 'Giảm trực tiếp 10K đơn đầu tiên', 'FIXED', 10000, 25000, {
+    const v3 = new Voucher('vouch-3', 'COMBO29K', 'Ưu Đãi Bữa Tối 29K', 'Giảm trực tiếp 9.000đ khi đặt combo cơm tấm', 'FIXED', 9000, 38000, {
       usageLimit: 300,
-      usedCount: 88,
+      usedCount: 89,
+    });
+    const v4 = new Voucher('vouch-4', 'UNIEAT50', 'Giảm 50% Món Thứ Hai', 'Giảm 50% tối đa 20.000đ cho đơn từ 60.000đ', 'PERCENTAGE', 50, 60000, {
+      maxDiscount: 20000,
+      usageLimit: 200,
+      usedCount: 45,
     });
     this.vouchers.set(v1.id, v1);
     this.vouchers.set(v2.id, v2);
     this.vouchers.set(v3.id, v3);
+    this.vouchers.set(v4.id, v4);
 
     // 7. Group 7: Reviews & Notifications
     const r1 = new Review('rev-1', user1.id, user1.name, 'PRODUCT', prod1.id, 5, 'Đùi gà giòn rụm, xốt mắm thơm phức, ăn kèm dưa chuột rất vừa miệng!', {

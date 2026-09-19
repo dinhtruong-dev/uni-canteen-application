@@ -18,7 +18,7 @@ interface FlashSaleSectionProps {
 }
 
 export const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ onSelectFood }) => {
-  const { foods, addToCart, toggleFavorite, isFavorite, navigateTo } = useApp();
+  const { foods, flashSales, addToCart, toggleFavorite, isFavorite, navigateTo } = useApp();
 
   // Timer state: 2 hours 15 mins countdown
   const [timeLeft, setTimeLeft] = useState({
@@ -44,8 +44,8 @@ export const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ onSelectFood
     return () => clearInterval(timer);
   }, []);
 
-  // Map foods to flash sale deals
-  const flashSaleDeals: FlashSaleItem[] = [
+  // Map foods to flash sale deals (Dynamic from DB with fallback)
+  const fallbackDeals: FlashSaleItem[] = [
     {
       food: foods[0] || {
         id: 'food-1',
@@ -159,6 +159,38 @@ export const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ onSelectFood
       badge: '-36%',
     },
   ];
+
+  const flashSaleDeals: FlashSaleItem[] =
+    flashSales && flashSales.length > 0
+      ? flashSales.map((fs) => {
+          const foundFood = foods.find((f) => f.id === fs.productId);
+          const food: FoodItem = foundFood || {
+            id: fs.productId,
+            name: fs.productName,
+            canteenId: 'cant-a',
+            canteenName: 'Căng tin A2',
+            categoryId: 'cat-1',
+            price: fs.salePrice,
+            originalPrice: fs.originalPrice,
+            image: fs.productImage,
+            description: fs.description || '',
+            ingredients: ['Gia vị truyền thống'],
+            isBestSeller: true,
+            isAvailable: true,
+            rating: 4.9,
+            reviewCount: 180,
+            preparationTime: 10,
+          };
+          return {
+            food,
+            flashPrice: fs.salePrice,
+            originalPrice: fs.originalPrice,
+            soldCount: fs.soldSlots,
+            totalStock: fs.totalSlots,
+            badge: fs.discountPercent ? `-${fs.discountPercent}%` : 'GIỜ VÀNG',
+          };
+        })
+      : fallbackDeals;
 
   const formatTime = (num: number) => (num < 10 ? `0${num}` : `${num}`);
 

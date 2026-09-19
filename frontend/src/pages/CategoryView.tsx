@@ -26,9 +26,10 @@ interface CategoryViewProps {
 }
 
 export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId }) => {
-  const { foods, canteens, selectedCanteen, viewParams, navigateTo, addToCart, showToast } = useApp();
+  const { foods, canteens, selectedCanteen, viewParams, navigateTo, addToCart, showToast, categories } = useApp();
+  const activeCategories = categories && categories.length > 0 ? categories : MOCK_CATEGORIES;
 
-  const initialCatId = categoryId || viewParams?.category || viewParams?.categoryId || MOCK_CATEGORIES[0]?.id || 'cat-1';
+  const initialCatId = categoryId || viewParams?.category || viewParams?.categoryId || activeCategories[0]?.id || 'cat-1';
   const [selectedCatId, setSelectedCatId] = useState<string>(initialCatId);
   const [searchQuery, setSearchQuery] = useState<string>(viewParams?.search || '');
   const [selectedCanteenId, setSelectedCanteenId] = useState<string>(
@@ -53,8 +54,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId }) => {
   }, [viewParams]);
 
   const currentCategory = useMemo(() => {
-    return MOCK_CATEGORIES.find((c) => c.id === selectedCatId) || MOCK_CATEGORIES[0];
-  }, [selectedCatId]);
+    return activeCategories.find((c) => c.id === selectedCatId) || activeCategories[0];
+  }, [selectedCatId, activeCategories]);
 
   const handleShare = () => {
     if (navigator.share) {
@@ -271,7 +272,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId }) => {
           ref={categoryScrollRef}
           className="flex items-center gap-2 overflow-x-auto no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth pt-2"
         >
-          {MOCK_CATEGORIES.map((cat) => {
+          {activeCategories.map((cat) => {
             const isSelected = cat.id === selectedCatId;
             return (
               <button

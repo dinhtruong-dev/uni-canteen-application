@@ -49,10 +49,13 @@ export const AdminDashboardView: React.FC = () => {
     toggleFoodAvailability,
     deleteFood,
     promotions,
+    categories,
     topUpWallet,
     showToast,
     switchUserRole,
   } = useApp();
+
+  const activeCategories = categories && categories.length > 0 ? categories : MOCK_CATEGORIES;
 
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'USERS' | 'CANTEENS' | 'FOODS' | 'PROMOS'>('OVERVIEW');
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
@@ -175,7 +178,7 @@ export const AdminDashboardView: React.FC = () => {
     }
 
     const matchedCanteen = canteens.find((c) => c.id === formCanteenId);
-    const matchedCategory = MOCK_CATEGORIES.find((cat) => cat.id === formCategoryId);
+    const matchedCategory = activeCategories.find((cat) => cat.id === formCategoryId);
 
     const ingredientsArray = formIngredients
       .split(',')
@@ -573,7 +576,7 @@ export const AdminDashboardView: React.FC = () => {
                 className="bg-slate-100 border border-transparent focus:border-orange-500 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 outline-hidden"
               >
                 <option value="ALL">Tất cả Danh Mục</option>
-                {MOCK_CATEGORIES.map((cat) => (
+                {activeCategories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
                   </option>
@@ -1043,7 +1046,7 @@ export const AdminDashboardView: React.FC = () => {
                     onChange={(e) => setFormCategoryId(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:border-orange-500 focus:bg-white rounded-xl font-bold text-slate-900 outline-hidden"
                   >
-                    {MOCK_CATEGORIES.map((cat) => (
+                    {activeCategories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.name}
                       </option>

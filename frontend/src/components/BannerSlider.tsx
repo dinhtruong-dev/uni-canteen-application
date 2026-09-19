@@ -1,19 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useApp } from '../context/AppContext';
+import { BannerItem } from '../types';
 
-interface BannerItem {
-  id: string;
-  badge: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  image: string;
-  badgeBg: string;
-  promoCode?: string;
-}
-
-const BANNERS: BannerItem[] = [
+const DEFAULT_BANNERS: BannerItem[] = [
   {
     id: 'banner-1',
     badge: '🎁 MUA 1 TẶNG 1',
@@ -61,28 +52,30 @@ interface BannerSliderProps {
 }
 
 export const BannerSlider: React.FC<BannerSliderProps> = ({ onBannerClick }) => {
+  const { banners } = useApp();
+  const activeBanners = banners && banners.length > 0 ? banners : DEFAULT_BANNERS;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     if (isHovered) return;
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % BANNERS.length);
+      setCurrentIndex((prev) => (prev + 1) % activeBanners.length);
     }, 4500);
     return () => clearInterval(interval);
-  }, [isHovered]);
+  }, [isHovered, activeBanners.length]);
 
   const handleNext = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setCurrentIndex((prev) => (prev + 1) % BANNERS.length);
+    setCurrentIndex((prev) => (prev + 1) % activeBanners.length);
   };
 
   const handlePrev = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setCurrentIndex((prev) => (prev - 1 + BANNERS.length) % BANNERS.length);
+    setCurrentIndex((prev) => (prev - 1 + activeBanners.length) % activeBanners.length);
   };
 
-  const currentBanner = BANNERS[currentIndex];
+  const currentBanner = activeBanners[currentIndex % activeBanners.length] || activeBanners[0];
 
   return (
     <div
@@ -159,7 +152,7 @@ export const BannerSlider: React.FC<BannerSliderProps> = ({ onBannerClick }) => 
 
         {/* Centered Indicator Dots */}
         <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-slate-900/60 backdrop-blur-xs px-2.5 py-1 rounded-full">
-          {BANNERS.map((_, idx) => (
+          {activeBanners.map((_, idx) => (
             <button
               key={idx}
               onClick={(e) => {
