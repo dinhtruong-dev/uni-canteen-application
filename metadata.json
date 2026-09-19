@@ -1,0 +1,6 @@
+{
+  "name": "UniEat - Canteen Food Ordering",
+  "description": "Hệ thống đặt món và quản lý căng tin trường đại học với 3 hình thức: Ăn tại bàn (QR), Nhận tại quầy và Giao tận phòng.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
