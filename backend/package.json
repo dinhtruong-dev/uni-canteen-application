@@ -1,6 +1,7 @@
 {
   "name": "unieat-backend",
   "version": "1.0.0",
+  "type": "module",
   "description": "UniEat Campus Canteen & Food Delivery - Node.js Express Backend API",
   "main": "src/server.ts",
   "scripts": {

@@ -2,10 +2,10 @@ import express from 'express';
 import http from 'http';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import apiRouter from './server/routes/api';
-import { requestLogger } from './server/middlewares/logger.middleware';
-import { errorHandler } from './server/middlewares/errorHandler.middleware';
-import { socketManager } from './server/socket';
+import apiRouter from './backend/src/routes/api';
+import { requestLogger } from './backend/src/middlewares/logger.middleware';
+import { errorHandler } from './backend/src/middlewares/errorHandler.middleware';
+import { socketManager } from './backend/src/socket';
 
 async function startServer() {
   const app = express();
