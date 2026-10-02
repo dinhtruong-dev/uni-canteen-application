@@ -1,9 +1,39 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi">
   <head>
+    <script>
+      (function() {
+        try {
+          var proto = window;
+          var desc = Object.getOwnPropertyDescriptor(proto, 'fetch');
+          while (!desc && proto) {
+            proto = Object.getPrototypeOf(proto);
+            if (proto) desc = Object.getOwnPropertyDescriptor(proto, 'fetch');
+          }
+          if (desc && desc.get && !desc.set) {
+            var activeFetch = window.fetch;
+            Object.defineProperty(window, 'fetch', {
+              get: function() {
+                return activeFetch;
+              },
+              set: function(newFetch) {
+                activeFetch = typeof newFetch === 'function' ? newFetch : activeFetch;
+              },
+              configurable: true,
+              enumerable: true
+            });
+          }
+        } catch (err) {
+          // Graceful ignore
+        }
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>S-Canteen - Căng tin sinh viên</title>
+    <title>UniEat - Canteen Food Ordering</title>
+    <meta name="description" content="Hệ thống đặt món và quản lý căng tin trường đại học với 3 hình thức: Ăn tại bàn (QR), Nhận tại quầy và Giao tận phòng." />
+    <meta property="og:title" content="UniEat - Canteen Food Ordering" />
+    <meta property="og:description" content="Hệ thống đặt món và quản lý căng tin trường đại học với 3 hình thức: Ăn tại bàn (QR), Nhận tại quầy và Giao tận phòng." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">

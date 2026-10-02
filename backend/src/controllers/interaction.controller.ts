@@ -16,12 +16,16 @@ export class InteractionController {
   public createReview(req: AuthenticatedRequest, res: Response) {
     const userId = req.user?.id || 'user-stu-1';
     const userName = req.user?.name || 'Sinh viên';
-    const review = interactionService.createReview({
-      ...req.body,
-      userId,
-      userName,
-    });
-    res.status(201).json({ success: true, message: 'Cảm ơn bạn đã gửi đánh giá!', data: review.toJSON() });
+    try {
+      const review = interactionService.createReview({
+        ...req.body,
+        userId,
+        userName,
+      });
+      res.status(201).json({ success: true, message: 'Cảm ơn bạn đã gửi đánh giá!', data: review.toJSON() });
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message || 'Không thể gửi đánh giá' });
+    }
   }
 
   // Notifications

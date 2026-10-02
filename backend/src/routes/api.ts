@@ -9,6 +9,9 @@ import orderRoutes from './order.routes';
 import paymentRoutes from './payment.routes';
 import marketingRoutes from './marketing.routes';
 import interactionRoutes from './interaction.routes';
+import canteenRoutes from './canteen.routes';
+import searchRoutes from './search.routes';
+import staffRoutes from './staff.routes';
 
 const apiRouter = Router();
 
@@ -44,11 +47,18 @@ apiRouter.use('/upload', uploadRoutes);
 // Group 1: Nhóm Người dùng & Hồ sơ cá nhân
 apiRouter.use('/users', userRoutes);
 
-// Group 2: Nhóm Vận hành & Cơ sở vật chất
+// Group 2: Nhóm Vận hành & Cơ sở vật chất (Bàn ăn & Căng tin)
 apiRouter.use('/tables', tableRoutes);
+apiRouter.use('/canteens', canteenRoutes);
 
-// Group 3: Nhóm Thực đơn (Menu)
+// Group 3: Nhóm Thực đơn (Menu) & Tìm kiếm (Search)
 apiRouter.use('/menu', menuRoutes);
+
+/**
+ * /api/search
+ * Search endpoint with server-side pagination, canteens, and dynamic search history
+ */
+apiRouter.use('/search', searchRoutes);
 // Direct aliases for convenience:
 apiRouter.get('/categories', (req, res, next) => {
   req.url = '/categories';
@@ -99,6 +109,13 @@ apiRouter.use('/reviews', (req, res, next) => {
 apiRouter.use('/notifications', (req, res, next) => {
   req.url = `/notifications${req.url === '/' ? '' : req.url}`;
   interactionRoutes(req, res, next);
+});
+
+// Group 8: Staff Canteen Management & Operations
+apiRouter.use('/staff', staffRoutes);
+apiRouter.use('/pickup-slots', (req, res, next) => {
+  req.url = `/pickup-slots${req.url === '/' ? '' : req.url}`;
+  staffRoutes(req, res, next);
 });
 
 export default apiRouter;

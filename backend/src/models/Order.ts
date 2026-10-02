@@ -6,6 +6,7 @@ export type OrderStatus =
   | 'CONFIRMED'
   | 'PREPARING'
   | 'READY'
+  | 'WAITING_PICKUP'
   | 'DELIVERING'
   | 'COMPLETED'
   | 'CANCELLED';
@@ -29,6 +30,7 @@ export class Order {
   public tableId?: string;
   public tableNumber?: string;
   public pickupSlot?: string;
+  public pickupCode?: string;
   public deliveryAddressId?: string;
   public deliveryAddressText?: string;
   public paymentMethod: PaymentMethod;
@@ -53,6 +55,7 @@ export class Order {
       tableId?: string;
       tableNumber?: string;
       pickupSlot?: string;
+      pickupCode?: string;
       deliveryAddressId?: string;
       deliveryAddressText?: string;
       status?: OrderStatus;
@@ -80,6 +83,7 @@ export class Order {
     this.tableId = options?.tableId;
     this.tableNumber = options?.tableNumber;
     this.pickupSlot = options?.pickupSlot;
+    this.pickupCode = options?.pickupCode || (orderType === 'TAKEAWAY' ? `PK-${orderCode.slice(-4)}` : undefined);
     this.deliveryAddressId = options?.deliveryAddressId;
     this.deliveryAddressText = options?.deliveryAddressText;
     this.status = options?.status || 'PENDING';
@@ -126,6 +130,7 @@ export class Order {
       tableId: this.tableId,
       tableNumber: this.tableNumber,
       pickupSlot: this.pickupSlot,
+      pickupCode: this.pickupCode,
       deliveryAddressId: this.deliveryAddressId,
       deliveryAddressText: this.deliveryAddressText,
       paymentMethod: this.paymentMethod,

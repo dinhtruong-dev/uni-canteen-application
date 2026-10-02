@@ -68,11 +68,15 @@ export const HomeView: React.FC = () => {
   ];
 
   const handleSelectOrderMode = (mode: OrderType) => {
-    setOrderType(mode);
     if (mode === 'DINE_IN') {
+      setOrderType('DINE_IN');
       navigateTo('qr-scanner');
-    } else {
-      navigateTo('category');
+    } else if (mode === 'DELIVERY') {
+      // Mở sang trang mới chọn địa chỉ nhận món KTX
+      navigateTo('delivery-location');
+    } else if (mode === 'PICKUP') {
+      // Mở sang trang mới chọn Căng tin nhận món tại quầy
+      navigateTo('select-canteen');
     }
   };
 
@@ -110,8 +114,8 @@ export const HomeView: React.FC = () => {
           className="relative flex items-center bg-white rounded-2xl border border-[#E9DDE3] hover:border-[#FF4F8B] shadow-2xs hover:shadow-xs transition-all cursor-pointer group min-h-[52px] sm:min-h-[56px]"
         >
           <Search className="w-5 h-5 text-[#FF4F8B] absolute left-4 top-1/2 -translate-y-1/2 group-hover:scale-110 transition-transform pointer-events-none" />
-          <div className="w-full pl-12 pr-28 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-semibold text-[#94A3B8] select-none flex items-center">
-            <span>Bạn muốn ăn gì hôm nay?...</span>
+          <div className="w-full pl-12 pr-28 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-semibold text-[#94A3B8] select-none flex items-center truncate">
+            <span>Matcha Vibe - Matcha Latte Từ 26K</span>
           </div>
 
           <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -278,7 +282,7 @@ export const HomeView: React.FC = () => {
               key={canteen.id}
               onClick={() => {
                 setSelectedCanteen(canteen);
-                navigateTo('category');
+                navigateTo('category', { canteenId: canteen.id, canteen, fromView: 'home' });
               }}
               className="bg-white rounded-2xl border border-[#E9DDE3] p-3 shadow-xs hover:shadow-md hover:border-[#FF4F8B] transition-all flex items-center gap-3.5 group cursor-pointer"
             >

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { menuService } from '../services/menu.service';
+import { db } from '../services/database.service';
 
 export class MenuController {
   public getCategories(_req: Request, res: Response) {
@@ -35,6 +36,23 @@ export class MenuController {
         ...product.toJSON(),
         options,
       },
+    });
+  }
+
+  public toggleAvailability(req: Request, res: Response) {
+    const product = db.products.get(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy món ăn' });
+    }
+    if (typeof req.body.isAvailable === 'boolean') {
+      product.isAvailable = req.body.isAvailable;
+    } else {
+      product.isAvailable = !product.isAvailable;
+    }
+    return res.json({
+      success: true,
+      message: `Đã cập nhật món "${product.name}": ${product.isAvailable ? 'Còn món' : 'Đã báo hết món'}`,
+      data: product.toJSON(),
     });
   }
 }

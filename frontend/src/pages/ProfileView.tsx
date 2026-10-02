@@ -32,6 +32,7 @@ import {
   UserCog,
   Store,
   ShieldAlert,
+  Flame,
 } from 'lucide-react';
 
 export const ProfileView: React.FC<{ onOpenWalletModal: () => void }> = ({ onOpenWalletModal }) => {
@@ -386,6 +387,26 @@ export const ProfileView: React.FC<{ onOpenWalletModal: () => void }> = ({ onOpe
               <span className="text-xs">Quản Trị</span>
             </button>
           </div>
+
+          {/* Màn hình Bếp KDS chuyên dụng */}
+          <button
+            type="button"
+            onClick={() => navigateTo('kitchen-kds')}
+            className="w-full mt-2 p-3.5 rounded-xl bg-gradient-to-r from-rose-600 via-amber-600 to-emerald-600 text-white font-black text-xs flex items-center justify-between shadow-lg hover:opacity-95 transition-all cursor-pointer border border-white/20 active:scale-[0.98]"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="p-1.5 rounded-lg bg-white/20">
+                <Flame className="w-4 h-4 fill-white text-white" />
+              </span>
+              <div className="text-left">
+                <div className="font-black text-xs text-white">Màn Hình Bếp - KDS Căng Tin</div>
+                <div className="text-[10px] text-white/80 font-bold">Tối ưu cảm ứng ngang & máy tính bàn</div>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-md bg-white/20 text-[10px] font-black uppercase tracking-wider">
+              Mở KDS →
+            </span>
+          </button>
         </div>
       </div>
 

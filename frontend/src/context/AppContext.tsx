@@ -31,13 +31,14 @@ import {
   MOCK_TABLES,
   MOCK_CATEGORIES,
 } from '../data/mockData';
-import { initSocket } from '../services/socket.client';
+import { initSocket, getSocket } from '../services/socket.client';
 import {
   menuService,
   marketingService,
   tableService,
   orderService,
   authService,
+  canteenApiService,
 } from '../services/api';
 
 interface ToastMessage {
@@ -197,13 +198,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const refreshData = async () => {
     setIsLoadingData(true);
     try {
-      const [bannersRes, flashSalesRes, vouchersRes, foodsRes, catsRes, tablesRes] = await Promise.allSettled([
+      const [bannersRes, flashSalesRes, vouchersRes, foodsRes, catsRes, tablesRes, canteensRes] = await Promise.allSettled([
         marketingService.getBanners(),
         marketingService.getFlashSales(),
         marketingService.getVouchers(),
         menuService.getProducts(),
         menuService.getCategories(),
         tableService.getTables(),
+        canteenApiService.getCanteens(),
       ]);
 
       if (bannersRes.status === 'fulfilled' && bannersRes.value.length > 0) {
@@ -223,6 +225,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       if (tablesRes.status === 'fulfilled' && tablesRes.value.length > 0) {
         setDiningTables(tablesRes.value);
+      }
+      if (canteensRes.status === 'fulfilled' && canteensRes.value.length > 0) {
+        setCanteens(canteensRes.value);
+        setSelectedCanteen((prev) => {
+          if (!prev) return canteensRes.value[0];
+          const found = canteensRes.value.find((c) => c.id === prev.id);
+          return found || canteensRes.value[0];
+        });
       }
     } catch (err) {
       console.warn('[AppContext] API fetch warning:', err);
@@ -262,13 +272,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
 
-  // Navigation state
-  const [currentView, setCurrentView] = useState<string>('landing');
+  // Navigation state - default to 'home' so taskbar and mobile food app are immediately visible
+  const [currentView, setCurrentView] = useState<string>(() => {
+    const saved = localStorage.getItem('unieat_current_view');
+    return (saved && saved !== 'landing') ? saved : 'home';
+  });
   const [viewParams, setViewParams] = useState<Record<string, any>>({});
 
   const navigateTo = (view: string, params: Record<string, any> = {}) => {
     setCurrentView(view);
     setViewParams(params);
+    localStorage.setItem('unieat_current_view', view);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -309,16 +323,94 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('unieat_wallet_tx', JSON.stringify(walletTransactions));
   }, [walletTransactions]);
 
+  // Real-time Audio Alert (Web Audio API Synthesizer)
+  const playAudioTone = (tone: 'bell' | 'ding') => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      if (tone === 'bell') {
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.38);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.38);
+      } else {
+        osc.frequency.setValueAtTime(784, ctx.currentTime);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+      }
+    } catch {
+      // Audio playback requires user interaction
+    }
+  };
+
   // Real-time Socket.IO Connection & Event Handlers
   useEffect(() => {
     if (!currentUser) return;
     const socket = initSocket(currentUser.id, currentUser.role);
 
-    // 1. New incoming order (for canteen staff & admin)
+    // Join staff channel if role is staff or admin
+    if (currentUser.role === 'STAFF' || currentUser.role === 'ADMIN') {
+      socket.emit('staff:join', { canteenId: 'cant-a' });
+    }
+
+    // 1. New incoming order (for canteen staff & kitchen KDS & admin)
     socket.on('order:new', (orderData: any) => {
       console.log('[Socket.IO] New order received by staff:', orderData);
+      
+      // Auto prepend order to orders state so staff dashboard and orders list update in real time
+      setOrders((prev) => {
+        const orderId = orderData.id || orderData.orderCode;
+        const exists = prev.some((o) => o.id === orderId || o.orderCode === orderData.orderCode);
+        if (exists) return prev;
+
+        const transformed: Order = {
+          id: orderData.id || `ord-${Date.now()}`,
+          orderNumber: orderData.orderCode ? `#${orderData.orderCode}` : (orderData.orderNumber || `#ORD-${Date.now()}`),
+          userId: orderData.userId || 'guest',
+          userName: orderData.userName || 'Sinh viên UniEat',
+          userPhone: orderData.userPhone || '',
+          orderType: orderData.orderType === 'TAKEAWAY' ? 'PICKUP' : (orderData.orderType || 'PICKUP'),
+          canteenId: orderData.canteenId || 'cant-a',
+          canteenName: orderData.canteenName || 'Căng tin A2',
+          items: orderData.items || [],
+          subtotal: orderData.subtotal || orderData.finalAmount || orderData.totalAmount || 0,
+          shippingFee: orderData.shippingFee || 0,
+          discountAmount: orderData.discountAmount || 0,
+          totalAmount: orderData.finalAmount || orderData.totalAmount || 0,
+          paymentMethod: orderData.paymentMethod || 'CASH',
+          paymentStatus: orderData.isPaid ? 'PAID' : 'UNPAID',
+          status: orderData.status || 'PENDING',
+          createdAt: new Date(orderData.createdAt || Date.now()).toLocaleString('vi-VN'),
+          estimatedTime: orderData.pickupSlot || '15 phút',
+          tableInfo: orderData.tableNumber ? ({ tableNumber: orderData.tableNumber, id: orderData.tableId } as any) : undefined,
+          pickupTimeSlot: orderData.pickupSlot,
+          deliveryAddress: orderData.deliveryAddressText ? ({ building: orderData.deliveryAddressText, room: '', phone: orderData.userPhone } as any) : undefined,
+          notes: orderData.notes,
+          qrCodeValue: `UNI-${orderData.orderCode || orderData.id}`,
+          timeline: [
+            { status: 'PENDING', title: 'Đã nhận đơn', description: 'Đang chờ bếp', time: 'Vừa xong', completed: true },
+            { status: 'CONFIRMED', title: 'Xác nhận', description: '', time: '--:--', completed: false },
+            { status: 'PREPARING', title: 'Đang nấu', description: '', time: '--:--', completed: false },
+            { status: 'READY', title: 'Chờ lấy / giao', description: '', time: '--:--', completed: false },
+            { status: 'COMPLETED', title: 'Hoàn thành', description: '', time: '--:--', completed: false },
+          ],
+        };
+        return [transformed, ...prev];
+      });
+
       if (currentUser.role === 'STAFF' || currentUser.role === 'ADMIN') {
-        showToast(`🔔 Đơn hàng mới: #${orderData.orderCode} - ${orderData.finalAmount?.toLocaleString()}đ`, 'info');
+        playAudioTone('bell');
+        const amt = (orderData.finalAmount || orderData.totalAmount || 0).toLocaleString('vi-VN');
+        showToast(`🔔 Đơn hàng mới: #${orderData.orderCode || orderData.id} - ${amt}đ`, 'info');
       }
     });
 
@@ -327,24 +419,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.log('[Socket.IO] Order status update:', orderData);
       const statusLabels: Record<string, string> = {
         CONFIRMED: 'Đã tiếp nhận',
-        PREPARING: 'Đang chuẩn bị',
-        READY: 'Đã xong - Mời nhận món',
+        PREPARING: 'Đang chế biến trong bếp',
+        READY: 'Đã sẵn sàng - Mời bạn nhận món',
+        WAITING_PICKUP: 'Sẵn sàng - Chờ khách nhận',
         DELIVERING: 'Đang giao tận phòng',
-        COMPLETED: 'Hoàn thành',
+        COMPLETED: 'Đã hoàn thành',
         CANCELLED: 'Đã hủy',
       };
       const label = statusLabels[orderData.status] || orderData.status;
 
       setOrders((prev) =>
-        prev.map((o) => (o.id === orderData.id || o.orderCode === orderData.orderCode ? { ...o, status: orderData.status } : o))
+        prev.map((o) => {
+          if (o.id === orderData.id || o.orderCode === orderData.orderCode || o.orderNumber === `#${orderData.orderCode}`) {
+            const updatedTimeline = o.timeline.map((t) =>
+              t.status === orderData.status
+                ? { ...t, completed: true, time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) }
+                : t
+            );
+            return { ...o, status: orderData.status, timeline: updatedTimeline };
+          }
+          return o;
+        })
       );
 
       if (orderData.userId === currentUser.id) {
-        showToast(`Đơn hàng #${orderData.orderCode || orderData.id}: ${label}`, 'success');
+        playAudioTone('ding');
+        showToast(`🎉 Đơn hàng #${orderData.orderCode || orderData.id}: ${label}`, 'success');
       }
     });
 
-    // 3. System & Promotional Notifications
+    // 3. Direct chat alerts between customer and staff
+    socket.on('customer:chat:alert', (payload: any) => {
+      if (!payload.targetUserId || payload.targetUserId === currentUser.id) {
+        playAudioTone('ding');
+        showToast(`💬 Căn tin: "${payload.message}"`, 'info');
+      }
+    });
+
+    socket.on('staff:chat:alert', (payload: any) => {
+      if (currentUser.role === 'STAFF' || currentUser.role === 'ADMIN') {
+        playAudioTone('ding');
+        showToast(`💬 Khách nhắn [Đơn ${payload.orderId}]: "${payload.message}"`, 'info');
+      }
+    });
+
+    // 4. System & Promotional Notifications
     socket.on('notification:received', (notif: any) => {
       setNotifications((prev) => [
         {
@@ -361,20 +480,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast(`📢 ${notif.title}`, 'info');
     });
 
+    // 5. Customer call order event (kitchen/staff calls customer to pickup ready order)
+    socket.on('customer:call_order', (payload: any) => {
+      console.log('[Socket.IO] customer:call_order received:', payload);
+      if (!payload.targetUserId || payload.targetUserId === currentUser.id) {
+        playAudioTone('bell');
+        showToast(
+          `📢 MỜI NHẬN MÓN! Đơn #${payload.orderCode}: Món ăn đã sẵn sàng tại quầy, mời bạn đến lấy!`,
+          'success'
+        );
+      }
+    });
+
     return () => {
       socket.off('order:new');
       socket.off('order:status_updated');
+      socket.off('customer:chat:alert');
+      socket.off('staff:chat:alert');
       socket.off('notification:received');
+      socket.off('customer:call_order');
     };
   }, [currentUser?.id, currentUser?.role]);
 
-  // Toast Helpers (Disabled as requested)
-  const showToast = (_message: string, _type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
-    // Toast notifications completely disabled
+  // Modern animated Toast Helpers
+  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+    const newToast: ToastMessage = { id, message, type };
+    setToasts((prev) => [...prev.slice(-3), newToast]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4500);
   };
 
-  const removeToast = (_id: string) => {
-    setToasts([]);
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
   // Auth Operations (JWT + Bcrypt Integration)
@@ -500,10 +639,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Canteens & Foods
-  const toggleCanteenStatus = (canteenId: string) => {
+  const toggleCanteenStatus = async (canteenId: string) => {
     setCanteens((prev) =>
       prev.map((c) => (c.id === canteenId ? { ...c, isOpen: !c.isOpen } : c))
     );
+    try {
+      await canteenApiService.toggleStatus(canteenId);
+    } catch (err) {
+      console.warn('Failed to sync canteen status with backend:', err);
+    }
     showToast('Đã cập nhật trạng thái hoạt động căng tin!', 'success');
   };
 
@@ -763,6 +907,78 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setOrders((prev) => [newOrder, ...prev]);
     clearCart();
 
+    // 1. Emit direct via Socket.IO for 0ms latency to Kitchen KDS and Staff Dashboard
+    try {
+      const socket = getSocket();
+      if (socket) {
+        socket.emit('order:place', {
+          id: newOrder.id,
+          orderCode: orderNum.replace('#', ''),
+          orderNumber: orderNum,
+          userId: currentUser.id,
+          userName: currentUser.name,
+          userPhone: currentUser.phone || '0912 345 678',
+          canteenId: chosenCanteen.id,
+          canteenName: chosenCanteen.name,
+          orderType: newOrder.orderType,
+          status: 'PENDING',
+          paymentMethod,
+          finalAmount: totalAmount,
+          totalAmount,
+          subtotal,
+          shippingFee,
+          discountAmount,
+          items: newOrder.items.map((it) => ({
+            productId: it.food.id,
+            productName: it.food.name,
+            productImage: it.food.image,
+            quantity: it.quantity,
+            unitPrice: it.unitPrice,
+            notes: it.notes,
+            selectedOptions: it.selectedToppings?.map((t) => ({ optionName: t.name, price: t.price })),
+          })),
+          tableNumber: tableInfo?.tableNumber,
+          pickupSlot: pickupTimeSlot,
+          deliveryAddressText: deliveryAddress ? `${deliveryAddress.room}, ${deliveryAddress.building}` : undefined,
+          notes,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    } catch (sockErr) {
+      console.warn('[Socket order:place error]:', sockErr);
+    }
+
+    // 2. Persist to backend database via REST API
+    (async () => {
+      try {
+        const payload = {
+          orderType: newOrder.orderType === 'PICKUP' ? 'TAKEAWAY' : newOrder.orderType,
+          paymentMethod: newOrder.paymentMethod === 'STUDENT_WALLET' ? 'STUDENT_WALLET' : newOrder.paymentMethod,
+          canteenId: chosenCanteen.id,
+          canteenName: chosenCanteen.name,
+          tableId: tableInfo?.id,
+          tableNumber: tableInfo?.tableNumber,
+          pickupSlot: pickupTimeSlot,
+          deliveryAddressText: deliveryAddress ? `${deliveryAddress.room}, ${deliveryAddress.building}` : undefined,
+          notes,
+          items: newOrder.items.map((it) => ({
+            productId: it.food.id,
+            productName: it.food.name,
+            productImage: it.food.image,
+            quantity: it.quantity,
+            unitPrice: it.unitPrice,
+            notes: it.notes,
+          })),
+        };
+        const res = await orderService.createOrder(payload);
+        if (res?.success && res.data?.order) {
+          console.log('[Order Created Sync with Backend]:', res.data.order);
+        }
+      } catch (apiErr) {
+        console.warn('[Backend order sync warning]:', apiErr);
+      }
+    })();
+
     // Create Notification
     const newNotif: Notification = {
       id: `notif-${Date.now()}`,
@@ -782,6 +998,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Update Order Status (for Staff/Admin & simulation)
   const updateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
     const timeNow = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+    // Sync to backend
+    orderService.updateOrderStatus(orderId, newStatus).catch(() => {});
 
     setOrders((prev) =>
       prev.map((order) => {

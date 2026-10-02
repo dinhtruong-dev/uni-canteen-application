@@ -1,79 +1,148 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { Home, ShoppingBag, User, Bell, Heart } from 'lucide-react';
+import { Home, Clock, Heart, User, Bell, ShoppingBag } from 'lucide-react';
 
 export const BottomNavigation: React.FC = () => {
-  const { currentView, navigateTo, cart, currentUser, unreadNotifCount, favorites } = useApp();
+  const { currentView, navigateTo, cart, unreadNotifCount } = useApp();
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
 
-  if (currentUser.role !== 'STUDENT') return null;
+  // Khi chuyển giữa các tab chính, luôn hiển thị taskbar
+  useEffect(() => {
+    setIsVisible(true);
+    lastScrollYRef.current = window.scrollY || document.documentElement.scrollTop;
+  }, [currentView]);
+
+  // Hiệu ứng cuộn: ở trang 'orders' (Hoạt động) taskbar cố định KHÔNG cuộn xuống;
+  // còn ở 'home' (Trang chủ), 'favorites' (Yêu thích), 'notifications' (Thông báo), 'profile' (Tài khoản) khi kéo xuống sẽ cuộn ẩn, kéo lên hiện lại
+  const scrollHideViews = ['home', 'favorites', 'notifications', 'profile'];
+
+  useEffect(() => {
+    // Nếu trang hiện tại không thuộc nhóm cuộn ẩn (ví dụ: 'orders' - Hoạt động), taskbar luôn cố định hiển thị
+    if (!scrollHideViews.includes(currentView)) {
+      setIsVisible(true);
+      return;
+    }
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+
+      // Khi ở gần đầu trang luôn hiển thị
+      if (currentScrollY < 60) {
+        setIsVisible(true);
+        lastScrollYRef.current = currentScrollY;
+        return;
+      }
+
+      const diff = currentScrollY - lastScrollYRef.current;
+      // Ngưỡng di chuyển để phản hồi êm mượt
+      if (Math.abs(diff) > 8) {
+        if (diff > 0) {
+          // Kéo xuống -> ẩn taskbar
+          setIsVisible(false);
+        } else {
+          // Kéo lên -> hiện taskbar
+          setIsVisible(true);
+        }
+        lastScrollYRef.current = currentScrollY;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [currentView]);
+
+  // Các trang chính thuộc thanh Taskbar điều hướng
+  const isTaskbarView = ['home', 'orders', 'favorites', 'notifications', 'profile'].includes(currentView);
+
+  // Chỉ ẩn thanh Taskbar khi ở các trang con (chi tiết món ăn, thanh toán, quản trị...)
+  if (!isTaskbarView) {
+    return null;
+  }
 
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const navItems = [
     { id: 'home', label: 'Trang chủ', icon: Home },
-    { id: 'favorites', label: 'Yêu thích', icon: Heart, badge: favorites.length, isHeart: true },
-    { id: 'orders', label: 'Đơn hàng', icon: ShoppingBag },
+    { id: 'orders', label: 'Hoạt động', icon: Clock },
+    { id: 'favorites', label: 'Yêu thích', icon: Heart },
     { id: 'notifications', label: 'Thông báo', icon: Bell, badge: unreadNotifCount },
     { id: 'profile', label: 'Tài khoản', icon: User },
   ];
 
   return (
-    <>
-      {/* Floating Circular Cart Button */}
-      <div className="fixed bottom-16 right-4 sm:right-8 z-50">
+    <div
+      className={`fixed bottom-4 left-0 right-0 z-50 pointer-events-none flex items-center justify-center px-4 transition-all duration-300 ease-in-out ${
+        isVisible
+          ? 'translate-y-0 opacity-100'
+          : 'translate-y-24 opacity-0 pointer-events-none'
+      }`}
+    >
+      <div className="flex items-center gap-3 pointer-events-auto">
+        {/* Floating Capsule Taskbar */}
+        <nav
+          id="app-bottom-taskbar"
+          className="bg-[#edf1f3]/90 backdrop-blur-xl border border-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.1)] rounded-full px-3.5 sm:px-5 py-1.5 flex items-center gap-2 sm:gap-4"
+        >
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              currentView === item.id ||
+              (item.id === 'orders' && currentView === 'order-detail');
+
+            return (
+              <button
+                key={item.id}
+                id={`taskbar-btn-${item.id}`}
+                onClick={() => navigateTo(item.id)}
+                className={`relative flex items-center justify-center rounded-full transition-all cursor-pointer ${
+                  isActive
+                    ? 'w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-tr from-[#9af4ed] to-[#cbfcf8] text-[#007068] shadow-xs scale-105'
+                    : 'w-10 h-10 text-slate-500 hover:text-slate-900 hover:bg-white/50'
+                }`}
+                aria-label={item.label}
+                title={item.label}
+              >
+                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.3]' : 'stroke-[1.9]'}`} />
+                {Boolean(item.badge && item.badge > 0) && (
+                  <span className="absolute top-0.5 right-0.5 bg-rose-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Nút Giỏ hàng nổi tròn bên phải thanh dock */}
         <button
+          id="taskbar-quick-hub-btn"
           onClick={() => navigateTo('cart')}
-          className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#FF4F8B] hover:bg-[#E83E78] text-white shadow-lg shadow-[#FF4F8B]/30 flex items-center justify-center relative transition-all active:scale-95 cursor-pointer border-2 border-white"
+          className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full border shadow-[0_8px_30px_rgba(0,0,0,0.1)] flex items-center justify-center relative cursor-pointer active:scale-95 transition-all hover:shadow-lg group ${
+            currentView === 'cart'
+              ? 'bg-gradient-to-tr from-[#9af4ed] to-[#cbfcf8] text-[#007068] border-[#81ece5]'
+              : 'bg-white/95 backdrop-blur-md border-slate-200/80 text-slate-700 hover:text-slate-900 hover:bg-white'
+          }`}
           aria-label="Giỏ hàng"
           title="Giỏ hàng của bạn"
         >
-          <ShoppingBag className="w-6 h-6" />
+          <ShoppingBag
+            className={`w-5.5 h-5.5 transition-transform group-hover:scale-110 ${
+              currentView === 'cart' ? 'stroke-[2.3]' : 'stroke-[1.9]'
+            }`}
+          />
+
           {cartItemCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-[#FF7A59] text-white text-[11px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+            <span className="absolute -top-1 -right-1 bg-[#ff4f8b] text-white text-[10px] font-black min-w-5 h-5 px-1 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
               {cartItemCount}
             </span>
           )}
         </button>
       </div>
-
-      {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E9DDE3] shadow-lg px-1 sm:px-2 py-1.5 flex items-center justify-around max-w-2xl mx-auto sm:rounded-t-2xl">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive =
-            currentView === item.id ||
-            (item.id === 'orders' && currentView === 'order-detail');
-
-          return (
-            <button
-              key={item.id}
-              onClick={() => navigateTo(item.id)}
-              className={`flex flex-col items-center justify-center flex-1 py-1 relative transition-colors cursor-pointer ${
-                isActive
-                  ? 'text-[#FF4F8B] font-bold'
-                  : 'text-[#64748B] font-medium hover:text-[#1F2937]'
-              }`}
-            >
-              <div className="relative">
-                <Icon
-                  className={`w-5 h-5 ${isActive ? 'scale-110' : ''} ${
-                    isActive && item.isHeart ? 'fill-[#FF4F8B]' : ''
-                  } transition-transform`}
-                />
-                {Boolean(item.badge && item.badge > 0) && (
-                  <span
-                    className="absolute -top-1 -right-2 text-white text-[9px] font-black min-w-4 h-4 px-1 rounded-full flex items-center justify-center border border-white bg-[#FF4F8B]"
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] mt-1 tracking-tight truncate">{item.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </>
+    </div>
   );
 };
+
 

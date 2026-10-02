@@ -1,7 +1,6 @@
 import React from 'react';
 import { FoodItem } from '../types';
-import { useApp } from '../context/AppContext';
-import { Star, Plus, Heart, Clock, Flame, Leaf, ShoppingBag } from 'lucide-react';
+import { Star, Clock, ShoppingBag, BadgeCheck, Ticket, Package } from 'lucide-react';
 
 interface FoodCardProps {
   food: FoodItem;
@@ -9,27 +8,29 @@ interface FoodCardProps {
 }
 
 export const FoodCard: React.FC<FoodCardProps> = ({ food, onSelectFood }) => {
-  const { toggleFavorite, isFavorite, addToCart } = useApp();
-  const favorite = isFavorite(food.id);
-
-  const handleQuickAdd = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!food.isAvailable) return;
-
-    // If item has sizes or toppings, open detail modal for customization
-    if ((food.sizes && food.sizes.length > 0) || (food.toppings && food.toppings.length > 0)) {
-      onSelectFood(food);
-    } else {
-      addToCart(food, 1);
+  // Tính toán nhãn voucher giảm giá theo phong cách ShopeeFood (40k, 30%, 60k...)
+  const getVoucherTag = () => {
+    if (food.originalPrice && food.originalPrice > food.price) {
+      const pct = Math.round((1 - food.price / food.originalPrice) * 100);
+      return `${pct}%`;
     }
+    const vouchers = ['40k', '30%', '25k', '50k', '20%', '60k'];
+    const charCodeSum = food.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return vouchers[charCodeSum % vouchers.length];
   };
+
+  const voucherText = getVoucherTag();
+  const reviewCount = food.reviewCount || ((food.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 40) + 12);
+  const soldCountText = food.soldCount 
+    ? `${food.soldCount}+` 
+    : (food.rating >= 4.8 ? '1.2K+' : (food.rating >= 4.5 ? '1K+' : '300+'));
 
   return (
     <div
       onClick={() => onSelectFood(food)}
       className="bg-transparent group flex flex-col h-full cursor-pointer select-none transition-all w-full"
     >
-      {/* Image Container - Only Image has rounded 4 corners & border */}
+      {/* 1. Image Container - Bo góc mềm mại như app giao hàng */}
       <div className="relative aspect-square w-full bg-slate-100 rounded-2xl overflow-hidden border border-[#E9DDE3] shadow-2xs group-hover:shadow-md group-hover:border-[#FF4F8B] transition-all">
         <img
           src={food.image}
@@ -58,52 +59,41 @@ export const FoodCard: React.FC<FoodCardProps> = ({ food, onSelectFood }) => {
         </div>
       </div>
 
-      {/* Details below - No card background, clean text layout */}
+      {/* 2. Card Body theo chuẩn giao diện mẫu ShopeeFood */}
       <div className="pt-2 px-0.5 flex-1 flex flex-col justify-between gap-1">
-        <div>
-          <h3 className="font-normal text-[#1F2937] text-xs sm:text-sm group-hover:text-[#FF4F8B] transition-colors line-clamp-1 leading-tight">
-            {food.name}
-          </h3>
+        {/* Tên Quán / Món kèm dấu tích xanh Verified */}
+        <div className="space-y-1">
+          <div className="flex items-start gap-1">
+            <BadgeCheck className="w-3.5 h-3.5 text-[#00BFA5] fill-[#00BFA5] text-white shrink-0 mt-0.5" />
+            <h3 className="font-bold text-[#1F2937] text-xs sm:text-[13px] group-hover:text-[#FF4F8B] transition-colors line-clamp-2 leading-snug">
+              {food.canteenName ? `${food.canteenName} - ` : ''}{food.name}
+            </h3>
+          </div>
 
-          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-[#64748B] font-medium mt-0.5">
+          {/* Hàng Đánh giá ⭐ 4.6 (36) và Lượt bán 🛍️ 1K+ */}
+          <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-medium">
             <div className="flex items-center gap-0.5 text-amber-500 font-bold shrink-0">
-              <Star className="w-3 h-3 fill-current" />
+              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
               <span>{food.rating}</span>
+              <span className="text-[#94A3B8] font-normal text-[9.5px]">({reviewCount})</span>
             </div>
-            <span className="text-slate-300">•</span>
-            <div className="flex items-center gap-0.5 text-[#94A3B8] font-normal truncate">
-              <ShoppingBag className="w-3 h-3 text-[#94A3B8] shrink-0" />
-              <span>{food.soldCount ? `${food.soldCount}+` : (food.reviewCount > 100 ? '1K+' : '500+')}</span>
+            <div className="flex items-center gap-1 text-[#64748B] shrink-0">
+              <ShoppingBag className="w-3 h-3 text-[#FF5722]" />
+              <span className="text-[#64748B] text-[10px] font-medium">{soldCountText}</span>
             </div>
           </div>
         </div>
 
-        {/* Price & Action */}
-        <div className="pt-1 flex items-center justify-between mt-auto">
-          <div>
-            <div className="text-sm sm:text-base font-bold text-[#FF4F8B]">
-              {food.price.toLocaleString('vi-VN')}đ
-            </div>
-            {food.originalPrice && (
-              <div className="text-[10px] text-[#94A3B8] line-through -mt-0.5 font-medium">
-                {food.originalPrice.toLocaleString('vi-VN')}đ
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={handleQuickAdd}
-            disabled={!food.isAvailable}
-            className={`w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer border shrink-0 ${
-              !food.isAvailable
-                ? 'bg-slate-100 text-[#94A3B8] border-[#E9DDE3] cursor-not-allowed'
-                : 'bg-[#FFF3F7] hover:bg-[#FFE4EE] text-[#FF4F8B] border-[#FFE4EE] shadow-2xs active:scale-95'
-            }`}
-            title="Thêm món"
-            aria-label="Thêm món"
-          >
-            <Plus className="w-4.5 h-4.5" />
-          </button>
+        {/* 3. Hàng Voucher kích thích người mua: [🎫 40k] [📦 Freeship] */}
+        <div className="pt-1 mt-auto flex items-center gap-1 flex-wrap">
+          <span className="inline-flex items-center gap-0.5 text-[9.5px] sm:text-[10px] font-bold text-[#FF5722] bg-[#FFF5F2] border border-[#FF5722]/30 px-1.5 py-0.5 rounded leading-tight">
+            <Ticket className="w-2.5 h-2.5 text-[#FF5722] shrink-0" />
+            <span>{voucherText}</span>
+          </span>
+          <span className="inline-flex items-center gap-0.5 text-[9.5px] sm:text-[10px] font-bold text-[#009688] bg-[#E0F7F4] border border-[#00BFA5]/30 px-1.5 py-0.5 rounded leading-tight">
+            <Package className="w-2.5 h-2.5 text-[#00BFA5] shrink-0" />
+            <span>Freeship</span>
+          </span>
         </div>
       </div>
     </div>

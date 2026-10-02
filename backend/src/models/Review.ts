@@ -8,8 +8,9 @@ export class Review {
   public userAvatar?: string;
   public targetType: ReviewTargetType;
   public targetId: string; // productId or canteenId
+  public orderId?: string; // Mã đơn hàng đã hoàn thành (bắt buộc hoàn thành đơn để tránh đánh giá tràn lan)
   public rating: number; // 1 to 5
-  public comment: string;
+  public comment: string; // Tùy chọn (đã loại bỏ phần viết đánh giá trên UI)
   public verifiedPurchase: boolean;
   public helpfulCount: number;
   public images: string[];
@@ -22,8 +23,9 @@ export class Review {
     targetType: ReviewTargetType,
     targetId: string,
     rating: number,
-    comment: string,
+    comment?: string,
     options?: {
+      orderId?: string;
       userRole?: string;
       userAvatar?: string;
       verifiedPurchase?: boolean;
@@ -39,8 +41,9 @@ export class Review {
     this.userAvatar = options?.userAvatar;
     this.targetType = targetType;
     this.targetId = targetId;
+    this.orderId = options?.orderId;
     this.rating = Math.max(1, Math.min(5, rating));
-    this.comment = comment;
+    this.comment = comment || '';
     this.verifiedPurchase = options?.verifiedPurchase !== undefined ? options.verifiedPurchase : true;
     this.helpfulCount = options?.helpfulCount || 0;
     this.images = options?.images || [];
@@ -61,6 +64,7 @@ export class Review {
       userAvatar: this.userAvatar,
       targetType: this.targetType,
       targetId: this.targetId,
+      orderId: this.orderId,
       rating: this.rating,
       comment: this.comment,
       verifiedPurchase: this.verifiedPurchase,

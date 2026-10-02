@@ -16,10 +16,13 @@ import { ProfileView } from '../pages/ProfileView';
 import { EditProfileView } from '../pages/EditProfileView';
 import { NotificationsView } from '../pages/NotificationsView';
 import { SearchView } from '../pages/SearchView';
-import { StaffDashboardView } from '../pages/StaffDashboardView';
-import { AdminDashboardView } from '../pages/AdminDashboardView';
+import { StaffPortalView } from '../pages/staff/StaffPortalView';
+import { AdminPortalView } from '../pages/admin/AdminPortalView';
 import { QRScannerView } from '../pages/QRScannerView';
 import { LoginView, RegisterView, ForgotPasswordView } from '../pages/AuthViews';
+import { DeliveryLocationView } from '../pages/DeliveryLocationView';
+import { SelectCanteenView } from '../pages/SelectCanteenView';
+import { KitchenKDSView } from '../pages/KitchenKDSView';
 
 export const AppRoutes: React.FC = () => {
   const { currentView, viewParams } = useApp();
@@ -29,13 +32,26 @@ export const AppRoutes: React.FC = () => {
       return <LandingView />;
     case 'home':
       return <HomeView />;
+    case 'select-delivery':
+    case 'delivery-location':
+      return <DeliveryLocationView />;
+    case 'select-canteen':
+    case 'pickup-canteen':
+    case 'canteen-select':
+      return <SelectCanteenView />;
     case 'search':
       return <SearchView />;
     case 'qr-scanner':
       return <QRScannerView />;
     case 'category':
     case 'menu':
-      return <CategoryView categoryId={viewParams?.category || viewParams?.categoryId} />;
+    case 'canteen-menu':
+      return (
+        <CategoryView
+          categoryId={viewParams?.category || viewParams?.categoryId}
+          canteenId={viewParams?.canteenId || (viewParams?.canteen ? viewParams.canteen.id : undefined)}
+        />
+      );
     case 'detail':
     case 'food-detail':
       return <FoodDetailView foodId={viewParams?.foodId} />;
@@ -65,14 +81,39 @@ export const AppRoutes: React.FC = () => {
       return <NotificationsView />;
     case 'staff':
     case 'staff-dashboard':
+    case 'staff-orders':
     case 'staff-foods':
+    case 'staff-categories':
     case 'staff-tables':
-      return <StaffDashboardView />;
+    case 'staff-pickup-slots':
+    case 'staff-promotions':
+    case 'staff-reviews':
+    case 'staff-notifications':
+    case 'staff-statistics':
+      return <StaffPortalView />;
+    case 'kds':
+    case 'kitchen-kds':
+    case 'kitchen':
+      return <KitchenKDSView />;
     case 'admin':
     case 'admin-dashboard':
     case 'admin-users':
+    case 'admin-students':
+    case 'admin-staff':
     case 'admin-canteens':
-      return <AdminDashboardView />;
+    case 'admin-foods':
+    case 'admin-categories':
+    case 'admin-orders':
+    case 'admin-tables':
+    case 'admin-pickup-slots':
+    case 'admin-dormitories':
+    case 'admin-promotions':
+    case 'admin-reviews':
+    case 'admin-notifications':
+    case 'admin-payments':
+    case 'admin-statistics':
+    case 'admin-settings':
+      return <AdminPortalView />;
     case 'login':
       return <LoginView />;
     case 'register':

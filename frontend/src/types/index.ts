@@ -12,7 +12,16 @@ export type OrderStatus =
   | 'COMPLETED'
   | 'CANCELLED';
 
-export type PaymentMethod = 'STUDENT_WALLET' | 'CASH' | 'VNPAY_QR' | 'MOMO';
+export type PaymentMethod =
+  | 'STUDENT_WALLET'
+  | 'CASH'
+  | 'VNPAY_QR'
+  | 'MOMO'
+  | 'E_GREEN'
+  | 'APPLE_PAY'
+  | 'SHOPEEPAY'
+  | 'ZALOPAY'
+  | 'CREDIT_CARD';
 
 export type PaymentStatus = 'UNPAID' | 'PAID' | 'REFUNDED';
 
@@ -51,12 +60,18 @@ export interface User {
 export interface Canteen {
   id: string;
   name: string;
+  displayName?: string;
   code: string;
   location: string;
+  distance?: string;
+  duration?: string;
   openingHours: string;
   isOpen: boolean;
   rating: number;
   reviewCount: number;
+  soldCount?: string;
+  voucher?: string;
+  freeship?: string;
   image: string;
   totalTables: number;
   phone: string;

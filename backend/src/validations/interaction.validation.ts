@@ -15,8 +15,9 @@ export function validateReview(req: Request, res: Response, next: NextFunction) 
     return res.status(400).json({ success: false, message: 'Điểm đánh giá phải từ 1 đến 5 sao' });
   }
 
-  if (!comment || typeof comment !== 'string' || comment.trim().length < 3) {
-    return res.status(400).json({ success: false, message: 'Nội dung nhận xét tối thiểu 3 ký tự' });
+  // Đã bỏ bắt buộc viết nhận xét theo yêu cầu: chỉ đánh giá sao không cần viết chữ
+  if (comment !== undefined && typeof comment !== 'string') {
+    return res.status(400).json({ success: false, message: 'Nội dung nhận xét không hợp lệ' });
   }
 
   next();

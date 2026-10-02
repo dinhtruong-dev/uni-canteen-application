@@ -1,4 +1,4 @@
-import { SelectedOptionSnapshot } from './Cart';
+import { SelectedOptionSnapshot } from './OptionGroup';
 
 export class OrderDetail {
   public id: string;

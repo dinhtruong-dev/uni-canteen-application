@@ -353,7 +353,7 @@ export const SectionListView: React.FC = () => {
               key={canteen.id}
               onClick={() => {
                 setSelectedCanteen(canteen);
-                navigateTo('category');
+                navigateTo('category', { canteenId: canteen.id, canteen, fromView: 'section-list' });
               }}
               className="bg-white rounded-2xl border border-[#E9DDE3] p-3 shadow-2xs hover:shadow-xs hover:border-[#FF4F8B] transition-all flex items-center gap-3 cursor-pointer group"
             >

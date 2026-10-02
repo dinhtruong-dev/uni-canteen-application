@@ -4,3 +4,7 @@ export * from './marketing.service';
 export * from './table.service';
 export * from './order.service';
 export * from './auth.service';
+export * from './search.service';
+export * from './canteen.service';
+export * from './kds.service';
+export * from './staff.service';

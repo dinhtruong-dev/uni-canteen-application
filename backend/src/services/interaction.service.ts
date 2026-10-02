@@ -17,11 +17,69 @@ export class InteractionService {
     targetType: ReviewTargetType;
     targetId: string;
     rating: number;
-    comment: string;
+    comment?: string;
+    orderId?: string;
     userRole?: string;
     images?: string[];
   }): Review {
+    // 1. Kiểm tra đơn hàng hoàn thành (COMPLETED) của người dùng để tránh đánh giá tràn lan
+    const userOrders = Array.from(db.orders.values()).filter(
+      (o) => o.userId === data.userId && o.status === 'COMPLETED'
+    );
+
+    let matchingOrder = null;
+
+    if (data.orderId) {
+      const explicitOrder = db.orders.get(data.orderId);
+      if (!explicitOrder || explicitOrder.userId !== data.userId || explicitOrder.status !== 'COMPLETED') {
+        throw new Error('Đơn hàng không tồn tại hoặc chưa được hoàn thành (COMPLETED)!');
+      }
+      if (data.targetType === 'PRODUCT') {
+        const hasProduct = explicitOrder.orderDetails.some((d) => d.productId === data.targetId);
+        if (!hasProduct) {
+          throw new Error('Món ăn này không nằm trong đơn hàng đã hoàn thành được chọn!');
+        }
+      } else if (data.targetType === 'CANTEEN') {
+        if (explicitOrder.canteenId !== data.targetId) {
+          throw new Error('Đơn hàng không thuộc căng tin này!');
+        }
+      }
+      matchingOrder = explicitOrder;
+    } else {
+      // Tìm đơn hàng COMPLETED hợp lệ của người dùng cho món/căng tin này
+      if (data.targetType === 'PRODUCT') {
+        matchingOrder = userOrders.find((o) =>
+          o.orderDetails.some((d) => d.productId === data.targetId)
+        );
+      } else if (data.targetType === 'CANTEEN') {
+        matchingOrder = userOrders.find((o) => o.canteenId === data.targetId);
+      }
+    }
+
+    if (!matchingOrder) {
+      throw new Error(
+        data.targetType === 'PRODUCT'
+          ? 'Để tránh đánh giá tràn lan, bạn cần hoàn thành đơn hàng có món này trước khi gửi đánh giá!'
+          : 'Để tránh đánh giá tràn lan, bạn cần hoàn thành đơn hàng tại căng tin này trước khi gửi đánh giá!'
+      );
+    }
+
+    // 2. Chống đánh giá trùng lặp: Mỗi đơn hàng chỉ được đánh giá 1 lần cho món/căng tin đó
+    const alreadyReviewed = Array.from(db.reviews.values()).some(
+      (r) =>
+        r.userId === data.userId &&
+        r.targetType === data.targetType &&
+        r.targetId === data.targetId &&
+        r.orderId === matchingOrder.id
+    );
+
+    if (alreadyReviewed) {
+      throw new Error('Bạn đã gửi đánh giá cho đơn hàng hoàn thành này rồi!');
+    }
+
     const reviewId = `rev-${Date.now()}`;
+    const comment = data.comment && data.comment.trim() ? data.comment.trim() : `Đánh giá ${data.rating} sao`;
+
     const review = new Review(
       reviewId,
       data.userId,
@@ -29,9 +87,11 @@ export class InteractionService {
       data.targetType,
       data.targetId,
       data.rating,
-      data.comment,
+      comment,
       {
+        orderId: matchingOrder.id,
         userRole: data.userRole || 'Sinh viên',
+        verifiedPurchase: true,
         images: data.images,
       }
     );

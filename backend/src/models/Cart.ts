@@ -1,10 +1,5 @@
-export interface SelectedOptionSnapshot {
-  optionId: string;
-  optionName: string;
-  itemId: string;
-  itemName: string;
-  extraPrice: number;
-}
+import { SelectedOptionSnapshot } from './OptionGroup';
+export type { SelectedOptionSnapshot };
 
 export class CartItem {
   public id: string;
@@ -43,7 +38,7 @@ export class CartItem {
   }
 
   public getUnitPrice(): number {
-    const extra = this.selectedOptions.reduce((acc, curr) => acc + curr.extraPrice, 0);
+    const extra = this.selectedOptions.reduce((acc, curr) => acc + (curr.price ?? curr.extraPrice ?? 0), 0);
     return this.basePrice + extra;
   }
 

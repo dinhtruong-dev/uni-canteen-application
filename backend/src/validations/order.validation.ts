@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
-const VALID_ORDER_TYPES = ['DINE_IN', 'TAKEAWAY', 'DELIVERY'];
-const VALID_PAYMENT_METHODS = ['CAMPUS_WALLET', 'MOMO', 'ZALOPAY', 'BANK_TRANSFER', 'CASH'];
+const VALID_ORDER_TYPES = ['DINE_IN', 'TAKEAWAY', 'PICKUP', 'DELIVERY'];
+const VALID_PAYMENT_METHODS = ['CAMPUS_WALLET', 'STUDENT_WALLET', 'MOMO', 'ZALOPAY', 'BANK_TRANSFER', 'CASH', 'VNPAY'];
 
 export function validateCreateOrder(req: Request, res: Response, next: NextFunction) {
   const { orderType, paymentMethod, items } = req.body;

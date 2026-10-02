@@ -40,8 +40,8 @@ export class OrderController {
         productId: it.productId,
         productName: it.productName,
         productImage: it.productImage,
-        unitPrice: it.getUnitPrice(),
         quantity: it.quantity,
+        selectedOptionIds: it.selectedOptions.map((o) => o.optionId || (o as any).itemId).filter(Boolean),
         selectedOptions: it.selectedOptions,
         notes: it.notes,
       }));
@@ -103,6 +103,160 @@ export class OrderController {
       });
     }
     res.json({ success: true, message: 'Đã hủy đơn hàng thành công' });
+  }
+
+  /**
+   * KDS (Kitchen Display System): Get all active orders grouped/sorted for kitchen screen
+   */
+  public getKDSOrders(req: any, res: Response) {
+    try {
+      const canteenId = req.query.canteenId as string;
+      const allOrders = orderService.getAllOrders(); // returns all orders
+
+      // KDS / POS bếp chỉ nhận các đơn ĐÃ ĐƯỢC NHÂN VIÊN DUYỆT ('CONFIRMED') hoặc ĐANG NẤU ('PREPARING')
+      const activeStatuses = ['CONFIRMED', 'PREPARING'];
+
+      let filtered = allOrders.filter((o) => activeStatuses.includes(o.status));
+
+      if (canteenId && canteenId !== 'ALL') {
+        filtered = filtered.filter((o) => o.canteenId === canteenId);
+      }
+
+      // Sort FIFO (First In, First Out: oldest first so kitchen cooks in order)
+      filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+      const now = Date.now();
+      const enriched = filtered.map((o) => {
+        const json = o.toJSON();
+        const elapsedMinutes = Math.max(0, Math.floor((now - new Date(o.createdAt).getTime()) / 60000));
+        return {
+          ...json,
+          elapsedMinutes,
+        };
+      });
+
+      const allCanteenOrders = canteenId && canteenId !== 'ALL'
+        ? allOrders.filter((o) => o.canteenId === canteenId)
+        : allOrders;
+
+      const summary = {
+        newCount: allCanteenOrders.filter((o) => o.status === 'CONFIRMED').length,
+        cookingCount: allCanteenOrders.filter((o) => o.status === 'PREPARING').length,
+        readyCount: allCanteenOrders.filter((o) => o.status === 'READY' || o.status === 'WAITING_PICKUP' || o.status === 'DELIVERING').length,
+        completedCount: allCanteenOrders.filter((o) => o.status === 'COMPLETED' || o.status === 'READY' || o.status === 'WAITING_PICKUP' || o.status === 'DELIVERING').length,
+      };
+
+      return res.json({
+        success: true,
+        total: enriched.length,
+        summary,
+        data: enriched,
+      });
+    } catch (err: any) {
+      console.error('[KDS getKDSOrders Error]:', err);
+      return res.status(500).json({ success: false, message: 'Lỗi tải đơn hàng KDS' });
+    }
+  }
+
+  /**
+   * KDS: Get history of completed orders today
+   */
+  public getKDSHistory(req: any, res: Response) {
+    try {
+      const canteenId = req.query.canteenId as string;
+      const allOrders = orderService.getAllOrders();
+
+      let completed = allOrders.filter((o) => o.status === 'COMPLETED');
+      if (canteenId && canteenId !== 'ALL') {
+        completed = completed.filter((o) => o.canteenId === canteenId);
+      }
+
+      // Sort newest first
+      completed.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      const data = completed.slice(0, 50).map((o) => o.toJSON());
+      return res.json({
+        success: true,
+        total: data.length,
+        data,
+      });
+    } catch (err: any) {
+      console.error('[KDS getKDSHistory Error]:', err);
+      return res.status(500).json({ success: false, message: 'Lỗi tải lịch sử đơn KDS' });
+    }
+  }
+
+  /**
+   * KDS / Staff: Call customer to pickup dish / notify customer
+   */
+  public callCustomer(req: any, res: Response) {
+    try {
+      const orderId = req.params.id;
+      const order = orderService.getOrderById(orderId);
+      if (!order) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+      }
+
+      // Socket broadcast to customer & counter
+      const socket = (global as any).io || require('../socket').socketManager.getIO();
+      if (socket) {
+        const payload = {
+          orderId: order.id,
+          orderCode: order.orderCode,
+          userName: order.userName,
+          orderType: order.orderType,
+          tableNumber: order.tableNumber,
+          message:
+            order.orderType === 'TAKEAWAY'
+              ? `Mời khách hàng ${order.userName} (#${order.orderCode}) đến quầy nhận món!`
+              : order.orderType === 'DELIVERY'
+              ? `Đơn hàng #${order.orderCode} đã chuẩn bị xong và nhân viên đang bắt đầu giao tận phòng KTX!`
+              : `Món ăn cho bàn ${order.tableNumber || 'của bạn'} (#${order.orderCode}) đã sẵn sàng!`,
+          timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        };
+
+        socket.emit('customer:call_order', payload);
+        if (order.userId) {
+          socket.to(`user:${order.userId}`).emit('customer:call_order', payload);
+        }
+      }
+
+      return res.json({
+        success: true,
+        message: `Đã phát thông báo gọi khách cho đơn #${order.orderCode}`,
+      });
+    } catch (err: any) {
+      console.error('[KDS callCustomer Error]:', err);
+      return res.status(500).json({ success: false, message: 'Lỗi phát thông báo gọi khách' });
+    }
+  }
+
+  /**
+   * KDS: Update status directly from touch kitchen screen
+   */
+  public updateKDSStatus(req: any, res: Response) {
+    try {
+      const orderId = req.params.id;
+      const { status } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ success: false, message: 'Trạng thái mới không hợp lệ' });
+      }
+
+      const order = orderService.updateStatus(orderId, status);
+      if (!order) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+      }
+
+      return res.json({
+        success: true,
+        message: `Đơn hàng #${order.orderCode} đã chuyển sang trạng thái ${status}`,
+        data: order.toJSON(),
+      });
+    } catch (err: any) {
+      console.error('[KDS updateKDSStatus Error]:', err);
+      return res.status(500).json({ success: false, message: 'Lỗi cập nhật trạng thái đơn KDS' });
+    }
   }
 }
 

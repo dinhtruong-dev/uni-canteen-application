@@ -155,7 +155,7 @@ export const Navbar: React.FC<{ onOpenWalletModal: () => void }> = ({ onOpenWall
                     : 'text-[#64748B] hover:text-[#FF4F8B] hover:bg-[#FFF3F7]'
                 }`}
               >
-                Đơn hàng của tôi
+                Hoạt động
               </button>
               <button
                 onClick={() => navigateTo('favorites')}
@@ -464,7 +464,7 @@ export const Navbar: React.FC<{ onOpenWalletModal: () => void }> = ({ onOpenWall
                     }`}
                   >
                     <ShoppingCart className="w-4 h-4" />
-                    <span>Đơn hàng của tôi</span>
+                    <span>Hoạt động</span>
                   </button>
 
                   <button

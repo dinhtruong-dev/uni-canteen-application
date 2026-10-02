@@ -9,14 +9,15 @@ export const FavoritesView: React.FC = () => {
   const favoriteFoods = foods.filter((f) => favorites.includes(f.id));
 
   return (
-    <div className="space-y-6 pb-12">
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <Heart className="w-6 h-6 text-rose-500 fill-rose-500" /> Món Ăn Yêu Thích
+    <div className="-mt-1 sm:-mt-2 space-y-4 pb-20 max-w-4xl mx-auto px-1 sm:px-0">
+      {/* Sticky Header Container */}
+      <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md py-2 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-slate-200/60 transition-all flex items-center justify-between">
+        <h1 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <Heart className="w-5 h-5 text-rose-500 fill-rose-500" /> Món Ăn Yêu Thích
         </h1>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Danh sách các món ăn bạn đã thả tim lưu lại để đặt nhanh
-        </p>
+        <span className="text-xs font-semibold text-slate-500 bg-slate-200/60 px-2.5 py-0.5 rounded-full">
+          {favoriteFoods.length} món
+        </span>
       </div>
 
       {favoriteFoods.length === 0 ? (

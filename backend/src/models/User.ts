@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 
 export type UserRole = 'STUDENT' | 'STAFF' | 'ADMIN';
+export type UserStatus = 'ACTIVE' | 'BANNED';
 
 export interface IUser {
   id: string;
@@ -9,6 +10,8 @@ export interface IUser {
   phone: string;
   role: UserRole;
   avatar: string;
+  status?: UserStatus;
+  isActive?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +28,8 @@ export class User implements IUser {
   public faculty?: string;
   public department?: string;
   public walletBalance: number;
+  public status: UserStatus;
+  public isActive: boolean;
   public createdAt: Date;
   public updatedAt: Date;
 
@@ -42,6 +47,8 @@ export class User implements IUser {
       faculty?: string;
       department?: string;
       walletBalance?: number;
+      status?: UserStatus;
+      isActive?: boolean;
       createdAt?: Date;
       updatedAt?: Date;
     }
@@ -58,6 +65,8 @@ export class User implements IUser {
     this.faculty = options?.faculty;
     this.department = options?.department;
     this.walletBalance = options?.walletBalance || 0;
+    this.status = options?.status || (options?.isActive === false ? 'BANNED' : 'ACTIVE');
+    this.isActive = this.status === 'ACTIVE';
     this.createdAt = options?.createdAt || new Date();
     this.updatedAt = options?.updatedAt || new Date();
 
@@ -107,6 +116,8 @@ export class User implements IUser {
       faculty: this.faculty,
       department: this.department,
       walletBalance: this.walletBalance,
+      status: this.status,
+      isActive: this.isActive,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
     };

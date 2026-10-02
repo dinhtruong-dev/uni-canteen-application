@@ -6,7 +6,7 @@ interface RequestOptions extends RequestInit {
 
 class ApiClient {
   private getToken(): string | null {
-    return localStorage.getItem('token') || localStorage.getItem('unieat_token');
+    return localStorage.getItem('token') || localStorage.getItem('unieat_token') || localStorage.getItem('unieat_jwt');
   }
 
   public async request<T = any>(endpoint: string, options: RequestOptions = {}): Promise<T> {
@@ -72,8 +72,8 @@ class ApiClient {
     });
   }
 
-  public delete<T = any>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+  public delete<T = any>(endpoint: string, params?: Record<string, any>): Promise<T> {
+    return this.request<T>(endpoint, { method: 'DELETE', params });
   }
 }
 

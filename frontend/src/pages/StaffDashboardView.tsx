@@ -17,6 +17,7 @@ import {
   Volume2,
   VolumeX,
   Phone,
+  Flame,
 } from 'lucide-react';
 
 export const StaffDashboardView: React.FC = () => {
@@ -32,6 +33,7 @@ export const StaffDashboardView: React.FC = () => {
     setQrScannerOpen,
     showToast,
     switchUserRole,
+    navigateTo,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'KITCHEN' | 'MENU_STOCK'>('KITCHEN');
@@ -77,6 +79,15 @@ export const StaffDashboardView: React.FC = () => {
 
           {/* Quick Controls */}
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => navigateTo('kitchen-kds')}
+              className="bg-gradient-to-r from-rose-600 via-amber-600 to-emerald-600 hover:opacity-95 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 transition-all cursor-pointer border border-white/20"
+              title="Chuyển sang giao diện KDS tối ưu màn hình cảm ứng ngang và máy tính"
+            >
+              <Flame className="w-4 h-4 fill-white" />
+              <span>Màn Hình Bếp KDS (Ngang / Cảm Ứng)</span>
+            </button>
+
             <button
               onClick={() => switchUserRole('STUDENT')}
               className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, Clock, Plus, Heart, Star, Gift, Sparkles, ChevronRight, Zap, Tag } from 'lucide-react';
+import { Flame, Clock, Plus, Heart, Star, Gift, Sparkles, ChevronRight, Zap, Tag, BadgeCheck, Ticket, Package, ShoppingBag } from 'lucide-react';
 import { FoodItem } from '../types';
 import { useApp } from '../context/AppContext';
 import { HorizontalScrollContainer } from './HorizontalScrollContainer';
@@ -268,50 +268,41 @@ export const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ onSelectFood
                 </div>
               </div>
 
-              {/* Details below */}
-              <div className="pt-2 px-0.5 flex-1 flex flex-col justify-between gap-1.5">
-                <div>
-                  <h3 className="font-bold text-[#1F2937] text-xs sm:text-sm group-hover:text-[#FF4F8B] transition-colors line-clamp-1 leading-tight">
-                    {deal.food.name}
-                  </h3>
+              {/* Details below - Giao diện thẻ chuẩn ShopeeFood */}
+              <div className="pt-2 px-0.5 flex-1 flex flex-col justify-between gap-1">
+                {/* Tên Quán / Món kèm dấu tích xanh Verified */}
+                <div className="space-y-1">
+                  <div className="flex items-start gap-1">
+                    <BadgeCheck className="w-3.5 h-3.5 text-[#00BFA5] fill-[#00BFA5] text-white shrink-0 mt-0.5" />
+                    <h3 className="font-bold text-[#1F2937] text-xs sm:text-[13px] group-hover:text-[#FF4F8B] transition-colors line-clamp-2 leading-snug">
+                      {deal.food.canteenName ? `${deal.food.canteenName} - ` : ''}{deal.food.name}
+                    </h3>
+                  </div>
 
-                  {/* Stock Progress Bar */}
-                  <div className="mt-1 space-y-0.5">
-                    <div className="flex items-center justify-between text-[9px] font-bold text-[#64748B]">
-                      <span>Đã bán {deal.soldCount}/{deal.totalStock}</span>
-                      {percentSold >= 80 && <span className="text-[#FF4F8B] font-extrabold animate-pulse">Sắp hết!</span>}
+                  {/* Hàng Đánh giá ⭐ 4.9 (48) và Lượt bán 🛍️ 300+ */}
+                  <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-medium">
+                    <div className="flex items-center gap-0.5 text-amber-500 font-bold shrink-0">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <span>{deal.food.rating || 4.9}</span>
+                      <span className="text-[#94A3B8] font-normal text-[9.5px]">({deal.food.reviewCount || 48})</span>
                     </div>
-                    <div className="w-full h-1.5 bg-[#FFE4EE] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-linear-to-r from-[#FF4F8B] to-[#FF7A59] rounded-full transition-all duration-500"
-                        style={{ width: `${percentSold}%` }}
-                      />
+                    <div className="flex items-center gap-1 text-[#64748B] shrink-0">
+                      <ShoppingBag className="w-3 h-3 text-[#FF5722]" />
+                      <span className="text-[#64748B] text-[10px] font-medium">{deal.soldCount > 0 ? `${deal.soldCount * 25}+` : '300+'}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Price & Action */}
-                <div className="pt-1 flex items-center justify-between mt-auto">
-                  <div>
-                    <div className="text-xs sm:text-sm font-black text-[#FF4F8B] flex items-center gap-0.5">
-                      {deal.flashPrice.toLocaleString('vi-VN')}đ
-                    </div>
-                    <div className="text-[10px] text-[#94A3B8] line-through -mt-0.5 font-medium">
-                      {deal.originalPrice.toLocaleString('vi-VN')}đ
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addToCart(deal.food, 1);
-                    }}
-                    className="w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-xl bg-[#FFF3F7] hover:bg-[#FFE4EE] text-[#FF4F8B] border border-[#FFE4EE] flex items-center justify-center transition-all cursor-pointer shadow-2xs shrink-0 active:scale-95"
-                    title="Thêm món"
-                    aria-label="Thêm món"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+                {/* Hàng Voucher kích thích người mua: [🎫 40% / 50k] [📦 Freeship] */}
+                <div className="pt-1 mt-auto flex items-center gap-1 flex-wrap">
+                  <span className="inline-flex items-center gap-0.5 text-[9.5px] sm:text-[10px] font-bold text-[#FF5722] bg-[#FFF5F2] border border-[#FF5722]/30 px-1.5 py-0.5 rounded leading-tight">
+                    <Ticket className="w-2.5 h-2.5 text-[#FF5722] shrink-0" />
+                    <span>{deal.badge.startsWith('-') ? deal.badge.replace('-', '') : deal.badge}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-0.5 text-[9.5px] sm:text-[10px] font-bold text-[#009688] bg-[#E0F7F4] border border-[#00BFA5]/30 px-1.5 py-0.5 rounded leading-tight">
+                    <Package className="w-2.5 h-2.5 text-[#00BFA5] shrink-0" />
+                    <span>Freeship</span>
+                  </span>
                 </div>
               </div>
             </div>

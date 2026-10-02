@@ -23,7 +23,18 @@ interface FoodDetailViewProps {
 }
 
 export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
-  const { foods, viewParams, addToCart, toggleFavorite, isFavorite, navigateTo, canteens, showToast } = useApp();
+  const {
+    foods,
+    viewParams,
+    addToCart,
+    updateCartQuantity,
+    toggleFavorite,
+    isFavorite,
+    navigateTo,
+    canteens,
+    showToast,
+    cart,
+  } = useApp();
 
   // Retrieve foodId either from props or viewParams
   const activeFoodId = foodId || viewParams?.foodId || viewParams?.food?.id;
@@ -76,6 +87,14 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
   const unitPrice = food.price + sizePrice + toppingsPrice;
   const totalPrice = unitPrice * quantity;
 
+  // Check if this food is in the cart
+  const cartItemsForThisFood = cart.filter((item) => item.food.id === food.id);
+  const thisFoodInCartQty = cartItemsForThisFood.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Cart summary for bottom bar
+  const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const totalCartPrice = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+
   const handleBack = () => {
     if (viewParams?.fromView) {
       navigateTo(viewParams.fromView, viewParams.fromParams);
@@ -86,7 +105,23 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
 
   const handleAddToCart = () => {
     const fullNotes = `${selectedBroth ? `[Sốt/Nước dùng: ${selectedBroth}] ` : ''}${notes}`.trim();
-    addToCart(food, quantity, selectedSize, selectedToppings, fullNotes);
+    addToCart(food, 1, selectedSize, selectedToppings, fullNotes);
+  };
+
+  const handleIncrease = () => {
+    if (cartItemsForThisFood.length > 0) {
+      const targetItem = cartItemsForThisFood[cartItemsForThisFood.length - 1];
+      updateCartQuantity(targetItem.id, targetItem.quantity + 1);
+    } else {
+      handleAddToCart();
+    }
+  };
+
+  const handleDecrease = () => {
+    if (cartItemsForThisFood.length > 0) {
+      const targetItem = cartItemsForThisFood[cartItemsForThisFood.length - 1];
+      updateCartQuantity(targetItem.id, targetItem.quantity - 1);
+    }
   };
 
   const handleShare = () => {
@@ -160,15 +195,60 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
 
         {/* Header Details */}
         <div className="px-0.5 space-y-1.5">
-          {/* 1. Price First - Vibrant #FF4F8B to match outside cards */}
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg sm:text-2xl font-bold text-[#FF4F8B]">
-              {unitPrice.toLocaleString('vi-VN')}đ
-            </span>
-            {food.originalPrice && (
-              <span className="text-xs sm:text-sm text-[#94A3B8] line-through font-medium">
-                {food.originalPrice.toLocaleString('vi-VN')}đ
+          {/* 1. Price First & Quick Plus (+) Button */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg sm:text-2xl font-bold text-[#FF4F8B]">
+                {unitPrice.toLocaleString('vi-VN')}đ
               </span>
+              {food.originalPrice && (
+                <span className="text-xs sm:text-sm text-[#94A3B8] line-through font-medium">
+                  {food.originalPrice.toLocaleString('vi-VN')}đ
+                </span>
+              )}
+            </div>
+
+            {/* Khi chưa có món trong giỏ: dấu (+). Khi đã thêm: giữ nguyên kích thước nút (+) w-8 h-8 và kéo dài capsule sang trái để hiện [-] và số lượng */}
+            {thisFoodInCartQty === 0 ? (
+              <button
+                id="food-detail-quick-add-btn"
+                type="button"
+                onClick={handleAddToCart}
+                className="w-8 h-8 rounded-xl bg-[#FFF3F7] hover:bg-[#FFE4EE] text-[#FF4F8B] border border-[#FFE4EE] flex items-center justify-center font-bold shadow-2xs active:scale-95 transition-all cursor-pointer shrink-0"
+                title="Thêm vào giỏ hàng"
+                aria-label="Thêm vào giỏ hàng"
+              >
+                <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
+              </button>
+            ) : (
+              <div
+                id="food-detail-qty-inline-ctrl"
+                className="h-8 rounded-xl bg-[#FFF3F7] border border-[#FFE4EE] flex items-center shadow-2xs shrink-0"
+              >
+                <button
+                  id="food-detail-minus-btn"
+                  type="button"
+                  onClick={handleDecrease}
+                  className="w-8 h-8 rounded-xl text-[#FF4F8B] hover:bg-[#FFE4EE] active:scale-90 flex items-center justify-center font-bold cursor-pointer transition-colors shrink-0"
+                  aria-label="Trừ bớt"
+                  title="Trừ bớt"
+                >
+                  <Minus className="w-4.5 h-4.5 stroke-[2.5]" />
+                </button>
+                <span className="min-w-5 px-1 text-center font-extrabold text-xs sm:text-sm text-[#FF4F8B] select-none">
+                  {thisFoodInCartQty}
+                </span>
+                <button
+                  id="food-detail-plus-btn"
+                  type="button"
+                  onClick={handleIncrease}
+                  className="w-8 h-8 rounded-xl text-[#FF4F8B] hover:bg-[#FFE4EE] active:scale-90 flex items-center justify-center font-bold cursor-pointer transition-colors shrink-0"
+                  aria-label="Cộng thêm"
+                  title="Cộng thêm"
+                >
+                  <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
+                </button>
+              </div>
             )}
           </div>
 
@@ -320,40 +400,36 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
         </div>
       </div>
 
-      {/* Sticky Bottom Order Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E9DDE3] p-3 sm:p-4 shadow-lg">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          {/* Quantity Controls */}
-          <div className="flex items-center gap-2 bg-[#FFF3F7] border border-[#FFE4EE] rounded-2xl p-1.5 shrink-0">
+      {/* Sticky Bottom Bar: Món nào có trong giỏ hàng thì mới có thanh xem giỏ hàng này */}
+      {thisFoodInCartQty > 0 && (
+        <div
+          id="sticky-cart-bar"
+          className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E9DDE3] p-3 sm:p-4 shadow-xl animate-in slide-in-from-bottom-4 duration-300"
+        >
+          <div className="max-w-2xl mx-auto">
             <button
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="w-8 h-8 rounded-xl bg-white hover:bg-[#FFE4EE] text-[#1F2937] flex items-center justify-center font-bold cursor-pointer transition-colors shadow-2xs"
+              id="view-cart-bar-btn"
+              onClick={() => navigateTo('checkout')}
+              className="w-full bg-[#FF4F8B] hover:bg-[#E83E78] active:scale-98 text-white font-extrabold py-3 px-4 sm:px-5 rounded-2xl shadow-lg shadow-[#FF4F8B]/25 flex items-center justify-between text-xs sm:text-sm transition-all cursor-pointer"
             >
-              <Minus className="w-4 h-4" />
-            </button>
-            <span className="w-6 text-center font-extrabold text-sm text-[#FF4F8B]">{quantity}</span>
-            <button
-              onClick={() => setQuantity(quantity + 1)}
-              className="w-8 h-8 rounded-xl bg-white hover:bg-[#FFE4EE] text-[#1F2937] flex items-center justify-center font-bold cursor-pointer transition-colors shadow-2xs"
-            >
-              <Plus className="w-4 h-4" />
+              {/* Bên trái: Icon giỏ hàng + Chữ "Xem giỏ hàng" + Số lượng ngay bên cạnh */}
+              <div className="flex items-center gap-2 sm:gap-2.5">
+                <ShoppingBag className="w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" />
+                <span className="font-bold text-sm sm:text-base tracking-tight">Xem giỏ hàng</span>
+                <span className="bg-white text-[#FF4F8B] text-xs font-black px-2 py-0.5 rounded-full shadow-2xs">
+                  {totalCartCount}
+                </span>
+              </div>
+
+              {/* Bên phải (right): Giá & chuyển tới page thanh toán */}
+              <div className="flex items-center gap-2 font-black text-sm sm:text-base tracking-tight">
+                <span>{totalCartPrice.toLocaleString('vi-VN')}đ</span>
+                <ChevronRight className="w-4.5 h-4.5 stroke-[3]" />
+              </div>
             </button>
           </div>
-
-          {/* Add to Cart Button */}
-          <button
-            onClick={handleAddToCart}
-            className="flex-1 bg-[#FF4F8B] hover:bg-[#E83E78] active:scale-98 text-white font-extrabold py-3.5 px-4 rounded-2xl shadow-lg shadow-[#FF4F8B]/25 flex items-center justify-between text-xs sm:text-sm transition-all cursor-pointer"
-          >
-            <span className="flex items-center gap-2">
-              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" /> Thêm vào giỏ hàng
-            </span>
-            <span className="font-black text-sm sm:text-base">
-              {totalPrice.toLocaleString('vi-VN')}đ
-            </span>
-          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 };

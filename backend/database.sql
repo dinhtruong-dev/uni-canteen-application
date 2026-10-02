@@ -18,6 +18,8 @@ DROP TABLE IF EXISTS `order_details`;
 DROP TABLE IF EXISTS `orders`;
 DROP TABLE IF EXISTS `cart_items`;
 DROP TABLE IF EXISTS `carts`;
+DROP TABLE IF EXISTS `option_items`;
+DROP TABLE IF EXISTS `option_groups`;
 DROP TABLE IF EXISTS `product_option_items`;
 DROP TABLE IF EXISTS `product_options`;
 DROP TABLE IF EXISTS `products`;
@@ -132,7 +134,33 @@ CREATE TABLE `products` (
   INDEX `idx_products_price` (`price`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 7. BẢNG TÙY CHỌN MÓN ĂN (Product Options: Size, Topping, Lượng đá/đường)
+-- 7A. BẢNG NHÓM TÙY CHỌN (Option Groups: Quản lý luật & Tiêu đề nhóm)
+CREATE TABLE `option_groups` (
+  `id` VARCHAR(50) NOT NULL COMMENT 'Mã nhóm (VD: grp-size, grp-topping)',
+  `canteen_id` VARCHAR(50) NOT NULL COMMENT 'Thuộc căng tin nào quản lý',
+  `name` VARCHAR(100) NOT NULL COMMENT 'Tên nhóm (VD: Chọn kích cỡ, Mức đường, Món ăn kèm)',
+  `is_required` BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Bắt buộc hay không (Boolean)',
+  `min_choices` INT NOT NULL DEFAULT 0 COMMENT 'Chọn tối thiểu mấy cái (Mặc định: 0 hoặc 1)',
+  `max_choices` INT NOT NULL DEFAULT 1 COMMENT 'Chọn tối đa mấy cái (VD: Size = 1, Topping = 3)',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_opt_groups_canteen` (`canteen_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7B. BẢNG LỰA CHỌN CỤ THỂ (Option Items: Các lựa chọn cụ thể có giá tiền)
+CREATE TABLE `option_items` (
+  `id` VARCHAR(50) NOT NULL COMMENT 'Mã lựa chọn (VD: opt-size-l, opt-tranchau)',
+  `group_id` VARCHAR(50) NOT NULL COMMENT 'Khóa ngoại trỏ về OptionGroups',
+  `name` VARCHAR(100) NOT NULL COMMENT 'Tên hiển thị (VD: Size L, Trân châu đen, Trứng ốp la)',
+  `price` DECIMAL(10, 2) NOT NULL DEFAULT 0.00 COMMENT 'Giá tiền cộng thêm (VD: 10000, 5000, 0)',
+  `is_available` BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'Trạng thái còn hàng hay hết hàng tạm thời',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_item_group` FOREIGN KEY (`group_id`) REFERENCES `option_groups` (`id`) ON DELETE CASCADE,
+  INDEX `idx_opt_items_group` (`group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7C. BẢNG TÙY CHỌN MÓN ĂN (Product Options)
 CREATE TABLE `product_options` (
   `id` VARCHAR(50) NOT NULL,
   `product_id` VARCHAR(50) NOT NULL,
