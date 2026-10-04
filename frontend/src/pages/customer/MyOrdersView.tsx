@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import {
   ShoppingBag,
   Search,
 } from 'lucide-react';
-import { Order } from '../types';
+import { Order } from '../../types';
 
 export const MyOrdersView: React.FC = () => {
   const { orders, navigateTo, addToCart, showToast } = useApp();

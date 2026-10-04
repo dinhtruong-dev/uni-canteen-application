@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import { ArrowLeft, Camera, Save } from 'lucide-react';
 
 export const EditProfileView: React.FC = () => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useApp } from '../context/AppContext';
-import { FoodItem } from '../types';
+import { useApp } from '../../context/AppContext';
+import { FoodItem } from '../../types';
 import {
   ArrowLeft,
   Share2,

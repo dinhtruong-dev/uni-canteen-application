@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
-import { PaymentMethod, FoodItem } from '../types';
-import { OnlinePaymentModal } from '../components/OnlinePaymentModal';
+import { useApp } from '../../context/AppContext';
+import { PaymentMethod, FoodItem } from '../../types';
+import { OnlinePaymentModal } from '../../components/OnlinePaymentModal';
 import {
   ArrowLeft,
   X,
@@ -370,11 +370,10 @@ export const CheckoutView: React.FC = () => {
                     }));
                     showToast(`Đã chọn địa chỉ: ${item.title}`, 'info');
                   }}
-                  className={`p-3.5 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${
-                    addressData.street === item.detail
-                      ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
+                  className={`p-3.5 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${addressData.street === item.detail
+                    ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
+                    : 'border-slate-200 hover:border-slate-300'
+                    }`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
@@ -531,11 +530,10 @@ export const CheckoutView: React.FC = () => {
                   <span className="text-[15px] font-semibold text-slate-900">Tiền mặt/QR</span>
                 </div>
                 <div
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                    paymentMethod === 'CASH'
-                      ? 'border-[#22c3d3] bg-[#22c3d3]'
-                      : 'border-slate-300 bg-white'
-                  }`}
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${paymentMethod === 'CASH'
+                    ? 'border-[#22c3d3] bg-[#22c3d3]'
+                    : 'border-slate-300 bg-white'
+                    }`}
                 >
                   {paymentMethod === 'CASH' && <div className="w-2 h-2 rounded-full bg-white" />}
                 </div>
@@ -573,11 +571,10 @@ export const CheckoutView: React.FC = () => {
                     Nạp tiền
                   </button>
                   <div
-                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                      paymentMethod === 'E_GREEN' || paymentMethod === 'STUDENT_WALLET'
-                        ? 'border-[#22c3d3] bg-[#22c3d3]'
-                        : 'border-slate-300 bg-white'
-                    }`}
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${paymentMethod === 'E_GREEN' || paymentMethod === 'STUDENT_WALLET'
+                      ? 'border-[#22c3d3] bg-[#22c3d3]'
+                      : 'border-slate-300 bg-white'
+                      }`}
                   >
                     {(paymentMethod === 'E_GREEN' || paymentMethod === 'STUDENT_WALLET') && (
                       <div className="w-2 h-2 rounded-full bg-white" />
@@ -626,11 +623,10 @@ export const CheckoutView: React.FC = () => {
                   <span className="text-[15px] font-semibold text-slate-900">Apple Pay</span>
                 </div>
                 <div
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                    paymentMethod === 'APPLE_PAY'
-                      ? 'border-[#22c3d3] bg-[#22c3d3]'
-                      : 'border-slate-300 bg-white'
-                  }`}
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${paymentMethod === 'APPLE_PAY'
+                    ? 'border-[#22c3d3] bg-[#22c3d3]'
+                    : 'border-slate-300 bg-white'
+                    }`}
                 >
                   {paymentMethod === 'APPLE_PAY' && <div className="w-2 h-2 rounded-full bg-white" />}
                 </div>
@@ -653,11 +649,10 @@ export const CheckoutView: React.FC = () => {
                   <span className="text-[15px] font-semibold text-slate-900">MoMo **4921</span>
                 </div>
                 <div
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                    paymentMethod === 'MOMO'
-                      ? 'border-[#22c3d3] bg-[#22c3d3]'
-                      : 'border-slate-300 bg-white'
-                  }`}
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${paymentMethod === 'MOMO'
+                    ? 'border-[#22c3d3] bg-[#22c3d3]'
+                    : 'border-slate-300 bg-white'
+                    }`}
                 >
                   {paymentMethod === 'MOMO' && <div className="w-2 h-2 rounded-full bg-white" />}
                 </div>
@@ -859,11 +854,10 @@ export const CheckoutView: React.FC = () => {
                         showToast(`Đã áp dụng: ${promo.title}`, 'success');
                       }
                     }}
-                    className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer ${
-                      isSelected
-                        ? 'border-[#22c3d3] bg-[#f5fcfc] ring-2 ring-[#22c3d3]/20 shadow-xs'
-                        : 'border-slate-200/90 hover:border-slate-300 bg-white'
-                    }`}
+                    className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer ${isSelected
+                      ? 'border-[#22c3d3] bg-[#f5fcfc] ring-2 ring-[#22c3d3]/20 shadow-xs'
+                      : 'border-slate-200/90 hover:border-slate-300 bg-white'
+                      }`}
                   >
                     {/* Tem voucher bên trái */}
                     {badgeStyle}
@@ -882,11 +876,10 @@ export const CheckoutView: React.FC = () => {
 
                     {/* Checkbox vuông bo tròn bên phải */}
                     <div
-                      className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-all ${
-                        isSelected
-                          ? 'border-[#22c3d3] bg-[#22c3d3] text-white shadow-2xs'
-                          : 'border-slate-300 bg-white'
-                      }`}
+                      className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-all ${isSelected
+                        ? 'border-[#22c3d3] bg-[#22c3d3] text-white shadow-2xs'
+                        : 'border-slate-300 bg-white'
+                        }`}
                     >
                       {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                     </div>
@@ -944,11 +937,10 @@ export const CheckoutView: React.FC = () => {
                 setOrderType('DELIVERY');
                 showToast('Đã chọn hình thức Green Food (Giao tận nơi)', 'info');
               }}
-              className={`p-4 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${
-                orderType === 'DELIVERY'
-                  ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
+              className={`p-4 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${orderType === 'DELIVERY'
+                ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
+                : 'border-slate-200 hover:border-slate-300'
+                }`}
             >
               <div className="flex items-start gap-3.5">
                 <div className="w-11 h-11 rounded-2xl bg-[#e6f8fa] text-[#22c3d3] flex items-center justify-center shrink-0 font-bold text-xl">
@@ -984,11 +976,10 @@ export const CheckoutView: React.FC = () => {
                 setOrderType('DINE_IN');
                 showToast('Đã chọn hình thức Ăn tại bàn (Quét mã QR Bàn)', 'info');
               }}
-              className={`p-4 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${
-                orderType === 'DINE_IN'
-                  ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
+              className={`p-4 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${orderType === 'DINE_IN'
+                ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
+                : 'border-slate-200 hover:border-slate-300'
+                }`}
             >
               <div className="flex items-start gap-3.5">
                 <div className="w-11 h-11 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 font-bold text-xl">
@@ -1022,11 +1013,10 @@ export const CheckoutView: React.FC = () => {
                 setOrderType('PICKUP');
                 showToast('Đã chọn hình thức Nhận tại quầy (Tự lấy mang về)', 'info');
               }}
-              className={`p-4 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${
-                orderType === 'PICKUP'
-                  ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
+              className={`p-4 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${orderType === 'PICKUP'
+                ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
+                : 'border-slate-200 hover:border-slate-300'
+                }`}
             >
               <div className="flex items-start gap-3.5">
                 <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xl">
@@ -1104,16 +1094,14 @@ export const CheckoutView: React.FC = () => {
               </div>
               <button
                 onClick={() => setInvoiceRequested(!invoiceRequested)}
-                className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                  invoiceRequested ? 'bg-[#22c3d3]' : 'bg-slate-200'
-                }`}
+                className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer shrink-0 ${invoiceRequested ? 'bg-[#22c3d3]' : 'bg-slate-200'
+                  }`}
                 role="switch"
                 aria-checked={invoiceRequested}
               >
                 <span
-                  className={`w-6 h-6 rounded-full bg-white shadow-xs absolute top-0.5 transition-transform flex items-center justify-center text-[#22c3d3] text-[10px] font-bold ${
-                    invoiceRequested ? 'left-5.5' : 'left-0.5'
-                  }`}
+                  className={`w-6 h-6 rounded-full bg-white shadow-xs absolute top-0.5 transition-transform flex items-center justify-center text-[#22c3d3] text-[10px] font-bold ${invoiceRequested ? 'left-5.5' : 'left-0.5'
+                    }`}
                 >
                   {invoiceRequested && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                 </span>
@@ -1220,16 +1208,6 @@ export const CheckoutView: React.FC = () => {
         </header>
 
         <main className="p-4 space-y-4">
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-3 text-center">
-            <div className="w-16 h-16 rounded-3xl bg-[#e6f8fa] text-[#22c3d3] flex items-center justify-center mx-auto">
-              <ShieldCheck className="w-9 h-9" />
-            </div>
-            <h2 className="text-[18px] font-bold text-slate-900">Bảo vệ đơn hàng với GreenCare</h2>
-            <p className="text-[13px] text-slate-600 max-w-sm mx-auto leading-relaxed">
-              Chương trình bảo hiểm phối hợp độc quyền cùng Tổng Công ty Bảo hiểm PVI với mức phí chỉ <strong>1.000đ/đơn</strong>.
-            </p>
-          </div>
-
           <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-3">
             <h3 className="text-[14px] font-bold text-slate-900">Quyền lợi chi tiết</h3>
             <div className="space-y-3 text-[13px] text-slate-700">
@@ -1653,49 +1631,7 @@ export const CheckoutView: React.FC = () => {
 
         {/* 5. Dịch vụ thêm */}
         <div className="pt-2 space-y-3.5">
-          <h3 className="text-[15px] font-bold text-slate-900">Dịch vụ thêm</h3>
-
-          {/* Protection GreenCare */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3 flex-1 min-w-0">
-              <div className="mt-0.5 text-slate-800 shrink-0">
-                <ShieldCheck className="w-5 h-5 fill-slate-800 text-white" />
-              </div>
-              <div>
-                <p className="text-[14px] font-bold text-slate-900 leading-snug">
-                  Bảo vệ đơn hàng với GreenCare
-                </p>
-                <p className="text-[13px] font-bold text-slate-800 mt-0.5">1.000đ</p>
-                <p className="text-[12px] text-slate-500 leading-snug mt-1">
-                  Đơn hàng được PVI bảo hiểm. Chứng nhận điện tử sẽ được cấp kèm.{' '}
-                  <button
-                    onClick={() => setActivePage('insurance')}
-                    className="text-[#22c3d3] hover:underline cursor-pointer inline font-medium"
-                  >
-                    Chi tiết
-                  </button>
-                </p>
-              </div>
-            </div>
-
-            {/* Teal Toggle Switch */}
-            <button
-              onClick={() => setGreenCareEnabled(!greenCareEnabled)}
-              className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 mt-1 ${
-                greenCareEnabled ? 'bg-[#22c3d3]' : 'bg-slate-200'
-              }`}
-              role="switch"
-              aria-checked={greenCareEnabled}
-            >
-              <span
-                className={`w-5 h-5 rounded-full bg-white shadow-xs absolute top-0.5 transition-transform flex items-center justify-center text-[#22c3d3] text-[10px] font-bold ${
-                  greenCareEnabled ? 'left-5.5' : 'left-0.5'
-                }`}
-              >
-                {greenCareEnabled && <Check className="w-3 h-3 stroke-[3]" />}
-              </span>
-            </button>
-          </div>
+          <h3 className="text-[15px] font-bold text-slate-900">Dịch vụ khác</h3>
 
           {/* Xuất hóa đơn & dịch vụ bổ sung -> opens 'invoice' page */}
           <div
@@ -1748,12 +1684,6 @@ export const CheckoutView: React.FC = () => {
               </span>
             </div>
 
-            {greenCareEnabled && (
-              <div className="flex items-center justify-between text-slate-600">
-                <span>Bảo vệ đơn hàng với GreenCare</span>
-                <span className="font-semibold text-slate-900">1.000đ</span>
-              </div>
-            )}
 
             {appliedPromotion && promoDiscount > 0 && (
               <div className="flex items-center justify-between text-emerald-600 font-medium">

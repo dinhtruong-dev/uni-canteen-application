@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import { Utensils, Eye, EyeOff, Lock, Mail, User, Phone, GraduationCap, CheckCircle2, ArrowRight } from 'lucide-react';
 
 export const LoginView: React.FC = () => {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import {
   ArrowLeft,
   ChevronRight,
@@ -24,9 +24,9 @@ import {
   RotateCcw,
   MessageSquare,
 } from 'lucide-react';
-import { Order, OrderStatus } from '../types';
-import { OrderChatModal } from '../components/OrderChatModal';
-import { adminService } from '../services/api';
+import { Order, OrderStatus } from '../../types';
+import { OrderChatModal } from '../../components/OrderChatModal';
+import { adminService } from '../../services/api';
 
 interface OrderTrackingViewProps {
   orderId?: string;
@@ -104,7 +104,6 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
   const handleCopyOrderCode = (e: React.MouseEvent) => {
     e.stopPropagation();
     navigator.clipboard.writeText(order.orderNumber);
-    showToast(`Đã sao chép mã đơn: ${order.orderNumber}`, 'success');
   };
 
   // Payment method display
@@ -271,19 +270,17 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
                   <label
                     key={idx}
                     onClick={() => setSelectedReason(reason)}
-                    className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
-                      isSelected
-                        ? 'border-[#22c3d3] bg-[#22c3d3]/5 text-slate-900 font-medium shadow-2xs'
-                        : 'border-slate-200/70 hover:bg-slate-50 text-slate-700'
-                    }`}
+                    className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${isSelected
+                      ? 'border-[#22c3d3] bg-[#22c3d3]/5 text-slate-900 font-medium shadow-2xs'
+                      : 'border-slate-200/70 hover:bg-slate-50 text-slate-700'
+                      }`}
                   >
                     <span className="text-[13px] pr-2">{reason}</span>
                     <div
-                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                        isSelected
-                          ? 'border-[#22c3d3] bg-[#22c3d3] text-white'
-                          : 'border-slate-300 bg-white'
-                      }`}
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${isSelected
+                        ? 'border-[#22c3d3] bg-[#22c3d3] text-white'
+                        : 'border-slate-300 bg-white'
+                        }`}
                     >
                       {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
                     </div>
@@ -344,38 +341,6 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
   /* ========================================================================= */
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-24">
-      {/* Simulation Staff Bar (Top floating pill for testing) */}
-      <div className="bg-slate-900 text-white px-4 py-2 flex items-center justify-between text-[11px] shadow-sm">
-        <div className="flex items-center gap-1.5 text-slate-300">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-          <span>Trạng thái đơn: </span>
-          <span className="font-bold text-orange-400 uppercase">
-            {order.status === 'PENDING'
-              ? 'Chờ xác nhận'
-              : order.status === 'CONFIRMED'
-              ? 'Đã xác nhận'
-              : order.status === 'PREPARING'
-              ? 'Đang nấu'
-              : order.status === 'DELIVERING'
-              ? 'Đang giao'
-              : order.status === 'COMPLETED'
-              ? 'Hoàn thành'
-              : 'Đã hủy'}
-          </span>
-        </div>
-
-        {/* Quick simulation button for testing confirmation flow */}
-        {isPending && (
-          <button
-            onClick={handleSimulateStaffConfirm}
-            className="bg-[#22c3d3] hover:bg-[#1db3c1] text-white font-bold px-2.5 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1"
-          >
-            👩‍🍳 Mô phỏng: Nhân viên duyệt đơn
-          </button>
-        )}
-      </div>
-
-      {/* Top Header with circular Back button */}
       <div className="relative px-4 pt-3 pb-2 flex items-center justify-between z-20">
         <button
           onClick={() => navigateTo('orders')}
@@ -426,9 +391,6 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
                 <span className="text-[11px] font-bold text-slate-900 block leading-tight">
                   Tài xế Căng tin
                 </span>
-                <span className="inline-block text-[9px] font-extrabold text-[#009ca8] bg-cyan-50 border border-cyan-200/60 px-1.5 py-0.2 rounded-md">
-                  29-B1 688.88
-                </span>
               </div>
             </div>
 
@@ -460,9 +422,8 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
             {/* Step 1: Document / Bill */}
             <div className="flex flex-col items-center">
               <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-xs transition-colors ${
-                  !isCancelled ? 'bg-[#22c3d3] text-white' : 'bg-slate-200 text-slate-500'
-                }`}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-xs transition-colors ${!isCancelled ? 'bg-[#22c3d3] text-white' : 'bg-slate-200 text-slate-500'
+                  }`}
               >
                 <FileText className="w-5 h-5 stroke-[2.2]" />
               </div>
@@ -470,19 +431,17 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
 
             {/* Connecting line 1 */}
             <div
-              className={`flex-1 h-[2.5px] mx-1 rounded-full transition-colors ${
-                !isCancelled ? 'bg-[#22c3d3]' : 'bg-slate-200'
-              }`}
+              className={`flex-1 h-[2.5px] mx-1 rounded-full transition-colors ${!isCancelled ? 'bg-[#22c3d3]' : 'bg-slate-200'
+                }`}
             />
 
             {/* Step 2: Store / Canteen */}
             <div className="flex flex-col items-center">
               <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-                  isConfirmed && !isCancelled
-                    ? 'bg-[#22c3d3] text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-400'
-                }`}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${isConfirmed && !isCancelled
+                  ? 'bg-[#22c3d3] text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-400'
+                  }`}
               >
                 <Store className="w-5 h-5 stroke-[2]" />
               </div>
@@ -490,19 +449,17 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
 
             {/* Connecting line 2 */}
             <div
-              className={`flex-1 h-[2.5px] mx-1 rounded-full transition-colors ${
-                isDeliveringOrReady && !isCancelled ? 'bg-[#22c3d3]' : 'bg-slate-200'
-              }`}
+              className={`flex-1 h-[2.5px] mx-1 rounded-full transition-colors ${isDeliveringOrReady && !isCancelled ? 'bg-[#22c3d3]' : 'bg-slate-200'
+                }`}
             />
 
             {/* Step 3: Package */}
             <div className="flex flex-col items-center">
               <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-                  isDeliveringOrReady && !isCancelled
-                    ? 'bg-[#22c3d3] text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-400'
-                }`}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${isDeliveringOrReady && !isCancelled
+                  ? 'bg-[#22c3d3] text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-400'
+                  }`}
               >
                 <Package className="w-5 h-5 stroke-[2]" />
               </div>
@@ -510,19 +467,17 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
 
             {/* Connecting line 3 */}
             <div
-              className={`flex-1 h-[2.5px] mx-1 rounded-full transition-colors ${
-                isCompleted && !isCancelled ? 'bg-[#22c3d3]' : 'bg-slate-200'
-              }`}
+              className={`flex-1 h-[2.5px] mx-1 rounded-full transition-colors ${isCompleted && !isCancelled ? 'bg-[#22c3d3]' : 'bg-slate-200'
+                }`}
             />
 
             {/* Step 4: Home */}
             <div className="flex flex-col items-center">
               <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-                  isCompleted && !isCancelled
-                    ? 'bg-[#22c3d3] text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-400'
-                }`}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${isCompleted && !isCancelled
+                  ? 'bg-[#22c3d3] text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-400'
+                  }`}
               >
                 <Home className="w-5 h-5 stroke-[2]" />
               </div>
@@ -535,18 +490,18 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
               {isPending
                 ? 'Đang đợi nhân viên xác nhận'
                 : order.status === 'CONFIRMED'
-                ? 'Căng tin đã xác nhận'
-                : order.status === 'PREPARING'
-                ? 'Nhà bếp đang nấu'
-                : order.status === 'DELIVERING'
-                ? 'Đang giao hàng'
-                : order.status === 'READY'
-                ? 'Món ăn sẵn sàng'
-                : order.status === 'SERVED'
-                ? 'Đã phục vụ tại bàn'
-                : order.status === 'COMPLETED'
-                ? 'Đã hoàn thành'
-                : 'Đơn hàng đã hủy'}
+                  ? 'Căng tin đã xác nhận'
+                  : order.status === 'PREPARING'
+                    ? 'Nhà bếp đang nấu'
+                    : order.status === 'DELIVERING'
+                      ? 'Đang giao hàng'
+                      : order.status === 'READY'
+                        ? 'Món ăn sẵn sàng'
+                        : order.status === 'SERVED'
+                          ? 'Đã phục vụ tại bàn'
+                          : order.status === 'COMPLETED'
+                            ? 'Đã hoàn thành'
+                            : 'Đơn hàng đã hủy'}
             </h2>
 
             {isPending && (
@@ -575,28 +530,6 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
           </div>
         </div>
 
-        {/* =============================================================== */}
-        {/* PROMOTION BANNER (Matching Green Food Banner in Screenshot 1)     */}
-        {/* =============================================================== */}
-        <div className="bg-gradient-to-r from-[#14b8a6] via-[#06b6d4] to-[#0284c7] rounded-2xl p-3 text-white shadow-xs relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="inline-block text-[10px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
-                Green Food Hội Viên
-              </span>
-              <p className="text-[13px] font-bold leading-snug">
-                Chỉ từ 30K/tháng - Sở hữu 50 mã Freeship 0đ
-              </p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white shrink-0">
-              <ChevronRight className="w-4 h-4" />
-            </div>
-          </div>
-        </div>
-
-        {/* =============================================================== */}
-        {/* SECTION: CHI TIẾT GIAO HÀNG (Matching Screenshot 2)              */}
-        {/* =============================================================== */}
         <div className="space-y-3">
           {/* Card 1: Store & Destination */}
           <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-xs space-y-4">
@@ -630,10 +563,10 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
                   {order.orderType === 'DINE_IN'
                     ? `Ăn tại bàn: ${order.tableInfo?.tableName || 'Bàn căng tin'}`
                     : order.orderType === 'PICKUP'
-                    ? `Nhận tại quầy: ${order.pickupTimeSlot || 'Quầy số 1'}`
-                    : order.deliveryAddress
-                    ? `${order.deliveryAddress.building} - ${order.deliveryAddress.room}, ${order.deliveryAddress.campus}`
-                    : 'KTX A1 - Phòng 402, Ký Túc Xá Sinh Viên ĐHQG'}
+                      ? `Nhận tại quầy: ${order.pickupTimeSlot || 'Quầy số 1'}`
+                      : order.deliveryAddress
+                        ? `${order.deliveryAddress.building} - ${order.deliveryAddress.room}, ${order.deliveryAddress.campus}`
+                        : 'KTX A1 - Phòng 402, Ký Túc Xá Sinh Viên ĐHQG'}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
                   {order.userName} • {order.userPhone || '0912 345 678'} • 0.38km
@@ -814,9 +747,8 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
                         key={star}
                         type="button"
                         onClick={() => setRating(star)}
-                        className={`p-1 cursor-pointer transition-transform active:scale-90 ${
-                          star <= rating ? 'text-amber-500' : 'text-slate-300'
-                        }`}
+                        className={`p-1 cursor-pointer transition-transform active:scale-90 ${star <= rating ? 'text-amber-500' : 'text-slate-300'
+                          }`}
                       >
                         <Star className="w-6 h-6 fill-current" />
                       </button>

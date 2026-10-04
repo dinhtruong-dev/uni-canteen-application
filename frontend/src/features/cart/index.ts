@@ -1,6 +1,6 @@
 /**
  * MODULE GIỎ HÀNG (CART FEATURE MODULE)
  */
-export * from '../../pages/CartView';
-export * from '../../pages/CheckoutView';
+export * from '../../pages/customer/CartView';
+export * from '../../pages/customer/CheckoutView';
 export * from '../../hooks/useCart';

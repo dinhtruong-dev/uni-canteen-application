@@ -1,6 +1,6 @@
 /**
  * MODULE ĐƠN HÀNG (ORDERS FEATURE MODULE)
  */
-export * from '../../pages/MyOrdersView';
-export * from '../../pages/OrderTrackingView';
-export * from '../../pages/OrderSuccessView';
+export * from '../../pages/customer/MyOrdersView';
+export * from '../../pages/customer/OrderTrackingView';
+export * from '../../pages/customer/OrderSuccessView';

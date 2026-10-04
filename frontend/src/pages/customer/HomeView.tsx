@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
-import { FoodCard } from '../components/FoodCard';
-import { BannerSlider } from '../components/BannerSlider';
-import { FlashSaleSection } from '../components/FlashSaleSection';
-import { HorizontalScrollContainer } from '../components/HorizontalScrollContainer';
-import { FoodItem, Canteen, OrderType } from '../types';
+import { useApp } from '../../context/AppContext';
+import { FoodCard } from '../../components/FoodCard';
+import { BannerSlider } from '../../components/BannerSlider';
+import { FlashSaleSection } from '../../components/FlashSaleSection';
+import { HorizontalScrollContainer } from '../../components/HorizontalScrollContainer';
+import { FoodItem, Canteen, OrderType } from '../../types';
 import {
   ShoppingBag,
   Home as HomeIcon,

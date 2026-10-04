@@ -55,17 +55,17 @@ export const OrderChatModal: React.FC<OrderChatModalProps> = ({
   const quickTemplates =
     currentUserRole === 'CUSTOMER'
       ? [
-          'Quán cho mình xin thêm ớt / tương cà nha',
-          'Đơn của mình khoảng mấy phút nữa xong ạ?',
-          'Mình đã tới trước quầy nhận món rồi ạ',
-          'Đổi giúp mình cơm sườn sang ít cơm được không?',
-        ]
+        'Quán cho mình xin thêm ớt / tương cà nha',
+        'Đơn của mình khoảng mấy phút nữa xong ạ?',
+        'Mình đã tới trước quầy nhận món rồi ạ',
+        'Đổi giúp mình cơm sườn sang ít cơm được không?',
+      ]
       : [
-          'Dạ căn tin đã nhận ghi chú và chuẩn bị cho bạn rồi nhé!',
-          'Bếp đang hoàn tất món cho bạn trong khoảng 2 phút nữa!',
-          'Món ăn đã sẵn sàng, mời bạn qua quầy xuất trình mã để nhận nhé!',
-          'Căn tin cảm ơn bạn nhiều nhé, chúc bạn ngon miệng!',
-        ];
+        'Dạ căn tin đã nhận ghi chú và chuẩn bị cho bạn rồi nhé!',
+        'Bếp đang hoàn tất món cho bạn trong khoảng 2 phút nữa!',
+        'Món ăn đã sẵn sàng, mời bạn qua quầy xuất trình mã để nhận nhé!',
+        'Căn tin cảm ơn bạn nhiều nhé, chúc bạn ngon miệng!',
+      ];
 
   // Sound ping for chat
   const playChatPing = () => {
@@ -206,16 +206,7 @@ export const OrderChatModal: React.FC<OrderChatModalProps> = ({
                 <h2 className="text-[15px] font-bold text-white tracking-tight">
                   {currentUserRole === 'CUSTOMER' ? canteenName : `Khách: ${targetUserName}`}
                 </h2>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Trực tuyến
-                </span>
               </div>
-              <p className="text-[12px] text-slate-300 flex items-center gap-1.5">
-                <span>Đơn #{orderCode || orderId}</span>
-                <span>•</span>
-                <span className="text-slate-400">Giao tiếp Realtime Socket</span>
-              </p>
             </div>
           </div>
 
@@ -268,11 +259,10 @@ export const OrderChatModal: React.FC<OrderChatModalProps> = ({
                   </div>
 
                   <div
-                    className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed shadow-xs ${
-                      isMe
-                        ? 'bg-[#22c3d3] text-white rounded-tr-xs font-medium'
-                        : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-tl-xs'
-                    }`}
+                    className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed shadow-xs ${isMe
+                      ? 'bg-[#22c3d3] text-white rounded-tr-xs font-medium'
+                      : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-tl-xs'
+                      }`}
                   >
                     {msg.message}
                   </div>

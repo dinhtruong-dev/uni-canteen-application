@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useApp } from '../store/AppContext';
-import { getSocket } from '../services/socket.client';
+import { useApp } from '../../store/AppContext';
+import { getSocket } from '../../services/socket.client';
 import {
   kdsService,
   KDSOrder,
   KDSProduct,
   KDSSummary,
-} from '../services/api';
+} from '../../services/api';
 import {
   Volume2,
   VolumeX,
@@ -34,7 +34,7 @@ import {
   RotateCcw,
   SlidersHorizontal,
 } from 'lucide-react';
-import { OrderChatModal } from '../components/OrderChatModal';
+import { OrderChatModal } from '../../components/OrderChatModal';
 
 export const KitchenKDSView: React.FC = () => {
   const { navigateTo } = useApp();

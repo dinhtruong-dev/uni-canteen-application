@@ -84,10 +84,11 @@ export interface Category {
   id: string;
   name: string;
   icon: string;
-  slug: string;
+  slug?: string;
   image?: string;
   description?: string;
   sortOrder?: number;
+  isActive?: boolean;
 }
 
 export interface FoodTopping {

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import confetti from 'canvas-confetti';
 import {
   CheckCircle2,

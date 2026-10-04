@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { DeliveryAddress } from '../types';
+import { useApp } from '../../context/AppContext';
+import { DeliveryAddress } from '../../types';
 import {
   User as UserIcon,
   Wallet,

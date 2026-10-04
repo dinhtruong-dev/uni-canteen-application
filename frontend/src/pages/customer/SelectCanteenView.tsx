@@ -1,6 +1,6 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
-import { Canteen } from '../types';
+import { useApp } from '../../context/AppContext';
+import { Canteen } from '../../types';
 import {
   ArrowLeft,
   Store,
@@ -65,29 +65,8 @@ export const SelectCanteenView: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 pt-4 pb-8 space-y-4">
-        {/* Guide headline blended into main background */}
-        <div className="px-1 py-1.5 flex items-start gap-3 bg-transparent">
-          <div className="w-9 h-9 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-base shrink-0 shadow-2xs">
-            ⏰
-          </div>
-          <div className="space-y-0.5 flex-1 min-w-0">
-            <h2 className="text-xs sm:text-sm font-bold text-slate-800">
-              Bạn muốn lấy món ở Căng tin nào?
-            </h2>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Chọn căng tin gần lớp học hoặc ký túc xá của bạn nhất. Nhà bếp sẽ chuẩn bị sẵn để bạn tới lấy ngay nhé!
-            </p>
-          </div>
-        </div>
-
         {/* Canteens List */}
         <div className="space-y-1">
-          <div className="flex items-center justify-between px-1 mb-1">
-            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Danh sách căng tin phục vụ ({canteens.length})
-            </span>
-          </div>
-
           <div className="divide-y divide-slate-200/90 border-y border-slate-200/90">
             {canteens.map((canteen, idx) => {
               const isSelected = selectedCanteen?.id === canteen.id;
@@ -99,9 +78,8 @@ export const SelectCanteenView: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.04 }}
                   onClick={() => handleSelectCanteen(canteen)}
-                  className={`py-3 px-2 flex items-center justify-between gap-3 cursor-pointer transition-colors active:scale-[0.99] hover:bg-slate-100/70 ${
-                    isSelected ? 'bg-orange-50/80' : 'bg-transparent'
-                  }`}
+                  className={`py-3 px-2 flex items-center justify-between gap-3 cursor-pointer transition-colors active:scale-[0.99] hover:bg-slate-100/70 ${isSelected ? 'bg-orange-50/80' : 'bg-transparent'
+                    }`}
                 >
                   {/* Left: Thumbnail & Essential Info (Name, Location, Rating) */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -116,9 +94,8 @@ export const SelectCanteenView: React.FC = () => {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <h3
-                          className={`text-xs sm:text-sm font-bold truncate ${
-                            isSelected ? 'text-orange-600' : 'text-slate-900'
-                          }`}
+                          className={`text-xs sm:text-sm font-bold truncate ${isSelected ? 'text-orange-600' : 'text-slate-900'
+                            }`}
                         >
                           {canteen.name}
                         </h3>

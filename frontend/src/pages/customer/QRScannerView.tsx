@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import { ArrowLeft, Flashlight, Camera, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
 import jsQR from 'jsqr';

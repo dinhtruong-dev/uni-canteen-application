@@ -1,28 +1,32 @@
 import React from 'react';
 import { useApp } from '../store/AppContext';
-import { LandingView } from '../pages/LandingView';
-import { HomeView } from '../pages/HomeView';
-import { CategoryView } from '../pages/CategoryView';
-import { FoodDetailView } from '../pages/FoodDetailView';
-import { FoodReviewsView } from '../pages/FoodReviewsView';
-import { SectionListView } from '../pages/SectionListView';
-import { CartView } from '../pages/CartView';
-import { CheckoutView } from '../pages/CheckoutView';
-import { OrderSuccessView } from '../pages/OrderSuccessView';
-import { OrderTrackingView } from '../pages/OrderTrackingView';
-import { MyOrdersView } from '../pages/MyOrdersView';
-import { FavoritesView } from '../pages/FavoritesView';
-import { ProfileView } from '../pages/ProfileView';
-import { EditProfileView } from '../pages/EditProfileView';
-import { NotificationsView } from '../pages/NotificationsView';
-import { SearchView } from '../pages/SearchView';
+import {
+  LandingView,
+  HomeView,
+  CategoryView,
+  FoodDetailView,
+  FoodReviewsView,
+  SectionListView,
+  CartView,
+  CheckoutView,
+  OrderSuccessView,
+  OrderTrackingView,
+  MyOrdersView,
+  FavoritesView,
+  ProfileView,
+  EditProfileView,
+  NotificationsView,
+  SearchView,
+  QRScannerView,
+  LoginView,
+  RegisterView,
+  ForgotPasswordView,
+  DeliveryLocationView,
+  SelectCanteenView,
+} from '../pages/customer';
 import { StaffPortalView } from '../pages/staff/StaffPortalView';
+import { KitchenKDSView } from '../pages/staff/KitchenKDSView';
 import { AdminPortalView } from '../pages/admin/AdminPortalView';
-import { QRScannerView } from '../pages/QRScannerView';
-import { LoginView, RegisterView, ForgotPasswordView } from '../pages/AuthViews';
-import { DeliveryLocationView } from '../pages/DeliveryLocationView';
-import { SelectCanteenView } from '../pages/SelectCanteenView';
-import { KitchenKDSView } from '../pages/KitchenKDSView';
 
 export const AppRoutes: React.FC = () => {
   const { currentView, viewParams, currentUser } = useApp();

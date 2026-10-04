@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useApp } from '../context/AppContext';
-import { FoodItem } from '../types';
+import { useApp } from '../../context/AppContext';
+import { FoodItem } from '../../types';
 import {
   ArrowLeft,
   Search,
@@ -23,8 +23,8 @@ import {
   Check,
   RotateCw,
 } from 'lucide-react';
-import { HorizontalScrollContainer } from '../components/HorizontalScrollContainer';
-import { searchService, CanteenSearchItem, SearchResponse } from '../services/api';
+import { HorizontalScrollContainer } from '../../components/HorizontalScrollContainer';
+import { searchService, CanteenSearchItem, SearchResponse } from '../../services/api';
 
 const RECENT_SEARCHES_KEY = 'unieat_recent_searches';
 const DEFAULT_RECENT_SEARCHES = [

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import {
+  Home,
   UtensilsCrossed,
   ShoppingCart,
   Bell,

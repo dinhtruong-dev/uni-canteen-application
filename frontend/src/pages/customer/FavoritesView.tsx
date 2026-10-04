@@ -1,6 +1,6 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
-import { FoodCard } from '../components/FoodCard';
+import { useApp } from '../../context/AppContext';
+import { FoodCard } from '../../components/FoodCard';
 import { Heart } from 'lucide-react';
 
 export const FavoritesView: React.FC = () => {
@@ -12,8 +12,8 @@ export const FavoritesView: React.FC = () => {
     <div className="-mt-1 sm:-mt-2 space-y-4 pb-20 max-w-4xl mx-auto px-1 sm:px-0">
       {/* Sticky Header Container */}
       <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md py-2 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-slate-200/60 transition-all flex items-center justify-between">
-        <h1 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-          <Heart className="w-5 h-5 text-rose-500 fill-rose-500" /> Món Ăn Yêu Thích
+        <h1 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+          Món Ăn Yêu Thích
         </h1>
         <span className="text-xs font-semibold text-slate-500 bg-slate-200/60 px-2.5 py-0.5 rounded-full">
           {favoriteFoods.length} món

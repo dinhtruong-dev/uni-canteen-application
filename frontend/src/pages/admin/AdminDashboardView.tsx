@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { FoodItem } from '../types';
+import { useApp } from '../../context/AppContext';
+import { FoodItem } from '../../types';
 import {
   ShieldAlert,
   Users,
@@ -35,7 +35,7 @@ import {
   ChevronDown,
   QrCode,
 } from 'lucide-react';
-import { AdminTablesView } from './admin/AdminTablesView';
+import { AdminTablesView } from './AdminTablesView';
 
 export const AdminDashboardView: React.FC = () => {
   const {
