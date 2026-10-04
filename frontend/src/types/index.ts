@@ -27,13 +27,15 @@ export type PaymentStatus = 'UNPAID' | 'PAID' | 'REFUNDED';
 
 export interface DeliveryAddress {
   id?: string;
-  campus: string;
-  area: string;
+  label?: string;
+  campus?: string;
+  area?: string;
   building: string;
-  floor: string;
+  floor?: string;
   room: string;
-  phone: string;
+  phone?: string;
   notes?: string;
+  note?: string;
   isDefault?: boolean;
 }
 
@@ -44,6 +46,7 @@ export interface User {
   email: string;
   phone: string;
   role: Role;
+  faculty?: string;
   department?: string;
   className?: string;
   gender?: string;
@@ -53,7 +56,7 @@ export interface User {
   walletBalance: number;
   savedAddresses: DeliveryAddress[];
   canteenId?: string; // For STAFF role
-  status: 'ACTIVE' | 'BLOCKED';
+  status?: 'ACTIVE' | 'BLOCKED';
   createdAt: string;
 }
 
@@ -84,6 +87,7 @@ export interface Category {
   slug: string;
   image?: string;
   description?: string;
+  sortOrder?: number;
 }
 
 export interface FoodTopping {
@@ -100,15 +104,15 @@ export interface FoodSize {
 export interface FoodItem {
   id: string;
   name: string;
-  canteenId: string;
+  canteenId?: string;
   canteenName?: string;
-  categoryId: string;
+  categoryId?: string;
   categoryName?: string;
   price: number;
   originalPrice?: number;
   image: string;
-  description: string;
-  ingredients: string[];
+  description?: string;
+  ingredients?: string[];
   isBestSeller?: boolean;
   isNew?: boolean;
   isVegetarian?: boolean;
@@ -116,6 +120,7 @@ export interface FoodItem {
   rating: number;
   reviewCount: number;
   soldCount?: number;
+  orderCount?: number;
   toppings?: FoodTopping[];
   sizes?: FoodSize[];
   preparationTime: number; // in minutes
@@ -132,10 +137,12 @@ export interface CartItem {
 }
 
 export interface TableInfo {
+  id?: string;
   tableCode: string;
   canteenId: string;
   canteenName: string;
   tableName: string;
+  tableNumber?: string;
   status: 'AVAILABLE' | 'OCCUPIED';
 }
 
@@ -163,6 +170,16 @@ export interface Promotion {
   isAvailable: boolean;
 }
 
+export interface UserVoucher {
+  id: string;
+  userId: string;
+  voucherId: string;
+  isUsed: boolean;
+  usedAt?: string;
+  createdAt: string;
+  voucher?: Promotion;
+}
+
 export interface TimelineEvent {
   status: OrderStatus;
   title: string;
@@ -174,12 +191,16 @@ export interface TimelineEvent {
 export interface Order {
   id: string;
   orderNumber: string;
+  orderCode?: string;
   userId: string;
   userName: string;
   userPhone: string;
+  customerName?: string;
+  customerPhone?: string;
   orderType: OrderType;
   canteenId: string;
   canteenName: string;
+  voucherId?: string;
   items: CartItem[];
   subtotal: number;
   shippingFee: number;

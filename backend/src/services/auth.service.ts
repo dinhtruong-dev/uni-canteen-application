@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { db } from './database.service';
 import { User, UserRole } from '../models';
+import { executeQuery } from '../config/db.config';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'unieat-campus-jwt-secret-key-2026';
 const JWT_EXPIRES_IN = '7d';
@@ -32,7 +33,7 @@ export class AuthService {
     }
   }
 
-  public register(data: {
+  public async register(data: {
     name: string;
     email: string;
     password: string;
@@ -40,11 +41,24 @@ export class AuthService {
     role?: UserRole;
     studentId?: string;
     faculty?: string;
-  }): { user: User; token: string } {
-    // Check if email already exists
-    const existing = Array.from(db.users.values()).find(
-      (u) => u.email.toLowerCase() === data.email.toLowerCase()
+  }): Promise<{ user: User; token: string }> {
+    const cleanEmail = data.email.toLowerCase().trim();
+
+    // Check if email already exists in RAM or MySQL
+    let existing = Array.from(db.users.values()).find(
+      (u) => u.email.toLowerCase() === cleanEmail
     );
+
+    if (!existing) {
+      try {
+        const rows = await executeQuery('SELECT id FROM users WHERE email = ? LIMIT 1', [cleanEmail]);
+        if (Array.isArray(rows) && rows.length > 0) {
+          existing = rows[0] as any;
+        }
+      } catch (err: any) {
+        console.warn('[MySQL Check Email Notice]:', err.message);
+      }
+    }
 
     if (existing) {
       throw new Error('Email này đã được đăng ký trong hệ thống căng tin');
@@ -54,7 +68,7 @@ export class AuthService {
     const newUser = new User(
       userId,
       data.name,
-      data.email.toLowerCase(),
+      cleanEmail,
       data.phone,
       data.role || 'STUDENT',
       {
@@ -66,15 +80,71 @@ export class AuthService {
     );
 
     db.users.set(newUser.id, newUser);
-    const token = this.generateToken(newUser);
 
+    // Persist to MySQL with correctly hashed password
+    try {
+      await executeQuery(
+        `INSERT INTO users (
+          id, student_id, name, email, password_hash, phone, role, faculty, wallet_balance, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE name = VALUES(name), phone = VALUES(phone), wallet_balance = VALUES(wallet_balance)`,
+        [
+          newUser.id,
+          data.studentId || null,
+          data.name,
+          cleanEmail,
+          newUser.passwordHash,
+          data.phone,
+          data.role || 'STUDENT',
+          data.faculty || null,
+          newUser.walletBalance,
+          newUser.status || 'ACTIVE',
+        ]
+      );
+      console.log(`[Database User Saved] ✅ ĐÃ LƯU THÀNH CÔNG VÀO MYSQL -> Email: ${cleanEmail} (ID: ${newUser.id})`);
+    } catch (err: any) {
+      console.error('❌ [MySQL User Persistence Error]:', err.message);
+    }
+
+    const token = this.generateToken(newUser);
     return { user: newUser, token };
   }
 
-  public login(email: string, password: string): { user: User; token: string } {
-    const user = Array.from(db.users.values()).find(
-      (u) => u.email.toLowerCase() === email.toLowerCase().trim()
+  public async login(email: string, password: string): Promise<{ user: User; token: string }> {
+    const cleanEmail = email.toLowerCase().trim();
+
+    let user = Array.from(db.users.values()).find(
+      (u) => u.email.toLowerCase() === cleanEmail
     );
+
+    // If not found in RAM, fetch directly from MySQL
+    if (!user) {
+      try {
+        const rows = await executeQuery('SELECT * FROM users WHERE email = ? LIMIT 1', [cleanEmail]);
+        if (Array.isArray(rows) && rows.length > 0) {
+          const row = rows[0];
+          user = new User(
+            row.id,
+            row.name,
+            row.email,
+            row.phone,
+            row.role || 'STUDENT',
+            {
+              passwordHash: row.password_hash,
+              studentId: row.student_id,
+              faculty: row.faculty,
+              department: row.department,
+              walletBalance: Number(row.wallet_balance) || 0,
+              avatar: row.avatar,
+              status: row.status,
+            }
+          );
+          db.users.set(user.id, user);
+        }
+      } catch (err: any) {
+        console.warn('[MySQL User Fetch Notice]:', err.message);
+      }
+    }
 
     if (!user) {
       throw new Error('Tài khoản email không tồn tại trong hệ thống');

@@ -20,6 +20,7 @@ import {
   Megaphone,
   Check,
   Flame,
+  Sparkles,
 } from 'lucide-react';
 import { staffService, kdsService } from '../../services/api';
 import { getSocket } from '../../services/socket.client';
@@ -112,12 +113,24 @@ export const StaffOrdersView: React.FC = () => {
         );
       };
 
+      const handleOrderCancelled = (data: any) => {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === data.orderId || o.orderCode === data.orderCode
+              ? { ...o, status: 'CANCELLED' }
+              : o
+          )
+        );
+      };
+
       socket.on('order:new', handleNewOrder);
       socket.on('order:status_updated', handleStatusUpdated);
+      socket.on('order:cancelled', handleOrderCancelled);
 
       return () => {
         socket.off('order:new', handleNewOrder);
         socket.off('order:status_updated', handleStatusUpdated);
+        socket.off('order:cancelled', handleOrderCancelled);
       };
     }
   }, []);
@@ -137,7 +150,11 @@ export const StaffOrdersView: React.FC = () => {
       // Once kitchen finishes cooking (READY), staff delivers/serves according to order type
       if (order.orderType === 'TAKEAWAY') nextStatus = 'COMPLETED';
       else if (order.orderType === 'DELIVERY') nextStatus = 'DELIVERING';
+      else if (order.orderType === 'DINE_IN') nextStatus = 'SERVED';
       else nextStatus = 'COMPLETED';
+    } else if (order.status === 'SERVED') {
+      // Dine-in order done eating -> Clean table & complete order
+      nextStatus = 'COMPLETED';
     } else if (order.status === 'WAITING_PICKUP' || order.status === 'DELIVERING') {
       nextStatus = 'COMPLETED';
     }
@@ -265,6 +282,7 @@ export const StaffOrdersView: React.FC = () => {
               <option value="CONFIRMED">Đã nhận (Confirmed)</option>
               <option value="PREPARING">Đang nấu (Preparing)</option>
               <option value="READY">Sẵn sàng (Ready)</option>
+              <option value="SERVED">Đã ra bàn / Đang ăn (Served)</option>
               <option value="WAITING_PICKUP">Chờ lấy món (Waiting Pickup)</option>
               <option value="DELIVERING">Đang giao KTX (Delivering)</option>
               <option value="COMPLETED">Hoàn thành (Completed)</option>
@@ -359,6 +377,7 @@ export const StaffOrdersView: React.FC = () => {
                     CONFIRMED: { label: 'Đã nhận đơn', bg: 'bg-orange-500/15', text: 'text-orange-400' },
                     PREPARING: { label: 'Đang nấu', bg: 'bg-amber-500/15', text: 'text-amber-400' },
                     READY: { label: 'Sẵn sàng', bg: 'bg-sky-500/15', text: 'text-sky-400' },
+                    SERVED: { label: 'Đã ra bàn', bg: 'bg-teal-500/15', text: 'text-teal-400' },
                     WAITING_PICKUP: { label: 'Chờ lấy món', bg: 'bg-sky-500/15', text: 'text-sky-400' },
                     DELIVERING: { label: 'Đang giao', bg: 'bg-indigo-500/15', text: 'text-indigo-400' },
                     COMPLETED: { label: 'Hoàn thành', bg: 'bg-emerald-500/15', text: 'text-emerald-400' },
@@ -525,13 +544,24 @@ export const StaffOrdersView: React.FC = () => {
                               ) : (
                                 <button
                                   onClick={(e) => handleQuickAdvance(e, order)}
-                                  className="px-2 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[11px] transition-colors flex items-center gap-1"
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[11px] transition-colors flex items-center gap-1 shadow-sm"
+                                  title="Giao món ăn ra tận bàn cho khách"
                                 >
                                   <Utensils className="w-3 h-3" />
-                                  <span>Giao bàn</span>
+                                  <span>Giao ra bàn</span>
                                 </button>
                               )}
                             </div>
+                          )}
+                          {order.status === 'SERVED' && (
+                            <button
+                              onClick={(e) => handleQuickAdvance(e, order)}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[11px] transition-colors flex items-center gap-1 shadow-sm"
+                              title="Khách dùng bữa xong - Hoàn thành đơn hàng"
+                            >
+                              <Check className="w-3 h-3 stroke-[3]" />
+                              <span>Hoàn thành</span>
+                            </button>
                           )}
                           {(order.status === 'WAITING_PICKUP' || order.status === 'DELIVERING') && (
                             <button

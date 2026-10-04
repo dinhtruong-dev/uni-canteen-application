@@ -13,7 +13,7 @@ import { redisConfig } from '../config/redis.config';
 export class RedisService {
   private static instance: RedisService;
   private isConnected: boolean = false;
-  private inMemoryFallback: Map<string, { value: string; expiresAt: number }> = new Map();
+  private inMemoryFallback: Map<string, { value: any; expiresAt: number }> = new Map();
 
   private constructor() {
     if (redisConfig.enabled) {
@@ -41,10 +41,10 @@ export class RedisService {
   public async set(key: string, value: any, ttlSeconds: number = redisConfig.ttl.DEFAULT): Promise<boolean> {
     try {
       const fullKey = `${redisConfig.prefixes.CACHE}${key}`;
-      const serialized = typeof value === 'string' ? value : JSON.stringify(value);
       const expiresAt = Date.now() + ttlSeconds * 1000;
 
-      this.inMemoryFallback.set(fullKey, { value: serialized, expiresAt });
+      // In-Memory cache fallback: Lưu trực tiếp object trong memory để bảo toàn methods và prototype
+      this.inMemoryFallback.set(fullKey, { value, expiresAt });
       return true;
     } catch (error) {
       console.error(`[Redis] Lỗi khi set key: ${key}`, error);
@@ -68,11 +68,7 @@ export class RedisService {
         return null;
       }
 
-      try {
-        return JSON.parse(cached.value) as T;
-      } catch {
-        return cached.value as unknown as T;
-      }
+      return cached.value as T;
     } catch (error) {
       console.error(`[Redis] Lỗi khi get key: ${key}`, error);
       return null;
@@ -88,6 +84,24 @@ export class RedisService {
       return this.inMemoryFallback.delete(fullKey);
     } catch (error) {
       console.error(`[Redis] Lỗi khi del key: ${key}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Xóa tất cả các khóa có tiền tố nhất định (Ví dụ: 'products', 'categories', 'canteens')
+   */
+  public async delPrefix(prefix: string): Promise<boolean> {
+    try {
+      const fullPrefix = `${redisConfig.prefixes.CACHE}${prefix}`;
+      for (const k of Array.from(this.inMemoryFallback.keys())) {
+        if (k.startsWith(fullPrefix)) {
+          this.inMemoryFallback.delete(k);
+        }
+      }
+      return true;
+    } catch (error) {
+      console.error(`[Redis] Lỗi khi delPrefix: ${prefix}`, error);
       return false;
     }
   }

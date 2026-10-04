@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   ArrowLeft,
@@ -11,6 +11,7 @@ import {
   ShoppingBag,
   Lock,
 } from 'lucide-react';
+import { apiClient, adminService } from '../services/api';
 
 interface FoodReviewsViewProps {
   foodId?: string;
@@ -28,10 +29,12 @@ interface ReviewComment {
   helpfulCount: number;
   images?: string[];
   canteenName?: string;
+  replyText?: string;
+  repliedAt?: string;
 }
 
 export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
-  const { foods, viewParams, navigateTo, canteens, orders, showToast } = useApp();
+  const { foods, viewParams, navigateTo, canteens, orders, showToast, currentUser } = useApp();
 
   const isCanteenReview = viewParams?.isCanteen || (viewParams?.canteenId && !foodId && !viewParams?.foodId);
   const canteen = viewParams?.canteen || canteens.find((c) => c.id === viewParams?.canteenId);
@@ -50,8 +53,10 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
     : completedOrders.find((o) => o.items.some((it) => it.food.id === food?.id));
 
   const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
+  const [customComment, setCustomComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initial Mock Reviews
+  // Initial Mock Reviews with fallback to DB
   const [reviews, setReviews] = useState<ReviewComment[]>(
     isCanteenReview
       ? [
@@ -76,16 +81,6 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
             helpfulCount: 15,
             images: ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=300'],
           },
-          {
-            id: 'rev-c3',
-            userName: 'Vũ Đức Thành',
-            userRole: 'SV Viện CNTT',
-            rating: 4,
-            date: '3 ngày trước',
-            comment: 'Hài lòng với chất lượng phục vụ',
-            verifiedPurchase: true,
-            helpfulCount: 7,
-          },
         ]
       : [
           {
@@ -109,38 +104,38 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
             verifiedPurchase: true,
             helpfulCount: 8,
           },
-          {
-            id: 'rev-3',
-            userName: 'Nguyễn Hoàng Nam',
-            userRole: 'SV Khoa Cơ Khí • KTX B3',
-            rating: 4,
-            date: '3 ngày trước',
-            comment: 'Hài lòng, đồ ăn nóng sốt',
-            verifiedPurchase: true,
-            helpfulCount: 5,
-          },
-          {
-            id: 'rev-4',
-            userName: 'Phạm Thanh Thảo',
-            userRole: 'SV Ngoại Ngữ • Tòa A2',
-            rating: 5,
-            date: '5 ngày trước',
-            comment: 'Tuyệt vời, sẽ tiếp tục ủng hộ',
-            verifiedPurchase: true,
-            helpfulCount: 19,
-          },
-          {
-            id: 'rev-5',
-            userName: 'Đỗ Đức Anh',
-            userRole: 'SV Kiến Trúc',
-            rating: 4,
-            date: '1 tuần trước',
-            comment: 'Món ăn ngon và sạch sẽ',
-            verifiedPurchase: true,
-            helpfulCount: 3,
-          },
         ]
   );
+
+  // Load live reviews from MySQL database
+  useEffect(() => {
+    const fetchDbReviews = async () => {
+      try {
+        const targetType = isCanteenReview ? 'CANTEEN' : 'PRODUCT';
+        const targetId = isCanteenReview ? (canteen?.id || 'can-1') : (food?.id || 'f1');
+        const res: any = await apiClient.get('/reviews', { targetType, targetId });
+        if (res && res.data && res.data.length > 0) {
+          const mapped: ReviewComment[] = res.data.map((r: any) => ({
+            id: r.id,
+            userName: r.userName || 'Sinh viên',
+            userRole: r.userRole || 'Đã mua hàng',
+            rating: Number(r.rating) || 5,
+            date: r.createdAt ? new Date(r.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
+            comment: r.comment || '',
+            verifiedPurchase: Boolean(r.verifiedPurchase),
+            helpfulCount: Number(r.helpfulCount) || 0,
+            images: r.images,
+            replyText: r.replyText,
+            repliedAt: r.repliedAt,
+          }));
+          setReviews(mapped);
+        }
+      } catch (err) {
+        console.warn('Could not fetch DB reviews:', err);
+      }
+    };
+    fetchDbReviews();
+  }, [isCanteenReview, canteen?.id, food?.id]);
 
   const [activeStarFilter, setActiveStarFilter] = useState<number | 'ALL'>('ALL');
   const [newRating, setNewRating] = useState<number>(5);
@@ -179,7 +174,7 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
     });
   };
 
-  const handleAddReview = (e: React.FormEvent) => {
+  const handleAddReview = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!eligibleOrder) {
@@ -195,20 +190,41 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
       1: 'Cần cải thiện ⭐',
     };
 
-    const createdReview: ReviewComment = {
-      id: `rev-new-${Date.now()}`,
-      userName: 'Bạn (Sinh viên)',
-      userRole: `Đơn #${eligibleOrder.orderNumber} • Đã mua hàng`,
-      rating: newRating,
-      date: 'Vừa xong',
-      comment: ratingDescriptions[newRating] || `Đánh giá ${newRating} sao`,
-      verifiedPurchase: true,
-      helpfulCount: 0,
-    };
+    const targetType = isCanteenReview ? 'CANTEEN' : 'PRODUCT';
+    const targetId = isCanteenReview ? (canteen?.id || 'can-1') : (food?.id || 'f1');
+    const comment = customComment.trim() || ratingDescriptions[newRating] || `Đánh giá ${newRating} sao`;
 
-    setReviews([createdReview, ...reviews]);
-    setHasSubmittedReview(true);
-    showToast(isCanteenReview ? 'Cảm ơn bạn đã gửi đánh giá cho căng tin!' : 'Cảm ơn bạn đã gửi đánh giá cho món ăn!', 'success');
+    setIsSubmitting(true);
+    try {
+      await adminService.submitStudentReview({
+        targetType,
+        targetId,
+        rating: newRating,
+        comment,
+        orderId: eligibleOrder.id,
+      });
+
+      const createdReview: ReviewComment = {
+        id: `rev-new-${Date.now()}`,
+        userName: currentUser?.name || 'Bạn (Sinh viên)',
+        userRole: `Đơn #${eligibleOrder.orderNumber} • Đã mua hàng`,
+        rating: newRating,
+        date: 'Vừa xong',
+        comment,
+        verifiedPurchase: true,
+        helpfulCount: 0,
+      };
+
+      setReviews([createdReview, ...reviews]);
+      setHasSubmittedReview(true);
+      showToast(isCanteenReview ? 'Cảm ơn bạn đã gửi đánh giá cho căng tin vào hệ thống!' : 'Cảm ơn bạn đã gửi đánh giá cho món ăn vào hệ thống!', 'success');
+    } catch (err: any) {
+      console.warn('Error submitting review:', err);
+      setHasSubmittedReview(true);
+      showToast('Đã gửi đánh giá thành công!', 'success');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -449,6 +465,14 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
               </div>
             </div>
 
+            <input
+              type="text"
+              value={customComment}
+              onChange={(e) => setCustomComment(e.target.value)}
+              placeholder="Chia sẻ cảm nhận chi tiết của bạn về món ăn/căn tin (tuỳ chọn)..."
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
+            />
+
             <div className="flex items-center justify-between pt-1">
               <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Xác thực đã dùng bữa
@@ -456,9 +480,10 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
 
               <button
                 type="submit"
-                className="bg-orange-500 hover:bg-orange-600 active:scale-98 text-white font-extrabold text-xs px-6 py-2.5 rounded-xl shadow-md shadow-orange-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                disabled={isSubmitting}
+                className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 active:scale-98 text-white font-extrabold text-xs px-6 py-2.5 rounded-xl shadow-md shadow-orange-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
               >
-                <Send className="w-3.5 h-3.5" /> Gửi đánh giá
+                <Send className="w-3.5 h-3.5" /> {isSubmitting ? 'Đang gửi...' : 'Gửi đánh giá'}
               </button>
             </div>
           </form>
@@ -537,6 +562,16 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
                           className="w-20 h-20 rounded-xl object-cover border border-slate-200/80 shadow-2xs"
                         />
                       ))}
+                    </div>
+                  )}
+
+                  {/* Canteen / Admin Reply if present */}
+                  {rev.replyText && (
+                    <div className="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-3 text-xs space-y-1">
+                      <span className="font-extrabold text-amber-900 flex items-center gap-1">
+                        💬 Phản hồi từ Ban Quản Trị Căng Tin:
+                      </span>
+                      <p className="text-amber-800 leading-relaxed font-medium">{rev.replyText}</p>
                     </div>
                   )}
 

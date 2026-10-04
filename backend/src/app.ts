@@ -22,7 +22,36 @@ export function createApp(): Express {
   // 3. Request Logging
   app.use(requestLogger);
 
-  // 4. API Endpoints
+  // 4. Root & API Routes
+  app.get('/', (req, res) => {
+    const frontendUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    // Nếu mở từ trình duyệt web, tự động chuyển hướng sang Frontend
+    if (req.accepts('html')) {
+      return res.redirect(frontendUrl);
+    }
+    return res.json({
+      status: 'ok',
+      service: 'UniEat Express Campus API',
+      frontendUrl,
+      apiHealth: '/api/health',
+    });
+  });
+
+  app.get('/api', (_req, res) => {
+    res.json({
+      status: 'ok',
+      service: 'UniEat Campus Backend API',
+      endpoints: {
+        health: '/api/health',
+        auth: '/api/auth',
+        menu: '/api/menu',
+        orders: '/api/orders',
+        tables: '/api/tables',
+        canteens: '/api/canteens',
+      },
+    });
+  });
+
   app.use('/api', apiRouter);
 
   // 5. Global Error Handling Middleware

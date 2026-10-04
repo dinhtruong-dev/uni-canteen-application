@@ -107,6 +107,10 @@ export class StaffService {
     return apiClient.delete(`/staff/tables/${id}`);
   }
 
+  public async cleanTable(id: string): Promise<{ success: boolean; message: string; data?: any }> {
+    return apiClient.post(`/staff/tables/${id}/clean`);
+  }
+
   // 5. Foods (Menu Items)
   public async getFoods(params: {
     canteenId?: string;

@@ -79,7 +79,7 @@ export function registerOrderSocketHandlers(io: SocketIOServer, socket: Socket) 
     if (!orderId || !message?.trim()) return;
 
     const newMsg = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id: (payload as any).clientMsgId || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       orderId,
       senderId,
       senderName: senderName || (senderRole === 'CUSTOMER' ? 'Khách hàng' : 'Nhân viên Căn tin'),
@@ -96,13 +96,12 @@ export function registerOrderSocketHandlers(io: SocketIOServer, socket: Socket) 
 
     console.log(`[Socket Chat] [Đơn ${orderId}] ${senderName} (${senderRole}): ${message}`);
 
-    // 1. Gửi tới phòng riêng của đơn hàng
+    // 1. Chỉ phát 'order:message:received' DUY NHẤT 1 LẦN vào phòng của đơn hàng
     io.to(`order:${orderId}`).emit('order:message:received', newMsg);
 
-    // 2. Nếu khách nhắn -> Báo cho toàn bộ nhân viên căn tin
+    // 2. Nếu khách nhắn -> Báo alert toast cho nhân viên
     if (senderRole === 'CUSTOMER') {
-      io.to(socketConfig.rooms.STAFF_CANTEEN).emit('order:message:received', newMsg);
-      io.emit('staff:chat:alert', {
+      io.to(socketConfig.rooms.STAFF_CANTEEN).emit('staff:chat:alert', {
         orderId,
         senderName,
         message: newMsg.message,
@@ -110,12 +109,8 @@ export function registerOrderSocketHandlers(io: SocketIOServer, socket: Socket) 
       });
     }
 
-    // 3. Nếu nhân viên nhắn -> Báo cho sinh viên
+    // 3. Nếu nhân viên nhắn -> Báo alert toast cho sinh viên
     if (senderRole === 'STAFF' || senderRole === 'KITCHEN') {
-      if (targetUserId) {
-        io.to(`${socketConfig.rooms.USER_PREFIX}${targetUserId}`).emit('order:message:received', newMsg);
-      }
-      // Broadcast để đảm bảo nếu sinh viên chưa vào phòng đơn thì vẫn nhận toast
       io.emit('customer:chat:alert', {
         orderId,
         senderName,

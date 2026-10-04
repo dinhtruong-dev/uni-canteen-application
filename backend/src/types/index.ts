@@ -60,11 +60,21 @@ export interface OrderEntity {
   }>;
   subtotal: number;
   discount: number;
+  voucherId?: string;
   deliveryFee: number;
   finalAmount: number;
   notes?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UserVoucherEntity {
+  id: string;
+  userId: string;
+  voucherId: string;
+  isUsed: boolean;
+  usedAt?: string;
+  createdAt: string;
 }
 
 export interface ApiResponse<T = any> {

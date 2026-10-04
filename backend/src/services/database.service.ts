@@ -17,17 +17,20 @@ import {
   Banner,
   FlashSale,
   Voucher,
+  UserVoucher,
   Review,
   Notification,
   Canteen,
   SearchHistoryItem,
   PickupSlot,
 } from '../models';
+import { executeQuery, pool } from '../config/db.config';
+import bcrypt from 'bcryptjs';
 
 export class DatabaseService {
   private static instance: DatabaseService;
 
-  // Collections (In-Memory Database)
+  // Collections (In-Memory Database & Live MySQL Cache)
   public users: Map<string, User> = new Map();
   public addresses: Map<string, DeliveryAddress> = new Map();
   public favorites: Map<string, Favorite> = new Map();
@@ -44,10 +47,14 @@ export class DatabaseService {
   public banners: Map<string, Banner> = new Map();
   public flashSales: Map<string, FlashSale> = new Map();
   public vouchers: Map<string, Voucher> = new Map();
+  public userVouchers: Map<string, UserVoucher> = new Map();
   public reviews: Map<string, Review> = new Map();
   public notifications: Map<string, Notification> = new Map();
   public canteens: Map<string, Canteen> = new Map();
   public searchHistories: Map<string, SearchHistoryItem> = new Map();
+
+  // Flag kiểm tra xem đã đồng bộ thành công với MySQL chưa
+  public isSyncedWithDb: boolean = false;
 
   private constructor() {
     this.seedInitialData();
@@ -58,6 +65,448 @@ export class DatabaseService {
       DatabaseService.instance = new DatabaseService();
     }
     return DatabaseService.instance;
+  }
+
+  /**
+   * Đảm bảo cấu trúc bảng users và cột role tồn tại trong MySQL,
+   * đồng thời khởi tạo tài khoản phân quyền chuẩn (Admin, Staff, Student)
+   */
+  public async ensureUserRolesAndDefaultAccounts(): Promise<void> {
+    if (!pool) return;
+    try {
+      await executeQuery(`
+        CREATE TABLE IF NOT EXISTS users (
+          id VARCHAR(50) NOT NULL PRIMARY KEY,
+          student_id VARCHAR(30) NULL,
+          name VARCHAR(100) NOT NULL,
+          email VARCHAR(150) NOT NULL UNIQUE,
+          password_hash VARCHAR(255) NOT NULL,
+          phone VARCHAR(20) NOT NULL,
+          role ENUM('STUDENT', 'STAFF', 'ADMIN') NOT NULL DEFAULT 'STUDENT',
+          faculty VARCHAR(100) NULL,
+          department VARCHAR(100) NULL,
+          wallet_balance DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+          avatar VARCHAR(500) NULL,
+          status ENUM('ACTIVE', 'BLOCKED') NOT NULL DEFAULT 'ACTIVE',
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_users_role (role),
+          INDEX idx_users_email (email)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+
+      try {
+        await executeQuery(`
+          ALTER TABLE users MODIFY COLUMN role ENUM('STUDENT', 'STAFF', 'ADMIN') NOT NULL DEFAULT 'STUDENT'
+        `);
+      } catch {}
+
+      // Đảm bảo bảng user_vouchers và cột voucher_id trong orders
+      try {
+        await executeQuery(`
+          CREATE TABLE IF NOT EXISTS user_vouchers (
+            id VARCHAR(50) NOT NULL PRIMARY KEY,
+            user_id VARCHAR(50) NOT NULL,
+            voucher_id VARCHAR(50) NOT NULL,
+            is_used BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Đã sử dụng hay chưa',
+            used_at TIMESTAMP NULL COMMENT 'Thời gian dùng mã',
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_uv_user (user_id),
+            INDEX idx_uv_voucher (voucher_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+      } catch {}
+
+      try {
+        await executeQuery(`
+          ALTER TABLE orders ADD COLUMN voucher_id VARCHAR(50) NULL AFTER canteen_name
+        `);
+      } catch {}
+
+      try {
+        await executeQuery(`
+          ALTER TABLE orders MODIFY COLUMN status ENUM('PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED', 'DELIVERING', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'PENDING'
+        `);
+      } catch {}
+
+      // Đảm bảo bảng dining_tables tồn tại và có dữ liệu bàn chuẩn
+      try {
+        await executeQuery(`
+          CREATE TABLE IF NOT EXISTS dining_tables (
+            id VARCHAR(50) NOT NULL PRIMARY KEY,
+            table_number VARCHAR(50) NOT NULL,
+            canteen_id VARCHAR(50) NOT NULL,
+            canteen_name VARCHAR(100) NOT NULL,
+            qr_code VARCHAR(500) NOT NULL,
+            capacity INT NOT NULL DEFAULT 4,
+            area VARCHAR(100) NOT NULL DEFAULT 'Khu vực chính',
+            status ENUM('AVAILABLE', 'OCCUPIED', 'RESERVED', 'MAINTENANCE') NOT NULL DEFAULT 'AVAILABLE',
+            current_order_id VARCHAR(50) NULL,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_tables_canteen (canteen_id),
+            INDEX idx_tables_status (status)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        const countRes = await executeQuery('SELECT COUNT(*) as count FROM dining_tables');
+        if (Array.isArray(countRes) && Number(countRes[0]?.count) === 0) {
+          const defaultTables = [
+            { id: 'tbl-1', number: 'BÀN A01', canteenId: 'cant-a', canteenName: 'Căng Tin A - Giảng Đường Trung Tâm A2', qr: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=CANT_A_TBL_01', cap: 4, area: 'Sảnh Giảng Đường' },
+            { id: 'tbl-2', number: 'BÀN A02', canteenId: 'cant-a', canteenName: 'Căng Tin A - Giảng Đường Trung Tâm A2', qr: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=CANT_A_TBL_02', cap: 4, area: 'Sảnh Giảng Đường' },
+            { id: 'tbl-3', number: 'BÀN A03', canteenId: 'cant-a', canteenName: 'Căng Tin A - Giảng Đường Trung Tâm A2', qr: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=CANT_A_TBL_03', cap: 6, area: 'Phòng Máy Lạnh Tầng 2' },
+            { id: 'tbl-4', number: 'BÀN B01', canteenId: 'cant-b', canteenName: 'Căng Tin B - Nhà Bếp Ký Túc Xá B5', qr: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=CANT_B_TBL_01', cap: 4, area: 'Khu Sân Vườn KTX' },
+            { id: 'tbl-5', number: 'BÀN B02', canteenId: 'cant-b', canteenName: 'Căng Tin B - Nhà Bếp Ký Túc Xá B5', qr: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=CANT_B_TBL_02', cap: 8, area: 'Bàn Nhóm Học Tập' },
+          ];
+          for (const st of defaultTables) {
+            await executeQuery(
+              `INSERT INTO dining_tables (id, table_number, canteen_id, canteen_name, qr_code, capacity, area, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 'AVAILABLE')
+               ON DUPLICATE KEY UPDATE table_number = VALUES(table_number)`,
+              [st.id, st.number, st.canteenId, st.canteenName, st.qr, st.cap, st.area]
+            );
+          }
+          console.log('[Database Schema & Tables] ✅ Đã khởi tạo dữ liệu bàn ăn mẫu vào MySQL!');
+        }
+      } catch (tblErr: any) {
+        console.warn('[Database Schema dining_tables notice]:', tblErr.message);
+      }
+
+      // Đảm bảo bảng notifications tồn tại trong MySQL
+      try {
+        await executeQuery(`
+          CREATE TABLE IF NOT EXISTS notifications (
+            id VARCHAR(50) NOT NULL PRIMARY KEY,
+            user_id VARCHAR(50) NOT NULL COMMENT 'user id hoặc ALL',
+            title VARCHAR(150) NOT NULL,
+            message TEXT NOT NULL,
+            type ENUM('ORDER', 'ORDER_STATUS', 'SYSTEM', 'PROMOTION', 'WALLET') NOT NULL DEFAULT 'SYSTEM',
+            reference_id VARCHAR(50) NULL,
+            is_read BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_notif_user (user_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        const notifCount = await executeQuery('SELECT COUNT(*) as count FROM notifications');
+        if (Array.isArray(notifCount) && Number(notifCount[0]?.count) === 0) {
+          const sampleNotifs = [
+            { id: 'notif-s1', userId: 'ALL', title: 'Chào mừng bạn đến với Uni Canteen!', message: 'Hệ thống căn tin số đã sẵn sàng phục vụ bạn với nhiều tiện ích đặt món nhanh và thanh toán trực tuyến.', type: 'SYSTEM' },
+            { id: 'notif-s2', userId: 'ALL', title: 'Ưu đãi đầu tuần: Freeship toàn bộ KTX', message: 'Nhập mã FREESHIP khi đặt đơn giao tận phòng KTX từ hôm nay!', type: 'PROMOTION' },
+            { id: 'notif-s3', userId: 'user-stu-1', title: 'Ví điện tử sinh viên', message: 'Tài khoản ví của bạn đã được cộng 150.000đ từ học bổng khuyến khích học tập.', type: 'WALLET' },
+          ];
+          for (const n of sampleNotifs) {
+            await executeQuery(
+              `INSERT INTO notifications (id, user_id, title, message, type, is_read)
+               VALUES (?, ?, ?, ?, ?, 0)
+               ON DUPLICATE KEY UPDATE title = VALUES(title)`,
+              [n.id, n.userId, n.title, n.message, n.type]
+            );
+          }
+        }
+      } catch (notifErr: any) {
+        console.warn('[Database Schema notifications notice]:', notifErr.message);
+      }
+
+      // Đảm bảo bảng reviews tồn tại trong MySQL
+      try {
+        await executeQuery(`
+          CREATE TABLE IF NOT EXISTS reviews (
+            id VARCHAR(50) NOT NULL PRIMARY KEY,
+            user_id VARCHAR(50) NOT NULL,
+            user_name VARCHAR(100) NOT NULL,
+            target_type ENUM('PRODUCT', 'CANTEEN') NOT NULL DEFAULT 'PRODUCT',
+            target_id VARCHAR(50) NOT NULL,
+            rating INT NOT NULL DEFAULT 5,
+            comment TEXT NOT NULL,
+            verified_purchase BOOLEAN NOT NULL DEFAULT TRUE,
+            helpful_count INT NOT NULL DEFAULT 0,
+            status ENUM('VISIBLE', 'HIDDEN') NOT NULL DEFAULT 'VISIBLE',
+            reply_text TEXT NULL,
+            replied_at TIMESTAMP NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_rev_target (target_type, target_id),
+            INDEX idx_rev_user (user_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        try {
+          await executeQuery('ALTER TABLE reviews ADD COLUMN reply_text TEXT NULL');
+        } catch {}
+        try {
+          await executeQuery('ALTER TABLE reviews ADD COLUMN replied_at TIMESTAMP NULL');
+        } catch {}
+
+        const revCount = await executeQuery('SELECT COUNT(*) as count FROM reviews');
+        if (Array.isArray(revCount) && Number(revCount[0]?.count) === 0) {
+          const sampleReviews = [
+            { id: 'rev-s1', userId: 'user-stu-1', userName: 'Nguyễn Văn Minh', targetType: 'PRODUCT', targetId: 'prod-1', rating: 5, comment: 'Cơm gà giòn rụm nóng hổi, sốt chua ngọt đậm đà, rất no bụng!', status: 'VISIBLE' },
+            { id: 'rev-s2', userId: 'user-stu-2', userName: 'Trần Thị Mai', targetType: 'PRODUCT', targetId: 'prod-2', rating: 4, comment: 'Phở bò nước dùng ngọt thanh, thịt tươi ngon, phục vụ nhanh!', status: 'VISIBLE' },
+            { id: 'rev-s3', userId: 'user-stu-1', userName: 'Nguyễn Văn Minh', targetType: 'CANTEEN', targetId: 'cant-a', rating: 5, comment: 'Căng tin sạch sẽ, quầy gọi món có QR rất tiện lợi!', status: 'VISIBLE' },
+          ];
+          for (const r of sampleReviews) {
+            await executeQuery(
+              `INSERT INTO reviews (id, user_id, user_name, target_type, target_id, rating, comment, verified_purchase, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+               ON DUPLICATE KEY UPDATE rating = VALUES(rating)`,
+              [r.id, r.userId, r.userName, r.targetType, r.targetId, r.rating, r.comment, r.status]
+            );
+          }
+        }
+      } catch (revErr: any) {
+        console.warn('[Database Schema reviews notice]:', revErr.message);
+      }
+
+      // Mật khẩu mặc định: 123456
+      const defaultHash = bcrypt.hashSync('123456', 10);
+
+      const seedAccounts = [
+        {
+          id: 'user-admin-1',
+          name: 'Quản Trị Viên Hệ Thống',
+          email: 'admin@university.edu.vn',
+          phone: '0909999888',
+          role: 'ADMIN',
+          department: 'Ban Giám Hiệu - Phòng Quản Trị Căn Tin',
+          walletBalance: 5000000,
+        },
+        {
+          id: 'user-staff-1',
+          name: 'Nguyễn Văn An (Trưởng Quầy Căng Tin A2)',
+          email: 'staff.a@canteen.edu.vn',
+          phone: '0901234567',
+          role: 'STAFF',
+          department: 'Tổ Chế Biến Căn Tin A2',
+          walletBalance: 0,
+        },
+        {
+          id: 'user-stu-1',
+          name: 'Đặng Hoàng Minh',
+          email: 'minh.dh22@university.edu.vn',
+          phone: '0912345678',
+          role: 'STUDENT',
+          studentId: '20230012',
+          faculty: 'Khoa Công Nghệ Thông Tin',
+          walletBalance: 150000,
+        },
+      ];
+
+      for (const acc of seedAccounts) {
+        await executeQuery(
+          `INSERT INTO users (id, student_id, name, email, password_hash, phone, role, faculty, department, wallet_balance, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+           ON DUPLICATE KEY UPDATE role = VALUES(role), name = VALUES(name)`,
+          [
+            acc.id,
+            acc.studentId || null,
+            acc.name,
+            acc.email,
+            defaultHash,
+            acc.phone,
+            acc.role,
+            acc.faculty || null,
+            acc.department || null,
+            acc.walletBalance,
+          ]
+        );
+      }
+      console.log('[Database Schema & Roles] ✅ Đã đảm bảo bảng `users`, cột `role` và tài khoản phân quyền ADMIN, STAFF, STUDENT trong MySQL!');
+    } catch (e: any) {
+      console.warn('[Database Schema Init Notice]:', e.message);
+    }
+  }
+
+  /**
+   * Đồng bộ dữ liệu thực tế từ MySQL vào Backend
+   * Khi gọi hàm này, hệ thống sẽ nạp trực tiếp danh mục, món ăn, người dùng, bàn ăn từ MySQL vào RAM.
+   */
+  public async syncFromMySQL(): Promise<boolean> {
+    if (!pool) return false;
+    try {
+      // 0. Đảm bảo cấu trúc phân quyền Role trong CSDL
+      await this.ensureUserRolesAndDefaultAccounts();
+
+      // 1. Sync Categories
+      const catRows = await executeQuery('SELECT * FROM categories ORDER BY display_order ASC');
+      if (Array.isArray(catRows) && catRows.length > 0) {
+        this.categories.clear();
+        for (const row of catRows) {
+          const cat = new Category(
+            row.id,
+            row.name,
+            row.icon || 'Utensils',
+            row.image || '',
+            Number(row.display_order) || 0,
+            row.description || undefined,
+            row.is_active === 1 || row.is_active === true
+          );
+          this.categories.set(cat.id, cat);
+        }
+      }
+
+      // 2. Sync Products
+      const prodRows = await executeQuery('SELECT * FROM products');
+      if (Array.isArray(prodRows) && prodRows.length > 0) {
+        this.products.clear();
+        for (const row of prodRows) {
+          const prodOptions = Array.from(this.productOptions.values()).filter((opt) => opt.productId === row.id);
+          const prod = new Product(
+            row.id,
+            row.name,
+            Number(row.price),
+            row.category_id,
+            row.canteen_id,
+            row.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600',
+            Number(row.rating) || 4.8,
+            Number(row.review_count) || 50,
+            Number(row.preparation_time) || 10,
+            row.is_available === 1 || row.is_available === true,
+            {
+              originalPrice: row.original_price ? Number(row.original_price) : undefined,
+              categoryName: row.category_name,
+              canteenName: row.canteen_name,
+              description: row.description,
+              isBestSeller: Boolean(row.is_bestseller),
+              isNew: Boolean(row.is_new),
+              isVegetarian: Boolean(row.is_vegetarian),
+              soldCount: Number(row.sold_count) || 0,
+              calories: row.calories ? Number(row.calories) : undefined,
+              options: prodOptions,
+            }
+          );
+          this.products.set(prod.id, prod);
+        }
+      }
+
+      // 3. Sync Users
+      const userRows = await executeQuery('SELECT * FROM users');
+      if (Array.isArray(userRows) && userRows.length > 0) {
+        this.users.clear();
+        for (const row of userRows) {
+          const user = new User(
+            row.id,
+            row.name,
+            row.email,
+            row.phone,
+            row.role || 'STUDENT',
+            {
+              passwordHash: row.password_hash,
+              studentId: row.student_id,
+              faculty: row.faculty,
+              department: row.department,
+              walletBalance: Number(row.wallet_balance) || 0,
+              avatar: row.avatar,
+              status: row.status,
+            }
+          );
+          this.users.set(user.id, user);
+        }
+      }
+
+      // 4. Sync Canteens
+      const canteenRows = await executeQuery('SELECT * FROM canteens');
+      if (Array.isArray(canteenRows) && canteenRows.length > 0) {
+        this.canteens.clear();
+        for (const row of canteenRows) {
+          const canteen = new Canteen(
+            row.id,
+            row.name,
+            row.code || row.id,
+            row.location || '',
+            row.image || '',
+            {
+              displayName: row.name,
+              openingHours: row.opening_hours,
+              isOpen: row.status === 'OPEN' || !row.status,
+              rating: Number(row.rating) || 4.8,
+              phone: row.contact_phone,
+            }
+          );
+          this.canteens.set(canteen.id, canteen);
+        }
+      }
+
+      // 5. Sync Dining Tables
+      const tableRows = await executeQuery('SELECT * FROM dining_tables');
+      if (Array.isArray(tableRows) && tableRows.length > 0) {
+        this.tables.clear();
+        for (const row of tableRows) {
+          const rawStatus = row.status === 'EMPTY' ? 'AVAILABLE' : row.status;
+          const status = ['AVAILABLE', 'OCCUPIED', 'RESERVED', 'MAINTENANCE'].includes(rawStatus)
+            ? rawStatus
+            : 'AVAILABLE';
+          const table = new DiningTable(
+            row.id,
+            row.table_number || row.name || `Bàn ${row.id}`,
+            row.canteen_id,
+            row.canteen_name || 'Căng tin A2',
+            row.qr_code || row.qr_code_url || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(row.id)}`,
+            Number(row.capacity) || 4,
+            row.area || row.location_note || row.location_description || 'Khu vực chính',
+            status,
+            row.current_order_id || undefined
+          );
+          this.tables.set(table.id, table);
+        }
+      }
+
+      // 6. Sync Vouchers
+      const voucherRows = await executeQuery('SELECT * FROM vouchers');
+      if (Array.isArray(voucherRows) && voucherRows.length > 0) {
+        this.vouchers.clear();
+        for (const row of voucherRows) {
+          const voucher = new Voucher(
+            row.id,
+            row.code,
+            row.title,
+            row.description,
+            row.discount_type,
+            Number(row.discount_value),
+            Number(row.min_order_amount) || 0,
+            {
+              maxDiscount: row.max_discount ? Number(row.max_discount) : undefined,
+              usageLimit: Number(row.usage_limit) || 1000,
+              usedCount: Number(row.used_count) || 0,
+              isActive: row.is_active === 1 || row.is_active === true,
+            }
+          );
+          this.vouchers.set(voucher.id, voucher);
+        }
+      }
+
+      // 7. Sync User Vouchers
+      try {
+        const userVoucherRows = await executeQuery('SELECT * FROM user_vouchers');
+        if (Array.isArray(userVoucherRows) && userVoucherRows.length > 0) {
+          this.userVouchers.clear();
+          for (const row of userVoucherRows) {
+            const voucher = this.vouchers.get(row.voucher_id);
+            const uv = new UserVoucher(
+              row.id,
+              row.user_id,
+              row.voucher_id,
+              {
+                isUsed: row.is_used === 1 || row.is_used === true,
+                usedAt: row.used_at ? new Date(row.used_at) : undefined,
+                createdAt: row.created_at ? new Date(row.created_at) : undefined,
+                voucher,
+              }
+            );
+            this.userVouchers.set(uv.id, uv);
+          }
+        }
+      } catch (uvErr: any) {
+        console.warn('[Database Sync] user_vouchers notice:', uvErr.message);
+      }
+
+      this.isSyncedWithDb = true;
+      console.log(`[Database Sync] ✅ ĐÃ NẠP THÀNH CÔNG DỮ LIỆU TỪ MYSQL VÀO HỆ THỐNG!`);
+      console.log(`   📊 Thống kê: ${this.categories.size} danh mục | ${this.products.size} món ăn | ${this.users.size} người dùng | ${this.canteens.size} căn tin | ${this.tables.size} bàn ăn | ${this.vouchers.size} voucher | ${this.userVouchers.size} voucher người dùng`);
+      return true;
+    } catch (err: any) {
+      console.warn(`[Database Sync Warning] Không thể nạp dữ liệu từ MySQL (${err.message}). Hệ thống tạm thời dùng dữ liệu đệm.`);
+      this.isSyncedWithDb = false;
+      return false;
+    }
   }
 
   private seedInitialData(): void {
@@ -72,17 +521,27 @@ export class DatabaseService {
       faculty: 'Khoa Kinh Tế Quốc Tế',
       walletBalance: 85000,
     });
-    const staff1 = new User('user-staff-1', 'Cô Nguyễn Thị Lan (Bếp trưởng)', 'lan.canteen@university.edu.vn', '0912345678', 'STAFF', {
+    const staff1 = new User('user-staff-1', 'Nguyễn Văn An (Trưởng Quầy Căn Tin A2)', 'staff.a@canteen.edu.vn', '0901234567', 'STAFF', {
+      department: 'Tổ Chế Biến Căn Tin A2',
+    });
+    const staff2 = new User('user-staff-2', 'Cô Nguyễn Thị Lan (Bếp trưởng)', 'lan.canteen@university.edu.vn', '0912345678', 'STAFF', {
       department: 'Tổ Chế Biến Căng Tin A2',
     });
-    const admin1 = new User('user-admin-1', 'Thầy Nguyễn Tuấn Anh', 'admin.canteen@university.edu.vn', '0909999888', 'ADMIN', {
+    const admin1 = new User('user-admin-1', 'Quản Trị Viên Hệ Thống', 'admin@university.edu.vn', '0909999888', 'ADMIN', {
+      department: 'Ban Giám Hiệu - Phòng Quản Trị Căn Tin',
+      walletBalance: 5000000,
+    });
+    const admin2 = new User('user-admin-2', 'Thầy Nguyễn Tuấn Anh', 'admin.canteen@university.edu.vn', '0909999888', 'ADMIN', {
       department: 'Phòng Quản Trị Đời Sống & Căng Tin Trường',
+      walletBalance: 5000000,
     });
 
     this.users.set(user1.id, user1);
     this.users.set(user2.id, user2);
     this.users.set(staff1.id, staff1);
+    this.users.set(staff2.id, staff2);
     this.users.set(admin1.id, admin1);
+    this.users.set(admin2.id, admin2);
 
     const addr1 = new DeliveryAddress('addr-1', user1.id, 'Đặng Hoàng Minh', '0987654321', 'KTX A1', 'Phòng 402', 'Giao tận cửa phòng, bấm chuông giúp mình', true);
     const addr2 = new DeliveryAddress('addr-2', user1.id, 'Đặng Hoàng Minh', '0987654321', 'Tòa Nhà Giảng Đường A2', 'Phòng Hội Thảo 301', 'Giao vào giờ giải lao', false);
@@ -1506,6 +1965,14 @@ export class DatabaseService {
     this.vouchers.set(v3.id, v3);
     this.vouchers.set(v4.id, v4);
 
+    // Kho Voucher cá nhân của từng sinh viên (UserVouchers)
+    const uv1 = new UserVoucher('uv-1', user1.id, v1.id, { isUsed: false, voucher: v1 });
+    const uv2 = new UserVoucher('uv-2', user1.id, v2.id, { isUsed: true, usedAt: new Date(Date.now() - 24 * 3600 * 1000), voucher: v2 });
+    const uv3 = new UserVoucher('uv-3', user2.id, v3.id, { isUsed: false, voucher: v3 });
+    this.userVouchers.set(uv1.id, uv1);
+    this.userVouchers.set(uv2.id, uv2);
+    this.userVouchers.set(uv3.id, uv3);
+
     // 7. Group 7: Reviews & Notifications
     const r1 = new Review('rev-1', user1.id, user1.name, 'PRODUCT', prod1.id, 5, 'Đùi gà giòn rụm, xốt mắm thơm phức, ăn kèm dưa chuột rất vừa miệng!', {
       orderId: orderCompleted1.id,
@@ -1520,10 +1987,20 @@ export class DatabaseService {
     this.reviews.set(r1.id, r1);
     this.reviews.set(r2.id, r2);
 
-    const n1 = new Notification('notif-1', user1.id, 'Đơn hàng đang chuẩn bị', 'Bếp đang làm món Cơm Gà của bạn tại Căng tin A2. Dự kiến hoàn thành trong 8 phút nữa.', 'ORDER_STATUS', order1.id, false);
-    const n2 = new Notification('notif-2', 'ALL', 'Khai giảng kỳ mới: Nạp ví tặng 10%', 'Nạp tiền vào ví sinh viên qua MoMo/ZaloPay tặng ngay 10% giá trị nạp trong tuần này!', 'PROMOTION', undefined, false);
+    const n1 = new Notification('notif-1', user1.id, 'Tri ân sinh viên UniEat - Căng tin gửi quà tặng bạn', 'Cảm ơn bạn đã đồng hành cùng Căng tin Đại Học. UniEat gửi đến bạn ưu đãi giảm giá bữa ăn trưa đặc quyền!', 'PROMOTION', undefined, false);
+    const n2 = new Notification('notif-2', user1.id, 'Giao món tận nơi KTX, thêm nhiều lựa chọn', 'Nhằm mang đến trải nghiệm tiện lợi nhất cho sinh viên, UniEat chính thức mở rộng dịch vụ giao tận phòng KTX A1-A5.', 'PROMOTION', undefined, false);
+    const n3 = new Notification('notif-3', user1.id, 'Đơn hàng #CT20260810001 đang được giao', 'Nhân viên giao hàng đang trên đường mang món đến KTX A1 P305. Vui lòng giữ máy nhận hàng.', 'ORDER_STATUS', order1.id, true);
+    const n4 = new Notification('notif-4', user1.id, 'Nạp tiền Ví Sinh Viên thành công!', 'Bạn vừa nạp +100.000đ vào Ví Sinh Viên UniEat qua VNPay QR. Số dư hiện tại là 150.000đ.', 'WALLET', undefined, true);
+    const n5 = new Notification('notif-5', user1.id, 'Voucher Đồ Uống: Đồng giá 15k trà sữa', 'Tặng bạn mã TRASUA15k thưởng thức các món trà đào, trà sữa thái xanh tại Căng tin Nhà A3.', 'PROMOTION', undefined, true);
+    const n6 = new Notification('notif-6', 'ALL', 'Cập nhật hệ thống: Đặt món theo khung giờ', 'Tính năng hẹn giờ nhận món nâng cấp giúp giảm 100% thời gian xếp hàng giờ cao điểm tại căng tin.', 'SYSTEM', undefined, true);
+    const n7 = new Notification('notif-7', 'ALL', 'Freeship KTX toàn trường!', 'Sử dụng mã FREESHIPKTX để được miễn phí giao hàng tận phòng KTX cho đơn từ 40k.', 'PROMOTION', undefined, true);
     this.notifications.set(n1.id, n1);
     this.notifications.set(n2.id, n2);
+    this.notifications.set(n3.id, n3);
+    this.notifications.set(n4.id, n4);
+    this.notifications.set(n5.id, n5);
+    this.notifications.set(n6.id, n6);
+    this.notifications.set(n7.id, n7);
 
     // 8. Group 8: Search History (Lịch sử tìm kiếm sinh viên từ backend)
     const initialSearches = [

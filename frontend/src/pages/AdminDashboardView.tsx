@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { FoodItem } from '../types';
-import { MOCK_CATEGORIES } from '../data/mockData';
 import {
   ShieldAlert,
   Users,
@@ -34,7 +33,9 @@ import {
   Filter,
   Menu,
   ChevronDown,
+  QrCode,
 } from 'lucide-react';
+import { AdminTablesView } from './admin/AdminTablesView';
 
 export const AdminDashboardView: React.FC = () => {
   const {
@@ -52,12 +53,11 @@ export const AdminDashboardView: React.FC = () => {
     categories,
     topUpWallet,
     showToast,
-    switchUserRole,
   } = useApp();
 
-  const activeCategories = categories && categories.length > 0 ? categories : MOCK_CATEGORIES;
+  const activeCategories = categories;
 
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'USERS' | 'CANTEENS' | 'FOODS' | 'PROMOS'>('OVERVIEW');
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'USERS' | 'CANTEENS' | 'FOODS' | 'PROMOS' | 'TABLES'>('OVERVIEW');
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
 
   // Users Tab States
@@ -253,12 +253,6 @@ export const AdminDashboardView: React.FC = () => {
                 {totalRevenue.toLocaleString('vi-VN')}đ
               </p>
             </div>
-            <button
-              onClick={() => switchUserRole('STUDENT')}
-              className="px-3.5 py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
-            >
-              <span>Về Sinh Viên</span>
-            </button>
           </div>
         </div>
 
@@ -372,6 +366,23 @@ export const AdminDashboardView: React.FC = () => {
                       {promotions.length}
                     </span>
                   </button>
+
+                  <button
+                    onClick={() => { setActiveTab('TABLES'); setIsAdminMenuOpen(false); }}
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-left flex items-center justify-between transition-colors text-xs font-bold cursor-pointer ${
+                      activeTab === 'TABLES'
+                        ? 'bg-purple-600 text-white font-black'
+                        : 'text-slate-200 hover:bg-slate-800'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <QrCode className="w-4 h-4 text-emerald-400" />
+                      <span>Quản Lý Bàn Ăn & Quét QR</span>
+                    </span>
+                    <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full text-[10px] font-mono">
+                      MySQL
+                    </span>
+                  </button>
                 </div>
               </>
             )}
@@ -386,12 +397,14 @@ export const AdminDashboardView: React.FC = () => {
               {activeTab === 'USERS' && <Users className="w-4 h-4 text-blue-300" />}
               {activeTab === 'CANTEENS' && <Building2 className="w-4 h-4 text-emerald-300" />}
               {activeTab === 'PROMOS' && <Ticket className="w-4 h-4 text-orange-300" />}
+              {activeTab === 'TABLES' && <QrCode className="w-4 h-4 text-emerald-300" />}
               
               {activeTab === 'OVERVIEW' && 'Tổng Quan System'}
               {activeTab === 'FOODS' && `Thực Đơn Món Ăn (${foods.length} món)`}
               {activeTab === 'USERS' && `Sinh Viên & Nhân Viên (${users.length} tài khoản)`}
               {activeTab === 'CANTEENS' && `Quầy Căng Tin (${canteens.length} quầy)`}
               {activeTab === 'PROMOS' && 'Mã Giảm Giá Khuyến Mãi'}
+              {activeTab === 'TABLES' && 'Quản Lý Bàn Ăn & Quét Mã QR (MySQL CSDL)'}
             </span>
           </div>
         </div>
@@ -1216,6 +1229,13 @@ export const AdminDashboardView: React.FC = () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Tab: Tables & QR Management from Live MySQL */}
+      {activeTab === 'TABLES' && (
+        <div className="space-y-6">
+          <AdminTablesView />
         </div>
       )}
     </div>

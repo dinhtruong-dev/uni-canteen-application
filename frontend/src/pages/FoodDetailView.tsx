@@ -34,6 +34,7 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
     canteens,
     showToast,
     cart,
+    currentUser,
   } = useApp();
 
   // Retrieve foodId either from props or viewParams
@@ -409,7 +410,14 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
           <div className="max-w-2xl mx-auto">
             <button
               id="view-cart-bar-btn"
-              onClick={() => navigateTo('checkout')}
+              onClick={() => {
+                if (!currentUser) {
+                  showToast('Vui lòng đăng nhập để tiến hành đặt món và thanh toán!', 'info');
+                  navigateTo('login', { next: 'checkout' });
+                  return;
+                }
+                navigateTo('checkout');
+              }}
               className="w-full bg-[#FF4F8B] hover:bg-[#E83E78] active:scale-98 text-white font-extrabold py-3 px-4 sm:px-5 rounded-2xl shadow-lg shadow-[#FF4F8B]/25 flex items-center justify-between text-xs sm:text-sm transition-all cursor-pointer"
             >
               {/* Bên trái: Icon giỏ hàng + Chữ "Xem giỏ hàng" + Số lượng ngay bên cạnh */}

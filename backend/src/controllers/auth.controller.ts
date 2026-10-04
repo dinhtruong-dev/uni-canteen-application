@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import { authService } from '../services/auth.service';
-import { AuthenticatedRequest } from '../middlewares/auth.middleware';
+import { AuthenticatedRequest, recordFailedLogin, resetFailedLogin } from '../middlewares/auth.middleware';
+
 
 export class AuthController {
-  public register(req: Request, res: Response) {
+  public async register(req: Request, res: Response) {
     const { name, email, password, phone, role, studentId, faculty } = req.body;
 
     if (!name || !email || !password || !phone) {
@@ -21,7 +22,7 @@ export class AuthController {
     }
 
     try {
-      const result = authService.register({
+      const result = await authService.register({
         name,
         email,
         password,
@@ -44,18 +45,14 @@ export class AuthController {
     }
   }
 
-  public login(req: Request, res: Response) {
+  public async login(req: Request, res: Response) {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Vui lòng nhập đầy đủ email và mật khẩu',
-      });
-    }
-
     try {
-      const result = authService.login(email, password);
+      const result = await authService.login(email, password);
+      // Đăng nhập thành công -> Reset bộ đếm số lần sai
+      resetFailedLogin(req);
+
       res.json({
         success: true,
         message: 'Đăng nhập thành công',
@@ -65,6 +62,8 @@ export class AuthController {
         },
       });
     } catch (err: any) {
+      // Đăng nhập thất bại -> Ghi nhận để phát hiện Brute-Force
+      recordFailedLogin(req);
       res.status(401).json({ success: false, message: err.message });
     }
   }

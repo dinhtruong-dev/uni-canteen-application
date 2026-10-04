@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Store,
   Plus,
@@ -21,13 +21,18 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../store/AppContext';
 import { Canteen } from '../../types';
+import { canteenApiService } from '../../services/api/canteen.service';
 
 export const AdminCanteensView: React.FC = () => {
-  const { canteens, toggleCanteenStatus, foods, orders, diningTables, showToast } = useApp();
+  const { canteens, toggleCanteenStatus, foods, orders, diningTables, showToast, refreshData } = useApp();
 
   const [localCanteens, setLocalCanteens] = useState<Canteen[]>(canteens);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
+
+  useEffect(() => {
+    setLocalCanteens(canteens);
+  }, [canteens]);
 
   // Modals
   const [selectedCanteen, setSelectedCanteen] = useState<Canteen | null>(null);
@@ -58,11 +63,12 @@ export const AdminCanteensView: React.FC = () => {
     return matchSearch && matchStatus;
   });
 
-  const handleToggle = (canteenId: string) => {
+  const handleToggle = async (canteenId: string) => {
     setLocalCanteens((prev) =>
       prev.map((c) => (c.id === canteenId ? { ...c, isOpen: !c.isOpen } : c))
     );
-    toggleCanteenStatus(canteenId);
+    await toggleCanteenStatus(canteenId);
+    await refreshData();
   };
 
   const handleOpenDetail = (c: Canteen) => {
@@ -93,54 +99,62 @@ export const AdminCanteensView: React.FC = () => {
     setIsCreateModalOpen(true);
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCanteen) return;
 
-    setLocalCanteens((prev) =>
-      prev.map((c) =>
-        c.id === selectedCanteen.id
-          ? {
-              ...c,
-              name: formName.trim(),
-              code: formCode.trim(),
-              location: formLocation.trim(),
-              phone: formPhone.trim(),
-              openingHours: formOpeningHours.trim(),
-              totalTables: Number(formTotalTables) || 20,
-              image: formImage.trim() || c.image,
-            }
-          : c
-      )
-    );
+    try {
+      await canteenApiService.updateCanteen(selectedCanteen.id, {
+        name: formName.trim(),
+        code: formCode.trim(),
+        location: formLocation.trim(),
+        phone: formPhone.trim(),
+        openingHours: formOpeningHours.trim(),
+        totalTables: Number(formTotalTables) || 20,
+        image: formImage.trim() || selectedCanteen.image,
+      });
+      showToast(`Đã cập nhật thông tin ${formName} vào CSDL!`, 'success');
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi cập nhật căn tin', 'error');
+    }
     setIsEditModalOpen(false);
-    showToast(`Đã cập nhật thông tin ${formName}!`, 'success');
   };
 
-  const handleSaveCreate = (e: React.FormEvent) => {
+  const handleSaveCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim()) {
       showToast('Vui lòng nhập tên căn tin!', 'error');
       return;
     }
 
-    const newCanteen: Canteen = {
-      id: `cant-${Date.now()}`,
-      name: formName.trim(),
-      code: formCode.trim() || `CANT-${Date.now()}`,
-      location: formLocation.trim(),
-      phone: formPhone.trim() || '024 3869 1234',
-      openingHours: formOpeningHours.trim(),
-      totalTables: Number(formTotalTables) || 20,
-      isOpen: true,
-      rating: 5.0,
-      reviewCount: 0,
-      image: formImage.trim() || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=600',
-    };
-
-    setLocalCanteens((prev) => [...prev, newCanteen]);
+    try {
+      await canteenApiService.createCanteen({
+        name: formName.trim(),
+        code: formCode.trim() || `CANT-${Date.now()}`,
+        location: formLocation.trim(),
+        phone: formPhone.trim() || '024 3869 1234',
+        openingHours: formOpeningHours.trim(),
+        totalTables: Number(formTotalTables) || 20,
+        image: formImage.trim() || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=600',
+      });
+      showToast(`Đã thêm mới căn tin ${formName.trim()} vào CSDL!`, 'success');
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi thêm mới căn tin', 'error');
+    }
     setIsCreateModalOpen(false);
-    showToast(`Đã thêm mới căn tin ${newCanteen.name}!`, 'success');
+  };
+
+  const handleDeleteCanteen = async (cant: Canteen) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa căn tin "${cant.name}" khỏi hệ thống CSDL?`)) return;
+    try {
+      await canteenApiService.deleteCanteen(cant.id);
+      showToast(`Đã xóa căn tin "${cant.name}" khỏi CSDL!`, 'info');
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi xóa căn tin', 'error');
+    }
   };
 
   return (
@@ -309,6 +323,14 @@ export const AdminCanteensView: React.FC = () => {
                   title="Chỉnh sửa thông tin"
                 >
                   <Edit3 className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => handleDeleteCanteen(cant)}
+                  className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl transition-colors cursor-pointer border border-rose-500/20"
+                  title="Xóa căn tin"
+                >
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>

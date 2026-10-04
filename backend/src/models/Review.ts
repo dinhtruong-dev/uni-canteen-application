@@ -1,4 +1,5 @@
 export type ReviewTargetType = 'PRODUCT' | 'CANTEEN';
+export type ReviewStatus = 'VISIBLE' | 'HIDDEN';
 
 export class Review {
   public id: string;
@@ -8,12 +9,15 @@ export class Review {
   public userAvatar?: string;
   public targetType: ReviewTargetType;
   public targetId: string; // productId or canteenId
-  public orderId?: string; // Mã đơn hàng đã hoàn thành (bắt buộc hoàn thành đơn để tránh đánh giá tràn lan)
+  public orderId?: string; // Mã đơn hàng đã hoàn thành
   public rating: number; // 1 to 5
-  public comment: string; // Tùy chọn (đã loại bỏ phần viết đánh giá trên UI)
+  public comment: string;
   public verifiedPurchase: boolean;
   public helpfulCount: number;
   public images: string[];
+  public status: ReviewStatus;
+  public replyText?: string;
+  public repliedAt?: string;
   public createdAt: Date;
 
   constructor(
@@ -31,6 +35,9 @@ export class Review {
       verifiedPurchase?: boolean;
       helpfulCount?: number;
       images?: string[];
+      status?: ReviewStatus;
+      replyText?: string;
+      repliedAt?: string;
       createdAt?: Date;
     }
   ) {
@@ -47,6 +54,9 @@ export class Review {
     this.verifiedPurchase = options?.verifiedPurchase !== undefined ? options.verifiedPurchase : true;
     this.helpfulCount = options?.helpfulCount || 0;
     this.images = options?.images || [];
+    this.status = options?.status || 'VISIBLE';
+    this.replyText = options?.replyText;
+    this.repliedAt = options?.repliedAt;
     this.createdAt = options?.createdAt || new Date();
   }
 
@@ -70,6 +80,9 @@ export class Review {
       verifiedPurchase: this.verifiedPurchase,
       helpfulCount: this.helpfulCount,
       images: this.images,
+      status: this.status,
+      replyText: this.replyText,
+      repliedAt: this.repliedAt,
       createdAt: this.createdAt.toISOString(),
     };
   }

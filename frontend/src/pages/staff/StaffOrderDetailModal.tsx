@@ -22,6 +22,7 @@ import {
   Flame,
   Megaphone,
   Check,
+  Sparkles,
 } from 'lucide-react';
 import { staffService, kdsService } from '../../services/api';
 import { orderService } from '../../services/api';
@@ -65,8 +66,8 @@ export const StaffOrderDetailModal: React.FC<StaffOrderDetailModalProps> = ({
     try {
       setLoading(true);
       const res = await orderService.getOrderById(orderId);
-      if (res.success && res.data) {
-        setOrder(res.data);
+      if (res) {
+        setOrder(res);
       }
     } catch (err: any) {
       setErrorMsg('Không thể tải thông tin đơn hàng');
@@ -135,7 +136,8 @@ export const StaffOrderDetailModal: React.FC<StaffOrderDetailModalProps> = ({
       { key: 'CONFIRMED', label: 'Đã nhận', icon: CheckCircle2 },
       { key: 'PREPARING', label: 'Đang nấu', icon: ChefHat },
       { key: 'READY', label: 'Sẵn sàng', icon: PackageCheck },
-      { key: 'COMPLETED', label: 'Hoàn thành', icon: Utensils },
+      { key: 'SERVED', label: 'Đã ra bàn', icon: Utensils },
+      { key: 'COMPLETED', label: 'Hoàn tất', icon: CheckCircle2 },
     ],
     TAKEAWAY: [
       { key: 'PENDING', label: 'Chờ duyệt', icon: Clock },
@@ -537,12 +539,24 @@ export const StaffOrderDetailModal: React.FC<StaffOrderDetailModalProps> = ({
             {status === 'READY' && orderType === 'DINE_IN' && (
               <button
                 type="button"
-                onClick={() => handleUpdateStatus('COMPLETED')}
+                onClick={() => handleUpdateStatus('SERVED')}
                 disabled={actionLoading}
                 className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <Utensils className="w-4 h-4" />
-                <span>{actionLoading ? 'Đang lưu...' : 'Đã giao tại bàn (Hoàn tất)'}</span>
+                <span>{actionLoading ? 'Đang lưu...' : 'Giao ra bàn cho khách'}</span>
+              </button>
+            )}
+
+            {status === 'SERVED' && orderType === 'DINE_IN' && (
+              <button
+                type="button"
+                onClick={() => handleUpdateStatus('COMPLETED')}
+                disabled={actionLoading}
+                className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Check className="w-4 h-4 stroke-[3]" />
+                <span>{actionLoading ? 'Đang lưu...' : 'Hoàn thành đơn hàng'}</span>
               </button>
             )}
 

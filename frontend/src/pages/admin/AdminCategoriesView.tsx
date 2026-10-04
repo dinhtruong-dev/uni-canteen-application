@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FolderTree,
   Plus,
@@ -12,12 +12,17 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../store/AppContext';
 import { Category } from '../../types';
+import { apiClient } from '../../services/api/apiClient';
 
 export const AdminCategoriesView: React.FC = () => {
-  const { categories, foods, showToast } = useApp();
+  const { categories, foods, showToast, refreshData } = useApp();
 
   const [localCategories, setLocalCategories] = useState<Category[]>(categories);
   const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    setLocalCategories(categories);
+  }, [categories]);
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,7 +59,7 @@ export const AdminCategoriesView: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim()) {
       showToast('Vui lòng nhập tên danh mục!', 'error');
@@ -68,37 +73,33 @@ export const AdminCategoriesView: React.FC = () => {
         .replace(/[^a-z0-9]/g, '-')
         .replace(/-+/g, '-');
 
-    if (editingCategory) {
-      setLocalCategories((prev) =>
-        prev.map((c) =>
-          c.id === editingCategory.id
-            ? {
-                ...c,
-                name: formName.trim(),
-                slug,
-                description: formDescription.trim(),
-                icon: formIcon.trim() || '🍱',
-              }
-            : c
-        )
-      );
-      showToast(`Đã cập nhật danh mục "${formName}"!`, 'success');
-    } else {
-      const newCat: Category = {
-        id: `cat-${Date.now()}`,
-        name: formName.trim(),
-        slug,
-        description: formDescription.trim(),
-        icon: formIcon.trim() || '🍱',
-      };
-      setLocalCategories((prev) => [...prev, newCat]);
-      showToast(`Đã thêm danh mục mới "${formName}"!`, 'success');
+    try {
+      if (editingCategory) {
+        await apiClient.put(`/staff/categories/${editingCategory.id}`, {
+          name: formName.trim(),
+          slug,
+          description: formDescription.trim(),
+          icon: formIcon.trim() || '🍱',
+        });
+        showToast(`Đã cập nhật danh mục "${formName}" vào CSDL!`, 'success');
+      } else {
+        await apiClient.post('/staff/categories', {
+          name: formName.trim(),
+          slug,
+          description: formDescription.trim(),
+          icon: formIcon.trim() || '🍱',
+        });
+        showToast(`Đã thêm danh mục mới "${formName}" vào CSDL!`, 'success');
+      }
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi lưu danh mục vào hệ thống', 'error');
     }
 
     setIsModalOpen(false);
   };
 
-  const handleDelete = (cat: Category) => {
+  const handleDelete = async (cat: Category) => {
     const foodCount = foods.filter((f) => f.categoryId === cat.id).length;
     if (foodCount > 0) {
       if (
@@ -112,8 +113,13 @@ export const AdminCategoriesView: React.FC = () => {
       if (!window.confirm(`Bạn có chắc chắn muốn xóa danh mục "${cat.name}"?`)) return;
     }
 
-    setLocalCategories((prev) => prev.filter((c) => c.id !== cat.id));
-    showToast(`Đã xóa danh mục "${cat.name}"!`, 'info');
+    try {
+      await apiClient.delete(`/staff/categories/${cat.id}`);
+      showToast(`Đã xóa danh mục "${cat.name}" khỏi CSDL!`, 'info');
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi xóa danh mục', 'error');
+    }
   };
 
   return (

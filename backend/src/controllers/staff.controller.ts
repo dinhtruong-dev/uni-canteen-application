@@ -2,27 +2,27 @@ import { Request, Response } from 'express';
 import { db } from '../services/database.service';
 import { orderService } from '../services/order.service';
 import { socketService } from '../services/socket.service';
+import { executeQuery } from '../config/db.config';
+import { redisService } from '../services/redis.service';
+import { menuService } from '../services/menu.service';
+import { tableService } from '../services/table.service';
 import { Order, OrderStatus, OrderType, DiningTable, PickupSlot, Category, Product, Voucher, Review } from '../models';
 
 export class StaffController {
   /**
    * Helper to filter orders for a canteen
    */
-  private getCanteenOrders(canteenId?: string): Order[] {
-    const all = Array.from(db.orders.values());
-    if (!canteenId || canteenId === 'ALL') {
-      return all;
-    }
-    return all.filter((o) => o.canteenId === canteenId);
+  private async getCanteenOrders(canteenId?: string): Promise<Order[]> {
+    return orderService.getAllOrders(undefined, canteenId);
   }
 
   /**
    * 1. Dashboard Summary: KPIs, Recent Orders, Quick Stats
    */
-  public getDashboard(req: Request, res: Response) {
+  public async getDashboard(req: Request, res: Response) {
     try {
       const canteenId = (req.query.canteenId as string) || 'cant-a';
-      const orders = this.getCanteenOrders(canteenId);
+      const orders = await this.getCanteenOrders(canteenId);
 
       const now = new Date();
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -64,17 +64,25 @@ export class StaffController {
       // Recent 10 orders sorted by createdAt desc
       const sorted = [...orders].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       const recentOrders = sorted.slice(0, 10).map((o) => {
-        const json = o.toJSON();
+        const json = typeof (o as any)?.toJSON === 'function' ? (o as any).toJSON() : o;
         const elapsedMinutes = Math.max(0, Math.floor((Date.now() - o.createdAt.getTime()) / 60000));
         return { ...json, elapsedMinutes };
       });
+
+      const pendingOrders = sorted
+        .filter((o) => o.status === 'PENDING')
+        .map((o) => {
+          const json = typeof (o as any)?.toJSON === 'function' ? (o as any).toJSON() : o;
+          const elapsedMinutes = Math.max(0, Math.floor((Date.now() - o.createdAt.getTime()) / 60000));
+          return { ...json, elapsedMinutes };
+        });
 
       const canteen = db.canteens.get(canteenId);
 
       return res.json({
         success: true,
         data: {
-          canteen: canteen ? canteen.toJSON() : null,
+          canteen: canteen ? (typeof (canteen as any)?.toJSON === 'function' ? (canteen as any).toJSON() : canteen) : null,
           kpis: {
             newOrders: newOrdersCount,
             preparing: preparingCount,
@@ -86,6 +94,7 @@ export class StaffController {
             monthRevenue,
           },
           recentOrders,
+          pendingOrders,
         },
       });
     } catch (err: any) {
@@ -97,7 +106,7 @@ export class StaffController {
   /**
    * 2. Quản lý Đơn hàng: Data Table với Filter, Search, Pagination
    */
-  public getOrders(req: Request, res: Response) {
+  public async getOrders(req: Request, res: Response) {
     try {
       const {
         canteenId,
@@ -110,7 +119,7 @@ export class StaffController {
         limit = '20',
       } = req.query;
 
-      let list = this.getCanteenOrders(canteenId as string);
+      let list = await this.getCanteenOrders(canteenId as string);
 
       // Filter by receive method / order type
       const method = (receiveMethod || orderType) as string;
@@ -164,7 +173,7 @@ export class StaffController {
 
       const now = Date.now();
       const enriched = paginated.map((o) => {
-        const json = o.toJSON();
+        const json = typeof (o as any)?.toJSON === 'function' ? (o as any).toJSON() : o;
         const elapsedMinutes = Math.max(0, Math.floor((now - o.createdAt.getTime()) / 60000));
         return { ...json, elapsedMinutes };
       });
@@ -184,9 +193,9 @@ export class StaffController {
   }
 
   /**
-   * 3. Chuyển trạng thái đơn hàng theo luồng chuẩn
+   * 3. Chuyển trạng thái đơn hàng theo luồng chuẩn (Duyệt đơn, Đưa về máy POS bếp nấu, Hoàn thành, Hủy)
    */
-  public updateOrderStatus(req: Request, res: Response) {
+  public async updateOrderStatus(req: Request, res: Response) {
     try {
       const orderId = req.params.id;
       const { status: targetStatus, reason } = req.body;
@@ -210,16 +219,7 @@ export class StaffController {
             message: `Không thể hủy đơn hàng ở trạng thái hiện tại (${currentStatus})`,
           });
         }
-        order.cancel();
-        if (reason) {
-          order.notes = order.notes ? `${order.notes} [Lý do hủy: ${reason}]` : `Lý do hủy: ${reason}`;
-        }
-        if (order.tableId) {
-          const tbl = db.tables.get(order.tableId);
-          if (tbl) tbl.release();
-        }
-        // Emit Socket event to Customer and KDS
-        socketService.emitOrderStatus(order.userId, order.toJSON());
+        await orderService.cancelOrder(order.id, reason);
         return res.json({
           success: true,
           message: `Đã hủy đơn hàng #${order.orderCode} thành công`,
@@ -229,12 +229,17 @@ export class StaffController {
 
       // Transition validation based on receiveMethod
       const validTransitions: Record<string, string[]> = {
-        PENDING: ['CONFIRMED', 'CANCELLED'],
+        PENDING: ['CONFIRMED', 'PREPARING', 'CANCELLED'],
         CONFIRMED: ['PREPARING', 'CANCELLED'],
-        PREPARING: ['READY'],
-        READY: order.orderType === 'TAKEAWAY' ? ['WAITING_PICKUP', 'COMPLETED'] : order.orderType === 'DELIVERY' ? ['DELIVERING', 'COMPLETED'] : ['COMPLETED'],
+        PREPARING: ['READY', 'SERVED', 'COMPLETED'],
+        READY: order.orderType === 'TAKEAWAY'
+          ? ['WAITING_PICKUP', 'COMPLETED']
+          : order.orderType === 'DELIVERY'
+          ? ['DELIVERING', 'COMPLETED']
+          : ['SERVED', 'COMPLETED'],
         WAITING_PICKUP: ['COMPLETED'],
         DELIVERING: ['COMPLETED'],
+        SERVED: ['COMPLETED'],
         COMPLETED: [],
       };
 
@@ -246,21 +251,21 @@ export class StaffController {
         });
       }
 
-      order.updateStatus(targetStatus as OrderStatus);
-
-      // Release table if completed
-      if (targetStatus === 'COMPLETED' && order.tableId) {
-        const tbl = db.tables.get(order.tableId);
-        if (tbl) tbl.release();
-      }
-
-      // Emit Socket event to Customer, Staff, and KDS
-      socketService.emitOrderStatus(order.userId, order.toJSON());
+      // Cập nhật trạng thái và lưu trực tiếp vào CSDL MySQL
+      const updatedOrder = await orderService.updateStatus(order.id, targetStatus as OrderStatus, reason);
 
       return res.json({
         success: true,
-        message: `Đơn hàng #${order.orderCode} đã cập nhật sang trạng thái ${targetStatus}`,
-        data: order.toJSON(),
+        message: targetStatus === 'CONFIRMED'
+          ? `Đã duyệt đơn #${order.orderCode} thành công`
+          : targetStatus === 'PREPARING'
+          ? `Bếp đã nhận đơn #${order.orderCode} và đang nấu`
+          : targetStatus === 'SERVED'
+          ? `Đã phục vụ mang món ra bàn ${order.tableNumber || ''} cho khách`
+          : targetStatus === 'COMPLETED'
+          ? `Đơn hàng #${order.orderCode} đã hoàn tất thành công`
+          : `Đơn hàng #${order.orderCode} đã cập nhật sang trạng thái ${targetStatus}`,
+        data: updatedOrder ? updatedOrder.toJSON() : order.toJSON(),
       });
     } catch (err: any) {
       console.error('[StaffController updateOrderStatus Error]:', err);
@@ -271,7 +276,7 @@ export class StaffController {
   /**
    * 4. Quét QR / Xác nhận mã lấy món (PICKUP verification)
    */
-  public verifyPickup(req: Request, res: Response) {
+  public async verifyPickup(req: Request, res: Response) {
     try {
       const { code, canteenId } = req.body;
       if (!code) {
@@ -314,8 +319,8 @@ export class StaffController {
         });
       }
 
-      // Update to COMPLETED
-      order.updateStatus('COMPLETED');
+      // Update to COMPLETED in MySQL and release dining table
+      await orderService.updateStatus(order.id, 'COMPLETED');
       order.isPaid = true;
 
       // Emit Socket event to Customer and KDS
@@ -382,59 +387,114 @@ export class StaffController {
   }
 
   /**
-   * 6. Quản lý Bàn & QR
+   * 6. Quản lý Bàn & QR (Lấy trực tiếp từ MySQL CSDL)
    */
-  public getTables(req: Request, res: Response) {
-    const canteenId = req.query.canteenId as string;
-    let tables = Array.from(db.tables.values());
-    if (canteenId && canteenId !== 'ALL') {
-      tables = tables.filter((t) => t.canteenId === canteenId);
+  public async getTables(req: Request, res: Response) {
+    try {
+      const canteenId = req.query.canteenId as string;
+      const rawTables = await tableService.getAllTables(canteenId);
+      const tables = rawTables.map((t: any) => {
+        const item = typeof t?.toJSON === 'function' ? t.toJSON() : { ...t };
+        if (item.currentOrderId) {
+          const ord = orderService.getOrderById(item.currentOrderId);
+          if (ord) {
+            item.orderStatus = ord.status;
+            item.orderCode = ord.orderCode;
+          }
+        }
+        return item;
+      });
+      return res.json({ success: true, total: tables.length, data: tables });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, message: 'Lỗi tải danh sách bàn từ CSDL' });
     }
-    return res.json({ success: true, total: tables.length, data: tables.map((t) => t.toJSON()) });
   }
 
-  public createTable(req: Request, res: Response) {
+  public async createTable(req: Request, res: Response) {
     try {
-      const { tableNumber, canteenId = 'cant-a', capacity = 4, area = 'Khu vực chính' } = req.body;
+      const { tableNumber, canteenId = 'cant-a', capacity = 4, area = 'Khu vực chính', qrCode, status } = req.body;
       if (!tableNumber) {
         return res.status(400).json({ success: false, message: 'Vui lòng nhập tên/số bàn (VD: Bàn 09)' });
       }
-      const id = `tbl-${Date.now()}`;
-      const canteen = db.canteens.get(canteenId);
-      const canteenName = canteen ? canteen.name : 'Căng tin A2';
-      const cleanNumber = tableNumber.replace(/\s+/g, '_').toUpperCase();
-      const qrData = `UNIEAT_TABLE_${canteenId.toUpperCase()}_${cleanNumber}`;
-      const qrCode = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}`;
-
-      const newTable = new DiningTable(id, tableNumber, canteenId, canteenName, qrCode, Number(capacity) || 4, area, 'AVAILABLE');
-      db.tables.set(newTable.id, newTable);
-      return res.status(201).json({ success: true, message: 'Đã tạo bàn ăn & mã QR mới', data: newTable.toJSON() });
+      const newTable = await tableService.createTable({
+        tableNumber,
+        canteenId,
+        capacity,
+        area,
+        qrCode,
+        status,
+      });
+      return res.status(201).json({
+        success: true,
+        message: 'Đã tạo bàn ăn & mã QR mới thành công',
+        data: newTable.toJSON(),
+      });
     } catch (err: any) {
       return res.status(500).json({ success: false, message: 'Lỗi tạo bàn ăn mới' });
     }
   }
 
-  public updateTable(req: Request, res: Response) {
-    const table = db.tables.get(req.params.id);
-    if (!table) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy bàn ăn' });
+  public async updateTable(req: Request, res: Response) {
+    try {
+      const updated = await tableService.updateTable(req.params.id, req.body);
+      if (!updated) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy bàn ăn' });
+      }
+      return res.json({
+        success: true,
+        message: 'Đã cập nhật thông tin bàn ăn thành công',
+        data: updated.toJSON(),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, message: 'Lỗi cập nhật bàn ăn' });
     }
-    const { tableNumber, capacity, area, status } = req.body;
-    if (tableNumber) table.tableNumber = tableNumber;
-    if (capacity !== undefined) table.capacity = Number(capacity);
-    if (area) table.area = area;
-    if (status) table.status = status;
-    table.updatedAt = new Date();
-
-    return res.json({ success: true, message: 'Đã cập nhật thông tin bàn ăn', data: table.toJSON() });
   }
 
-  public deleteTable(req: Request, res: Response) {
-    const ok = db.tables.delete(req.params.id);
-    if (!ok) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy bàn ăn' });
+  public async deleteTable(req: Request, res: Response) {
+    try {
+      const ok = await tableService.deleteTable(req.params.id);
+      if (!ok) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy bàn ăn' });
+      }
+      return res.json({ success: true, message: 'Đã xóa bàn ăn khỏi CSDL thành công' });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, message: 'Lỗi xóa bàn ăn' });
     }
-    return res.json({ success: true, message: 'Đã xóa bàn ăn thành công' });
+  }
+
+  /**
+   * Làm sạch bàn ăn sau khi khách dùng bữa xong -> đẩy bàn về AVAILABLE (trống)
+   */
+  public async cleanTable(req: Request, res: Response) {
+    try {
+      const tableId = req.params.id;
+      const table = await tableService.getTableById(tableId);
+      if (!table) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy bàn ăn' });
+      }
+
+      if (table.currentOrderId) {
+        try {
+          await orderService.updateStatus(table.currentOrderId, 'COMPLETED', 'Đã dọn dẹp và làm sạch bàn');
+        } catch {}
+      }
+
+      const updated = await tableService.updateTableStatus(table.id, 'AVAILABLE');
+
+      socketService.emitTableStatus({
+        tableNumber: table.tableNumber,
+        isOccupied: false,
+      });
+
+      return res.json({
+        success: true,
+        message: `Đã dọn dẹp và làm sạch ${table.tableNumber} thành công. Bàn hiện đã sẵn sàng đón khách mới!`,
+        data: updated ? (updated as any).toJSON?.() || updated : table,
+      });
+    } catch (err: any) {
+      console.error('[StaffController cleanTable Error]:', err);
+      return res.status(500).json({ success: false, message: 'Lỗi làm sạch bàn ăn' });
+    }
   }
 
   /**
@@ -472,7 +532,7 @@ export class StaffController {
     });
   }
 
-  public createFood(req: Request, res: Response) {
+  public async createFood(req: Request, res: Response) {
     try {
       const {
         name,
@@ -491,63 +551,55 @@ export class StaffController {
         return res.status(400).json({ success: false, message: 'Vui lòng điền đủ Tên món, Giá bán và Danh mục' });
       }
 
-      const id = `prod-${Date.now()}`;
-      const defaultImg =
-        image ||
-        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600';
-
-      const prod = new Product(
-        id,
+      const prod = await menuService.createProduct({
         name,
-        Number(price),
+        price: Number(price),
+        originalPrice: originalPrice ? Number(originalPrice) : undefined,
         categoryId,
         canteenId,
-        defaultImg,
-        5.0,
-        0,
-        Number(preparationTime) || 10,
-        Boolean(isAvailable),
-        {
-          originalPrice: originalPrice ? Number(originalPrice) : undefined,
-          description: description || '',
-          calories: Number(calories) || 500,
-        }
-      );
+        image,
+        description,
+        preparationTime: Number(preparationTime) || 10,
+        calories: Number(calories) || 500,
+        isAvailable: isAvailable !== false,
+      });
 
-      db.products.set(prod.id, prod);
-      return res.status(201).json({ success: true, message: `Đã thêm món "${prod.name}" vào menu`, data: prod.toJSON() });
+      return res.status(201).json({
+        success: true,
+        message: `Đã thêm món "${prod.name}" vào menu`,
+        data: typeof (prod as any)?.toJSON === 'function' ? (prod as any).toJSON() : prod,
+      });
     } catch (err: any) {
-      return res.status(500).json({ success: false, message: 'Lỗi thêm món ăn mới' });
+      return res.status(500).json({ success: false, message: 'Lỗi thêm món ăn mới: ' + err.message });
     }
   }
 
-  public updateFood(req: Request, res: Response) {
-    const prod = db.products.get(req.params.id);
-    if (!prod) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy món ăn' });
+  public async updateFood(req: Request, res: Response) {
+    try {
+      const prod = await menuService.updateProduct(req.params.id, req.body);
+      if (!prod) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy món ăn' });
+      }
+      return res.json({
+        success: true,
+        message: `Đã cập nhật món "${prod.name}"`,
+        data: typeof (prod as any)?.toJSON === 'function' ? (prod as any).toJSON() : prod,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, message: 'Lỗi cập nhật món ăn' });
     }
-
-    const { name, price, originalPrice, categoryId, image, description, preparationTime, calories, isAvailable } = req.body;
-    if (name) prod.name = name;
-    if (price !== undefined) prod.price = Number(price);
-    if (originalPrice !== undefined) prod.originalPrice = Number(originalPrice);
-    if (categoryId) prod.categoryId = categoryId;
-    if (image) prod.image = image;
-    if (description !== undefined) prod.description = description;
-    if (preparationTime !== undefined) prod.preparationTime = Number(preparationTime);
-    if (calories !== undefined) prod.calories = Number(calories);
-    if (isAvailable !== undefined) prod.isAvailable = Boolean(isAvailable);
-
-    return res.json({ success: true, message: `Đã cập nhật món "${prod.name}"`, data: prod.toJSON() });
   }
 
-  public deleteFood(req: Request, res: Response) {
-    const prod = db.products.get(req.params.id);
-    if (!prod) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy món ăn' });
+  public async deleteFood(req: Request, res: Response) {
+    try {
+      const ok = await menuService.deleteProduct(req.params.id);
+      if (!ok) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy món ăn' });
+      }
+      return res.json({ success: true, message: 'Đã xóa món ăn khỏi thực đơn' });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, message: 'Lỗi xóa món ăn' });
     }
-    db.products.delete(req.params.id);
-    return res.json({ success: true, message: `Đã xóa món "${prod.name}" khỏi thực đơn` });
   }
 
   /**
@@ -558,45 +610,77 @@ export class StaffController {
     const enriched = list.map((cat) => {
       const foodCount = Array.from(db.products.values()).filter((p) => p.categoryId === cat.id).length;
       return {
-        ...cat.toJSON(),
+        ...(typeof (cat as any)?.toJSON === 'function' ? (cat as any).toJSON() : cat),
         foodCount,
       };
     });
     return res.json({ success: true, total: enriched.length, data: enriched });
   }
 
-  public createCategory(req: Request, res: Response) {
+  public async createCategory(req: Request, res: Response) {
     try {
-      const { name, description, icon = 'Utensils', image, displayOrder } = req.body;
+      const { name, description, icon = 'Utensils', image, displayOrder, slug: customSlug } = req.body;
       if (!name) {
         return res.status(400).json({ success: false, message: 'Vui lòng nhập tên danh mục' });
       }
       const id = `cat-${Date.now()}`;
+      const slug = customSlug || name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
       const order = displayOrder !== undefined ? Number(displayOrder) : db.categories.size + 1;
       const cat = new Category(id, name, icon, image || 'https://cdn-icons-png.flaticon.com/512/3170/3170733.png', order, description || '');
       db.categories.set(cat.id, cat);
-      return res.status(201).json({ success: true, message: `Đã tạo danh mục "${cat.name}"`, data: cat.toJSON() });
+
+      try {
+        await executeQuery(
+          `INSERT INTO categories (id, name, icon, slug, image, description, display_order, is_active)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description), icon = VALUES(icon), image = VALUES(image), display_order = VALUES(display_order)`,
+          [cat.id, cat.name, cat.icon, slug, cat.image, cat.description || '', cat.displayOrder, 1]
+        );
+      } catch (dbErr: any) {
+        console.warn('[StaffController createCategory MySQL notice]:', dbErr.message);
+      }
+      await redisService.delPrefix('categories');
+
+      return res.status(201).json({
+        success: true,
+        message: `Đã tạo danh mục "${cat.name}"`,
+        data: typeof (cat as any)?.toJSON === 'function' ? (cat as any).toJSON() : cat,
+      });
     } catch (err: any) {
       return res.status(500).json({ success: false, message: 'Lỗi tạo danh mục' });
     }
   }
 
-  public updateCategory(req: Request, res: Response) {
+  public async updateCategory(req: Request, res: Response) {
     const cat = db.categories.get(req.params.id);
     if (!cat) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy danh mục' });
     }
-    const { name, description, icon, image, displayOrder } = req.body;
+    const { name, description, icon, image, displayOrder, slug } = req.body;
     if (name) cat.name = name;
     if (description !== undefined) cat.description = description;
     if (icon) cat.icon = icon;
     if (image) cat.image = image;
     if (displayOrder !== undefined) cat.displayOrder = Number(displayOrder);
 
-    return res.json({ success: true, message: `Đã cập nhật danh mục "${cat.name}"`, data: cat.toJSON() });
+    try {
+      await executeQuery(
+        `UPDATE categories SET name = ?, description = ?, icon = ?, image = ?, display_order = ? WHERE id = ?`,
+        [cat.name, cat.description || '', cat.icon, cat.image, cat.displayOrder, cat.id]
+      );
+    } catch (dbErr: any) {
+      console.warn('[StaffController updateCategory MySQL notice]:', dbErr.message);
+    }
+    await redisService.delPrefix('categories');
+
+    return res.json({
+      success: true,
+      message: `Đã cập nhật danh mục "${cat.name}"`,
+      data: typeof (cat as any)?.toJSON === 'function' ? (cat as any).toJSON() : cat,
+    });
   }
 
-  public deleteCategory(req: Request, res: Response) {
+  public async deleteCategory(req: Request, res: Response) {
     const cat = db.categories.get(req.params.id);
     if (!cat) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy danh mục' });
@@ -610,6 +694,14 @@ export class StaffController {
       });
     }
     db.categories.delete(req.params.id);
+
+    try {
+      await executeQuery('DELETE FROM categories WHERE id = ?', [cat.id]);
+    } catch (dbErr: any) {
+      console.warn('[StaffController deleteCategory MySQL notice]:', dbErr.message);
+    }
+    await redisService.delPrefix('categories');
+
     return res.json({ success: true, message: `Đã xóa danh mục "${cat.name}"` });
   }
 
@@ -617,11 +709,13 @@ export class StaffController {
    * 9. Quản lý Khuyến mãi (Vouchers / Promotions)
    */
   public getPromotions(_req: Request, res: Response) {
-    const list = Array.from(db.vouchers.values()).map((v) => v.toJSON());
+    const list = Array.from(db.vouchers.values()).map((v: any) =>
+      typeof v?.toJSON === 'function' ? v.toJSON() : v
+    );
     return res.json({ success: true, total: list.length, data: list });
   }
 
-  public createPromotion(req: Request, res: Response) {
+  public async createPromotion(req: Request, res: Response) {
     try {
       const { code, title, description, discountType, discountValue, minOrderAmount = 0, maxDiscount, usageLimit = 500 } = req.body;
       if (!code || !title || discountValue === undefined) {
@@ -630,7 +724,7 @@ export class StaffController {
       const id = `vouch-${Date.now()}`;
       const voucher = new Voucher(
         id,
-        code,
+        code.toUpperCase().trim(),
         title,
         description || '',
         discountType === 'PERCENT' || discountType === 'PERCENTAGE' ? 'PERCENTAGE' : 'FIXED',
@@ -644,13 +738,42 @@ export class StaffController {
         }
       );
       db.vouchers.set(voucher.id, voucher);
-      return res.status(201).json({ success: true, message: `Đã tạo mã khuyến mãi "${voucher.code}"`, data: voucher.toJSON() });
+
+      try {
+        await executeQuery(
+          `INSERT INTO vouchers (id, code, title, description, discount_type, discount_value, min_order_amount, max_discount, usage_limit, used_count, is_active)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE title = VALUES(title), description = VALUES(description), discount_value = VALUES(discount_value), min_order_amount = VALUES(min_order_amount)`,
+          [
+            voucher.id,
+            voucher.code,
+            voucher.title,
+            voucher.description,
+            voucher.discountType,
+            voucher.discountValue,
+            voucher.minOrderAmount,
+            voucher.maxDiscount || null,
+            voucher.usageLimit,
+            0,
+            voucher.isActive ? 1 : 0,
+          ]
+        );
+      } catch (dbErr: any) {
+        console.warn('[StaffController createPromotion MySQL notice]:', dbErr.message);
+      }
+      await redisService.delPrefix('vouchers');
+
+      return res.status(201).json({
+        success: true,
+        message: `Đã tạo mã khuyến mãi "${voucher.code}"`,
+        data: typeof (voucher as any)?.toJSON === 'function' ? (voucher as any).toJSON() : voucher,
+      });
     } catch (err: any) {
       return res.status(500).json({ success: false, message: 'Lỗi tạo mã khuyến mãi' });
     }
   }
 
-  public updatePromotion(req: Request, res: Response) {
+  public async updatePromotion(req: Request, res: Response) {
     const voucher = db.vouchers.get(req.params.id);
     if (!voucher) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy mã khuyến mãi' });
@@ -664,14 +787,45 @@ export class StaffController {
     if (usageLimit !== undefined) voucher.usageLimit = Number(usageLimit);
     if (isActive !== undefined) voucher.isActive = Boolean(isActive);
 
-    return res.json({ success: true, message: `Đã cập nhật mã "${voucher.code}"`, data: voucher.toJSON() });
+    try {
+      await executeQuery(
+        `UPDATE vouchers SET title = ?, description = ?, discount_value = ?, min_order_amount = ?, max_discount = ?, usage_limit = ?, is_active = ? WHERE id = ?`,
+        [
+          voucher.title,
+          voucher.description,
+          voucher.discountValue,
+          voucher.minOrderAmount,
+          voucher.maxDiscount || null,
+          voucher.usageLimit,
+          voucher.isActive ? 1 : 0,
+          voucher.id,
+        ]
+      );
+    } catch (dbErr: any) {
+      console.warn('[StaffController updatePromotion MySQL notice]:', dbErr.message);
+    }
+    await redisService.delPrefix('vouchers');
+
+    return res.json({
+      success: true,
+      message: `Đã cập nhật mã "${voucher.code}"`,
+      data: typeof (voucher as any)?.toJSON === 'function' ? (voucher as any).toJSON() : voucher,
+    });
   }
 
-  public deletePromotion(req: Request, res: Response) {
+  public async deletePromotion(req: Request, res: Response) {
     const ok = db.vouchers.delete(req.params.id);
     if (!ok) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy mã khuyến mãi' });
     }
+
+    try {
+      await executeQuery('DELETE FROM vouchers WHERE id = ?', [req.params.id]);
+    } catch (dbErr: any) {
+      console.warn('[StaffController deletePromotion MySQL notice]:', dbErr.message);
+    }
+    await redisService.delPrefix('vouchers');
+
     return res.json({ success: true, message: 'Đã xóa mã khuyến mãi thành công' });
   }
 
@@ -714,10 +868,10 @@ export class StaffController {
   /**
    * 11. Báo cáo Thống kê chuyên sâu (Statistics)
    */
-  public getStatistics(req: Request, res: Response) {
+  public async getStatistics(req: Request, res: Response) {
     try {
       const canteenId = (req.query.canteenId as string) || 'cant-a';
-      const orders = this.getCanteenOrders(canteenId);
+      const orders = await this.getCanteenOrders(canteenId);
 
       // Group revenue and order count by day (last 7 days)
       const daysMap: Record<string, { date: string; revenue: number; ordersCount: number }> = {};

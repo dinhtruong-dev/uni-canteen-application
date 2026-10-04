@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BarChart3,
   TrendingUp,
@@ -12,6 +12,7 @@ import {
   Clock,
   Sparkles,
   ArrowUpRight,
+  RefreshCw,
 } from 'lucide-react';
 import {
   BarChart,
@@ -27,30 +28,63 @@ import {
   Legend,
 } from 'recharts';
 import { useApp } from '../../store/AppContext';
+import { adminService, AdminStatisticsData } from '../../services/api';
 
 export const AdminStatisticsView: React.FC = () => {
   const { canteens, orders, foods, showToast } = useApp();
 
   const [dateRange, setDateRange] = useState<'WEEK' | 'MONTH' | 'QUARTER'>('MONTH');
+  const [statData, setStatData] = useState<AdminStatisticsData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Canteen comparison data
-  const canteenData = [
-    { name: 'Căn Tin A (A2)', revenue: 45200000, orders: 1250, cancelRate: 2.1 },
-    { name: 'Căn Tin B (B5)', revenue: 38900000, orders: 1040, cancelRate: 1.8 },
-    { name: 'Căn Tin C (TD)', revenue: 26400000, orders: 720, cancelRate: 3.4 },
-  ];
+  // Fetch live statistics from MySQL
+  const loadStatistics = async () => {
+    setIsLoading(true);
+    try {
+      const res = await adminService.getStatistics();
+      if (res && res.success && res.data) {
+        setStatData(res.data);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch statistics from DB:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Peak Hour distribution
-  const hourlyData = [
-    { hour: '07h-08h', orders: 145 },
-    { hour: '08h-09h', orders: 85 },
-    { hour: '11h-12h', orders: 480 },
-    { hour: '12h-13h', orders: 560 },
-    { hour: '13h-14h', orders: 190 },
-    { hour: '17h-18h', orders: 280 },
-    { hour: '18h-19h', orders: 340 },
-    { hour: '19h-20h', orders: 160 },
-  ];
+  useEffect(() => {
+    loadStatistics();
+  }, []);
+
+  // Canteen comparison data from MySQL DB with fallback
+  const canteenData = statData?.canteens && statData.canteens.length > 0
+    ? statData.canteens
+    : [
+        { name: 'Căn Tin A (A2)', revenue: 45200000, orders: 1250, cancelRate: 2.1 },
+        { name: 'Căn Tin B (B5)', revenue: 38900000, orders: 1040, cancelRate: 1.8 },
+        { name: 'Căn Tin C (TD)', revenue: 26400000, orders: 720, cancelRate: 3.4 },
+      ];
+
+  // Peak Hour distribution from MySQL DB with fallback
+  const hourlyData = statData?.hourly && statData.hourly.length > 0
+    ? statData.hourly
+    : [
+        { hour: '07h-08h', orders: 145 },
+        { hour: '08h-09h', orders: 85 },
+        { hour: '11h-12h', orders: 480 },
+        { hour: '12h-13h', orders: 560 },
+        { hour: '13h-14h', orders: 190 },
+        { hour: '17h-18h', orders: 280 },
+        { hour: '18h-19h', orders: 340 },
+        { hour: '19h-20h', orders: 160 },
+      ];
+
+  // System cancel rate
+  const totalSystemOrders = orders.length;
+  const cancelledOrders = orders.filter((o) => o.status === 'CANCELLED').length;
+  const dynamicCancelRate = totalSystemOrders > 0
+    ? ((cancelledOrders / totalSystemOrders) * 100).toFixed(1)
+    : '1.9';
 
   const handleExportCSV = () => {
     // Generate CSV string
@@ -114,6 +148,15 @@ export const AdminStatisticsView: React.FC = () => {
                 Học kỳ này
               </button>
             </div>
+
+            <button
+              onClick={loadStatistics}
+              disabled={isLoading}
+              title="Lấy dữ liệu mới nhất từ CSDL"
+              className="p-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-purple-400' : ''}`} />
+            </button>
 
             <button
               onClick={handleExportCSV}
@@ -207,7 +250,7 @@ export const AdminStatisticsView: React.FC = () => {
 
         <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-2">
           <span className="text-xs text-slate-400 uppercase font-bold">Tỷ lệ hủy đơn toàn trường</span>
-          <p className="text-3xl font-black text-rose-400 font-mono">1.9%</p>
+          <p className="text-3xl font-black text-rose-400 font-mono">{dynamicCancelRate}%</p>
           <p className="text-xs text-slate-400">Chủ yếu do khách đặt nhầm cơ sở hoặc hết món</p>
         </div>
 

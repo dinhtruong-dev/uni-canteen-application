@@ -12,14 +12,39 @@ import interactionRoutes from './interaction.routes';
 import canteenRoutes from './canteen.routes';
 import searchRoutes from './search.routes';
 import staffRoutes from './staff.routes';
+import adminRoutes from './admin.routes';
+import { isDbConnected, dbConfig } from '../config/db.config';
+import { db } from '../services/database.service';
 
 const apiRouter = Router();
 
-// Health Check
+// Health Check & Database Status
 apiRouter.get('/health', (_req, res) => {
+  const connected = isDbConnected();
   res.json({
     status: 'ok',
     service: 'UniEat Express Campus API',
+    database: {
+      connected,
+      syncedWithMySQL: db.isSyncedWithDb,
+      dataSource: db.isSyncedWithDb
+        ? 'MySQL Live Database (Đang nạp và dùng trực tiếp dữ liệu từ MySQL trên máy)'
+        : 'In-Memory Fallback Cache (Dữ liệu đệm/mẫu trong RAM do chưa kết nối hoặc chưa đồng bộ MySQL)',
+      config: {
+        host: dbConfig.host,
+        port: dbConfig.port,
+        database: dbConfig.database,
+        user: dbConfig.user,
+      },
+      stats: {
+        categories: db.categories.size,
+        products: db.products.size,
+        users: db.users.size,
+        canteens: db.canteens.size,
+        tables: db.tables.size,
+        vouchers: db.vouchers.size,
+      },
+    },
     technologies: [
       'React.js (.tsx)',
       'TypeScript',
@@ -35,6 +60,26 @@ apiRouter.get('/health', (_req, res) => {
     ],
     architecture: 'Router -> Middlewares -> Validations -> Controllers -> Services -> Models',
     timestamp: new Date().toISOString(),
+  });
+});
+
+// Trigger manual sync from MySQL
+apiRouter.post('/health/sync-db', async (_req, res) => {
+  const success = await db.syncFromMySQL();
+  res.json({
+    success,
+    message: success
+      ? '✅ Đồng bộ dữ liệu thành công từ MySQL trên máy của bạn!'
+      : '❌ Không thể nạp dữ liệu từ MySQL. Hãy đảm bảo MySQL đang chạy và đã import file backend/database.sql.',
+    syncedWithMySQL: db.isSyncedWithDb,
+    stats: {
+      categories: db.categories.size,
+      products: db.products.size,
+      users: db.users.size,
+      canteens: db.canteens.size,
+      tables: db.tables.size,
+      vouchers: db.vouchers.size,
+    },
   });
 });
 
@@ -117,5 +162,8 @@ apiRouter.use('/pickup-slots', (req, res, next) => {
   req.url = `/pickup-slots${req.url === '/' ? '' : req.url}`;
   staffRoutes(req, res, next);
 });
+
+// Group 9: Admin Management & Deep Statistics
+apiRouter.use('/admin', adminRoutes);
 
 export default apiRouter;

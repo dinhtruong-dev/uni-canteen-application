@@ -20,6 +20,9 @@ import {
   Megaphone,
   Check,
   Utensils,
+  Flame,
+  XCircle,
+  Send,
 } from 'lucide-react';
 import { staffService, kdsService } from '../../services/api';
 import { useApp } from '../../store/AppContext';
@@ -84,6 +87,9 @@ export const StaffDashboardView: React.FC = () => {
   };
 
   const recentOrders = data?.recentOrders || [];
+  const pendingOrders = (data?.pendingOrders && data.pendingOrders.length > 0)
+    ? data.pendingOrders
+    : recentOrders.filter((o: any) => o.status === 'PENDING');
   const readyOrders = recentOrders.filter(
     (o: any) => o.status === 'READY' || o.status === 'WAITING_PICKUP' || o.status === 'DELIVERING'
   );
@@ -227,6 +233,133 @@ export const StaffDashboardView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 2.4. Dedicated Pending Orders Section - Chờ Nhân Viên Duyệt để gửi vào Máy POS Bếp Nấu */}
+      {pendingOrders.length > 0 && (
+        <div className="bg-gradient-to-r from-orange-950/80 via-slate-900 to-amber-950/80 border-2 border-orange-500/60 rounded-3xl p-5 shadow-2xl shadow-orange-950/40">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <span className="w-3.5 h-3.5 rounded-full bg-orange-400 animate-ping shrink-0" />
+              <div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <span>ĐƠN MỚI TỪ KHÁCH HÀNG - CẦN DUYỆT ĐƯA VÀO MÁY POS BẾP</span>
+                  <span className="px-2 py-0.5 rounded-md bg-orange-500 text-slate-950 text-xs font-black">
+                    {pendingOrders.length} ĐƠN ĐANG CHỜ
+                  </span>
+                </h3>
+                <p className="text-xs text-orange-200/90 mt-0.5">
+                  Khách hàng vừa đặt đơn! Nhân viên duyệt đơn sẽ cập nhật CSDL MySQL và tự động đồng bộ sang màn hình POS bếp để đầu bếp bắt đầu chế biến.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigateTo('staff-orders')}
+              className="text-xs font-bold text-orange-400 hover:text-orange-300 flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+            >
+              <span>Xem tất cả đơn</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {pendingOrders.map((order: any) => (
+              <div
+                key={order.id}
+                className="bg-slate-900/95 border-2 border-orange-500/40 hover:border-orange-500 rounded-2xl p-4 flex flex-col justify-between gap-3 transition-all shadow-lg"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-base font-black text-orange-400">
+                        #{order.orderCode}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                        {order.elapsedMinutes !== undefined
+                          ? order.elapsedMinutes === 0
+                            ? 'Vừa đặt'
+                            : `${order.elapsedMinutes} phút trước`
+                          : 'Mới'}
+                      </span>
+                    </div>
+
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                      {order.orderType === 'DINE_IN'
+                        ? `Bàn ${order.tableNumber || '01'}`
+                        : order.orderType === 'DELIVERY'
+                        ? `Giao KTX ${order.deliveryAddressText ? `: ${order.deliveryAddressText}` : ''}`
+                        : 'Mang đi (Quầy)'}
+                    </span>
+                  </div>
+
+                  <div className="mt-2.5 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-200">
+                        Khách: {order.userName} {order.userPhone ? `• ${order.userPhone}` : ''}
+                      </span>
+                      <span className="font-mono font-bold text-emerald-400">
+                        {order.finalAmount?.toLocaleString('vi-VN')}đ
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-slate-300 bg-slate-800/60 p-2 rounded-xl border border-slate-700/60 space-y-1">
+                      {order.orderDetails && order.orderDetails.length > 0 ? (
+                        order.orderDetails.map((item: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-start text-[11px]">
+                            <span className="font-semibold text-slate-200">
+                              <span className="text-orange-400 font-bold">{item.quantity}x</span> {item.productName}
+                            </span>
+                            <span className="text-slate-400 font-mono">
+                              {(item.itemSubtotal || item.unitPrice * item.quantity)?.toLocaleString('vi-VN')}đ
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-[11px] text-slate-400">Đơn hàng ẩm thực</p>
+                      )}
+                    </div>
+
+                    {order.notes && (
+                      <p className="text-[11px] text-amber-300 bg-amber-500/10 p-1.5 rounded-lg border border-amber-500/20 font-medium">
+                        Ghi chú: {order.notes}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Direct 1-Click Action Buttons for Approval */}
+                <div className="pt-2 border-t border-slate-800 flex items-center gap-2">
+                  <button
+                    onClick={() => handleUpdateStatus(order.id, 'CONFIRMED')}
+                    className="flex-1 py-2 px-3 rounded-xl text-xs font-black bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 flex items-center justify-center gap-1.5 transition-all shadow-md shadow-orange-500/20 cursor-pointer active:scale-95"
+                    title="Duyệt đơn và chuyển ngay về máy POS bếp để bắt đầu hiển thị"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Duyệt & Đưa POS Bếp</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleUpdateStatus(order.id, 'PREPARING')}
+                    className="py-2 px-3 rounded-xl text-xs font-bold bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 flex items-center justify-center gap-1 transition-all cursor-pointer"
+                    title="Duyệt và bắt đầu nấu luôn tại bếp"
+                  >
+                    <Flame className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Nấu Luôn</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleUpdateStatus(order.id, 'CANCELLED')}
+                    className="p-2 rounded-xl text-rose-400 hover:bg-rose-500/20 hover:text-rose-300 transition-colors cursor-pointer"
+                    title="Hủy đơn hàng này"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 2.5. Dedicated Ready Orders Section ("nấu xong rồi nhân viên sẽ nhận được những đơn sẵn sàng rồi giao hay làm gì đấy từ nhân viên") */}
       {readyOrders.length > 0 && (

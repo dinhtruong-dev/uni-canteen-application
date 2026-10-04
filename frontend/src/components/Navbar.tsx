@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-export const Navbar: React.FC<{ onOpenWalletModal: () => void }> = ({ onOpenWalletModal }) => {
+export const Navbar: React.FC<{ onOpenWalletModal?: () => void }> = ({ onOpenWalletModal }) => {
   const {
     currentUser,
     cart,
@@ -29,12 +29,20 @@ export const Navbar: React.FC<{ onOpenWalletModal: () => void }> = ({ onOpenWall
     markNotifAsRead,
     markAllNotifsAsRead,
     walletBalance,
-    switchUserRole,
     logout,
     currentView,
     navigateTo,
     setQrScannerOpen,
+    setWalletModalOpen,
   } = useApp();
+
+  const handleOpenWallet = () => {
+    if (onOpenWalletModal) {
+      onOpenWalletModal();
+    } else {
+      setWalletModalOpen(true);
+    }
+  };
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
@@ -53,51 +61,29 @@ export const Navbar: React.FC<{ onOpenWalletModal: () => void }> = ({ onOpenWall
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80 shadow-xs">
-      {/* Role Switcher Banner for Instant Demo & Testing */}
-      <div className="bg-slate-900 text-slate-200 text-xs py-1 px-3 sm:px-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="bg-orange-500/20 text-orange-400 font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> DEMO ROLE
-            </span>
-            <span className="hidden md:inline text-slate-400 text-[11px]">
-              Chuyển nhanh vai trò:
-            </span>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+      {/* Role Shortcut: Nếu tài khoản là Staff hoặc Admin thì hiện thanh lối tắt vào trang nghiệp vụ */}
+      {currentUser && (currentUser.role === 'STAFF' || currentUser.role === 'ADMIN') && (
+        <div className="bg-slate-900 text-slate-200 text-xs py-1.5 px-3 sm:px-4">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="bg-amber-500/20 text-amber-400 font-extrabold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
+                {currentUser.role === 'ADMIN' ? 'QUẢN TRỊ VIÊN' : 'NHÂN VIÊN CĂNG TIN'}
+              </span>
+              <span className="text-slate-300 text-xs hidden sm:inline">
+                Xin chào {currentUser.name}!
+              </span>
+            </div>
             <button
-              onClick={() => switchUserRole('STUDENT')}
-              className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
-                currentUser.role === 'STUDENT'
-                  ? 'bg-orange-600 text-white shadow-xs'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              onClick={() => navigateTo(currentUser.role === 'ADMIN' ? 'admin-dashboard' : 'staff-dashboard')}
+              className={`px-3 py-1 rounded-lg text-xs font-extrabold text-white flex items-center gap-1.5 transition-all cursor-pointer ${
+                currentUser.role === 'ADMIN' ? 'bg-purple-600 hover:bg-purple-500' : 'bg-emerald-600 hover:bg-emerald-500'
               }`}
             >
-              <UserIcon className="w-3 h-3" /> Sinh Viên
-            </button>
-            <button
-              onClick={() => switchUserRole('STAFF', 'cant-a')}
-              className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
-                currentUser.role === 'STAFF'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <ChefHat className="w-3 h-3" /> Căng Tin A
-            </button>
-            <button
-              onClick={() => switchUserRole('ADMIN')}
-              className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
-                currentUser.role === 'ADMIN'
-                  ? 'bg-purple-600 text-white shadow-xs'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <ShieldAlert className="w-3 h-3" /> Admin
+              <span>{currentUser.role === 'ADMIN' ? 'Vào Trang Admin' : 'Vào Bàn Làm Việc Staff'}</span>
             </button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main Navbar */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
@@ -105,8 +91,8 @@ export const Navbar: React.FC<{ onOpenWalletModal: () => void }> = ({ onOpenWall
           {/* Logo */}
           <button
             onClick={() => {
-              if (currentUser.role === 'STAFF') navigateTo('staff-dashboard');
-              else if (currentUser.role === 'ADMIN') navigateTo('admin-dashboard');
+              if (currentUser?.role === 'STAFF') navigateTo('staff-dashboard');
+              else if (currentUser?.role === 'ADMIN') navigateTo('admin-dashboard');
               else navigateTo('home');
             }}
             className="flex items-center gap-2 group text-left shrink-0 cursor-pointer"
@@ -125,7 +111,7 @@ export const Navbar: React.FC<{ onOpenWalletModal: () => void }> = ({ onOpenWall
           </button>
 
           {/* Desktop Nav Links */}
-          {currentUser.role === 'STUDENT' ? (
+          {!currentUser || currentUser.role === 'STUDENT' ? (
             <nav className="hidden lg:flex items-center gap-1 font-medium text-sm">
               <button
                 onClick={() => navigateTo('home')}
@@ -274,96 +260,114 @@ export const Navbar: React.FC<{ onOpenWalletModal: () => void }> = ({ onOpenWall
               )}
             </button>
 
-            {/* User Avatar Menu */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setUserDropdownOpen(!userDropdownOpen);
-                  setNotifDropdownOpen(false);
-                }}
-                className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <img
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
-                  className="w-8 h-8 rounded-full object-cover ring-2 ring-[#FF4F8B]/40"
-                />
-                <span className="hidden md:inline text-xs font-bold text-slate-800 max-w-[100px] truncate">
-                  {currentUser.name.split(' ')[0]}
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden md:inline" />
-              </button>
+            {/* User Avatar Menu or Login Button */}
+            {currentUser ? (
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setUserDropdownOpen(!userDropdownOpen);
+                    setNotifDropdownOpen(false);
+                  }}
+                  className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <img
+                    src={currentUser.avatar}
+                    alt={currentUser.name}
+                    className="w-8 h-8 rounded-full object-cover ring-2 ring-[#FF4F8B]/40"
+                  />
+                  <span className="hidden md:inline text-xs font-bold text-slate-800 max-w-[100px] truncate">
+                    {currentUser.name.split(' ')[0]}
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden md:inline" />
+                </button>
 
-              <AnimatePresence>
-                {userDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50"
-                  >
-                    <div className="px-4 py-3 border-b border-slate-100">
-                      <p className="font-bold text-sm text-slate-900">{currentUser.name}</p>
-                      <p className="text-xs text-slate-500">{currentUser.email}</p>
-                      <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 text-[11px] font-semibold text-slate-700">
-                        {currentUser.role === 'STUDENT'
-                          ? `MSSV: ${currentUser.studentId || 'N/A'}`
-                          : currentUser.role === 'STAFF'
-                          ? 'Nhân viên Căng tin'
-                          : 'Quản trị viên (Admin)'}
+                <AnimatePresence>
+                  {userDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50"
+                    >
+                      <div className="px-4 py-3 border-b border-slate-100">
+                        <p className="font-bold text-sm text-slate-900">{currentUser.name}</p>
+                        <p className="text-xs text-slate-500">{currentUser.email}</p>
+                        <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 text-[11px] font-semibold text-slate-700">
+                          {currentUser.role === 'STUDENT'
+                            ? `MSSV: ${currentUser.studentId || 'N/A'}`
+                            : currentUser.role === 'STAFF'
+                            ? 'Nhân viên Căng tin'
+                            : 'Quản trị viên (Admin)'}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="py-1 text-sm text-slate-700 font-medium">
-                      {currentUser.role === 'STUDENT' && (
-                        <>
-                          <button
-                            onClick={() => {
-                              navigateTo('profile');
-                              setUserDropdownOpen(false);
-                            }}
-                            className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                          >
-                            <UserIcon className="w-4 h-4 text-slate-400" />
-                            Hồ sơ & Địa điểm KTX
-                          </button>
-                          <button
-                            onClick={() => {
-                              navigateTo('orders');
-                              setUserDropdownOpen(false);
-                            }}
-                            className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                          >
-                            <ShoppingCart className="w-4 h-4 text-slate-400" />
-                            Lịch sử đơn hàng
-                          </button>
-                          <button
-                            onClick={() => {
-                              onOpenWalletModal();
-                              setUserDropdownOpen(false);
-                            }}
-                            className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2.5 transition-colors text-emerald-700 font-semibold cursor-pointer"
-                          >
-                            <Wallet className="w-4 h-4 text-emerald-600" />
-                            Ví Sinh Viên: {walletBalance.toLocaleString('vi-VN')}đ
-                          </button>
-                        </>
-                      )}
+                      <div className="py-1 text-sm text-slate-700 font-medium">
+                        {currentUser.role === 'STUDENT' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                navigateTo('profile');
+                                setUserDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                            >
+                              <UserIcon className="w-4 h-4 text-slate-400" />
+                              Hồ sơ & Địa điểm KTX
+                            </button>
+                            <button
+                              onClick={() => {
+                                navigateTo('orders');
+                                setUserDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                            >
+                              <ShoppingCart className="w-4 h-4 text-slate-400" />
+                              Lịch sử đơn hàng
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleOpenWallet();
+                                setUserDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2.5 transition-colors text-emerald-700 font-semibold cursor-pointer"
+                            >
+                              <Wallet className="w-4 h-4 text-emerald-600" />
+                              Ví Sinh Viên: {walletBalance.toLocaleString('vi-VN')}đ
+                            </button>
+                          </>
+                        )}
 
-                      <div className="my-1 border-t border-slate-100" />
-                      <button
-                        onClick={logout}
-                        className="w-full text-left px-4 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors font-semibold cursor-pointer"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Đăng xuất
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                        <div className="my-1 border-t border-slate-100" />
+                        <button
+                          onClick={logout}
+                          className="w-full text-left px-4 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors font-semibold cursor-pointer"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Đăng xuất
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigateTo('login', { next: currentView !== 'login' ? currentView : 'home' })}
+                  className="px-3.5 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <UserIcon className="w-3.5 h-3.5" />
+                  <span>Đăng nhập</span>
+                </button>
+                <button
+                  onClick={() => navigateTo('register', { next: currentView !== 'register' ? currentView : 'home' })}
+                  className="hidden sm:inline-flex px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 active:scale-95 text-slate-700 font-bold text-xs transition-all cursor-pointer"
+                >
+                  Đăng ký
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -377,7 +381,61 @@ export const Navbar: React.FC<{ onOpenWalletModal: () => void }> = ({ onOpenWall
             exit={{ opacity: 0, height: 0 }}
             className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-3 overflow-hidden shadow-xl"
           >
-            {currentUser.role === 'STUDENT' ? (
+            {!currentUser ? (
+              <div className="space-y-3">
+                <div className="bg-orange-50/80 border border-orange-100 rounded-2xl p-4 text-center">
+                  <p className="font-extrabold text-sm text-slate-900">Chào bạn đến với UniEat!</p>
+                  <p className="text-xs text-slate-500 mt-1">Đăng nhập để đặt món nhanh và nhận khuyến mãi</p>
+                  <div className="mt-3.5 flex items-center justify-center gap-2.5">
+                    <button
+                      onClick={() => {
+                        navigateTo('login', { next: currentView !== 'login' ? currentView : 'home' });
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex-1 py-2 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-extrabold text-xs shadow-xs transition-all cursor-pointer"
+                    >
+                      Đăng nhập
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigateTo('register', { next: currentView !== 'register' ? currentView : 'home' });
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex-1 py-2 px-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-700 font-extrabold text-xs transition-all cursor-pointer"
+                    >
+                      Đăng ký
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <button
+                    onClick={() => {
+                      navigateTo('home');
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer ${
+                      currentView === 'home'
+                        ? 'text-[#FF4F8B] bg-[#FFF3F7]'
+                        : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Home className="w-4 h-4" />
+                    <span>Trang chủ</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigateTo('category');
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  >
+                    <UtensilsCrossed className="w-4 h-4 text-slate-400" />
+                    <span>Thực đơn Căn tin</span>
+                  </button>
+                </div>
+              </div>
+            ) : currentUser.role === 'STUDENT' ? (
               <>
                 {/* Mobile User Card */}
                 <div className="bg-orange-50/60 border border-orange-100 rounded-2xl p-3 flex items-center justify-between gap-3">
@@ -398,7 +456,7 @@ export const Navbar: React.FC<{ onOpenWalletModal: () => void }> = ({ onOpenWall
 
                   <button
                     onClick={() => {
-                      onOpenWalletModal();
+                      handleOpenWallet();
                       setMobileMenuOpen(false);
                     }}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow-xs shrink-0 flex items-center gap-1 cursor-pointer"

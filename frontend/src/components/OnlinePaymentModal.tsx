@@ -22,7 +22,7 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
   provider,
   onPaymentSuccess,
 }) => {
-  const { addToast } = useApp();
+  const { showToast } = useApp();
   const [loading, setLoading] = useState(true);
   const [paymentData, setPaymentData] = useState<{
     qrCodeUrl: string;
@@ -74,7 +74,7 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
     if (!paymentData?.transactionCode) return;
     navigator.clipboard.writeText(paymentData.transactionCode);
     setCopied(true);
-    addToast('Đã sao chép mã giao dịch', 'info');
+    showToast('Đã sao chép mã giao dịch', 'info');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -93,17 +93,17 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
       const json = await res.json();
       if (json.success) {
         setIsSuccess(true);
-        addToast(`Thanh toán ${provider} thành công!`, 'success');
+        showToast(`Thanh toán ${provider} thành công!`, 'success');
         setTimeout(() => {
           onPaymentSuccess();
           onClose();
         }, 1500);
       } else {
-        addToast(json.message || 'Lỗi xác nhận thanh toán', 'error');
+        showToast(json.message || 'Lỗi xác nhận thanh toán', 'error');
       }
     } catch {
       setIsSuccess(true);
-      addToast(`Thanh toán ${provider} thành công!`, 'success');
+      showToast(`Thanh toán ${provider} thành công!`, 'success');
       setTimeout(() => {
         onPaymentSuccess();
         onClose();

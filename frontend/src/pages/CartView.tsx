@@ -142,7 +142,7 @@ const EmptyCartBasket: React.FC = () => (
 );
 
 export const CartView: React.FC = () => {
-  const { cart, removeFromCart, navigateTo, showToast } = useApp();
+  const { cart, removeFromCart, navigateTo, showToast, currentUser } = useApp();
 
   const [isManageMode, setIsManageMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -224,6 +224,15 @@ export const CartView: React.FC = () => {
       </div>
     );
   }
+
+  const handleProceedToCheckout = () => {
+    if (!currentUser) {
+      showToast('Vui lòng đăng nhập để tiến hành đặt món và thanh toán!', 'info');
+      navigateTo('login', { next: 'checkout' });
+      return;
+    }
+    navigateTo('checkout');
+  };
 
   // Màn hình khi giỏ hàng có món
   return (
@@ -388,7 +397,7 @@ export const CartView: React.FC = () => {
             <button
               id="cart-proceed-checkout-btn"
               type="button"
-              onClick={() => navigateTo('checkout')}
+              onClick={handleProceedToCheckout}
               className="bg-[#2b2f33] hover:bg-slate-900 active:scale-95 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs sm:text-sm shadow-sm transition-all cursor-pointer"
             >
               Đặt hàng

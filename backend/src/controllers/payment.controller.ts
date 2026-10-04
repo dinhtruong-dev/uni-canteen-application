@@ -8,7 +8,14 @@ export class PaymentController {
     if (!payment) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy thông tin giao dịch' });
     }
-    res.json({ success: true, data: payment.toJSON() });
+    const data = typeof (payment as any)?.toJSON === 'function' ? (payment as any).toJSON() : payment;
+    res.json({ success: true, data });
+  }
+
+  public getWalletTransactions(req: AuthenticatedRequest, res: Response) {
+    const userId = req.user?.id || 'user-stu-1';
+    const txs = paymentService.getWalletTransactions(userId);
+    res.json({ success: true, total: txs.length, data: txs });
   }
 
   public topUpWallet(req: AuthenticatedRequest, res: Response) {

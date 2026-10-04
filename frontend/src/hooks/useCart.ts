@@ -7,19 +7,20 @@ export function useCart() {
   const {
     cart,
     addToCart,
-    updateCartItemQuantity,
+    updateCartQuantity,
     removeFromCart,
     clearCart,
-    cartTotal,
-    cartCount,
+    subtotal,
   } = useApp();
+
+  const count = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return {
     items: cart,
-    count: cartCount,
-    total: cartTotal,
+    count,
+    total: subtotal,
     addToCart,
-    updateQuantity: updateCartItemQuantity,
+    updateQuantity: updateCartQuantity,
     removeItem: removeFromCart,
     clearCart,
   };

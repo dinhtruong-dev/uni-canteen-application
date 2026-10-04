@@ -14,5 +14,17 @@ router.get('/vouchers', (req, res) => marketingController.getVouchers(req, res))
 router.post('/vouchers/validate', validateVoucherCheck, (req, res) =>
   marketingController.validateVoucher(req, res)
 );
+router.get('/user-vouchers', authMiddleware, (req, res) =>
+  marketingController.getUserVouchers(req, res)
+);
+router.get('/my-vouchers', authMiddleware, (req, res) =>
+  marketingController.getUserVouchers(req, res)
+);
+router.post('/user-vouchers/claim', authMiddleware, (req, res) =>
+  marketingController.claimVoucher(req, res)
+);
+router.post('/my-vouchers/claim', authMiddleware, (req, res) =>
+  marketingController.claimVoucher(req, res)
+);
 
 export default router;

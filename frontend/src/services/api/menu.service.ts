@@ -78,6 +78,32 @@ export class MenuService {
     }
     return [];
   }
+
+  public async createProduct(foodData: any): Promise<FoodItem | null> {
+    const res = await apiClient.post<{ success: boolean; data: any }>('/menu/products', foodData);
+    if (res?.success && res.data) {
+      return adaptProductToFood(res.data);
+    }
+    return null;
+  }
+
+  public async updateProduct(id: string, foodData: any): Promise<FoodItem | null> {
+    const res = await apiClient.put<{ success: boolean; data: any }>(`/menu/products/${id}`, foodData);
+    if (res?.success && res.data) {
+      return adaptProductToFood(res.data);
+    }
+    return null;
+  }
+
+  public async deleteProduct(id: string): Promise<boolean> {
+    const res = await apiClient.delete<{ success: boolean }>(`/menu/products/${id}`);
+    return Boolean(res?.success);
+  }
+
+  public async toggleAvailability(id: string): Promise<boolean> {
+    const res = await apiClient.patch<{ success: boolean; data: any }>(`/menu/products/${id}/availability`);
+    return Boolean(res?.success);
+  }
 }
 
 export const menuService = new MenuService();

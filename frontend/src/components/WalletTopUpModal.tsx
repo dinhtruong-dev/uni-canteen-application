@@ -9,7 +9,7 @@ interface WalletTopUpModalProps {
 }
 
 export const WalletTopUpModal: React.FC<WalletTopUpModalProps> = ({ isOpen, onClose }) => {
-  const { walletBalance, topUpWallet } = useApp();
+  const { walletBalance, topUpWallet, showToast } = useApp();
   const [selectedAmount, setSelectedAmount] = useState<number>(100000);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [paymentStep, setPaymentStep] = useState<'SELECT' | 'QR_PAYMENT' | 'SUCCESS'>('SELECT');
@@ -23,7 +23,7 @@ export const WalletTopUpModal: React.FC<WalletTopUpModalProps> = ({ isOpen, onCl
 
   const handleProceedToPayment = () => {
     if (effectiveAmount < 10000) {
-      alert('Số tiền nạp tối thiểu là 10.000đ');
+      showToast('Số tiền nạp tối thiểu là 10.000đ', 'warning');
       return;
     }
     setPaymentStep('QR_PAYMENT');

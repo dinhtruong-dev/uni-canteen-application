@@ -43,7 +43,7 @@ export const LandingView: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigateTo('login')}
+            onClick={() => navigateTo('login', { next: '/home' })}
             className="text-xs font-semibold text-slate-300 hover:text-white px-3 py-2 transition-colors cursor-pointer"
           >
             Đăng nhập
@@ -268,7 +268,7 @@ export const LandingView: React.FC = () => {
             <span>•</span>
             <button onClick={() => navigateTo('menu')} className="hover:text-slate-300">Thực đơn</button>
             <span>•</span>
-            <button onClick={() => navigateTo('login')} className="hover:text-slate-300">Đăng nhập</button>
+            <button onClick={() => navigateTo('login', { next: '/home' })} className="hover:text-slate-300">Đăng nhập</button>
           </div>
         </div>
       </footer>

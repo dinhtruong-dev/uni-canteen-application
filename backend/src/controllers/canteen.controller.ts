@@ -2,13 +2,13 @@ import { Request, Response } from 'express';
 import { canteenService } from '../services/canteen.service';
 
 export class CanteenController {
-  public getAllCanteens(_req: Request, res: Response) {
+  public async getAllCanteens(_req: Request, res: Response) {
     try {
-      const canteens = canteenService.getAllCanteens();
+      const canteens = await canteenService.getAllCanteens();
       return res.json({
         success: true,
         total: canteens.length,
-        data: canteens.map((c) => c.toJSON()),
+        data: canteens.map((c: any) => (typeof c?.toJSON === 'function' ? c.toJSON() : c)),
       });
     } catch (error: any) {
       return res.status(500).json({
@@ -19,9 +19,9 @@ export class CanteenController {
     }
   }
 
-  public getCanteenById(req: Request, res: Response) {
+  public async getCanteenById(req: Request, res: Response) {
     try {
-      const canteen = canteenService.getCanteenById(req.params.id);
+      const canteen = await canteenService.getCanteenById(req.params.id);
       if (!canteen) {
         return res.status(404).json({
           success: false,
@@ -30,7 +30,7 @@ export class CanteenController {
       }
       return res.json({
         success: true,
-        data: canteen.toJSON(),
+        data: typeof (canteen as any)?.toJSON === 'function' ? (canteen as any).toJSON() : canteen,
       });
     } catch (error: any) {
       return res.status(500).json({
@@ -41,9 +41,9 @@ export class CanteenController {
     }
   }
 
-  public toggleStatus(req: Request, res: Response) {
+  public async toggleStatus(req: Request, res: Response) {
     try {
-      const updated = canteenService.toggleCanteenStatus(req.params.id);
+      const updated = await canteenService.toggleCanteenStatus(req.params.id);
       if (!updated) {
         return res.status(404).json({
           success: false,
@@ -53,7 +53,7 @@ export class CanteenController {
       return res.json({
         success: true,
         message: `Đã cập nhật trạng thái hoạt động: ${updated.isOpen ? 'Mở cửa' : 'Đóng cửa'}`,
-        data: updated.toJSON(),
+        data: typeof (updated as any)?.toJSON === 'function' ? (updated as any).toJSON() : updated,
       });
     } catch (error: any) {
       return res.status(500).json({
@@ -61,6 +61,51 @@ export class CanteenController {
         message: 'Lỗi cập nhật',
         error: error.message,
       });
+    }
+  }
+
+  public async createCanteen(req: Request, res: Response) {
+    try {
+      const { name } = req.body;
+      if (!name) {
+        return res.status(400).json({ success: false, message: 'Vui lòng nhập tên căn tin' });
+      }
+      const canteen = await canteenService.createCanteen(req.body);
+      return res.status(201).json({
+        success: true,
+        message: `Đã thêm căn tin "${canteen.name}" thành công!`,
+        data: typeof (canteen as any)?.toJSON === 'function' ? (canteen as any).toJSON() : canteen,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, message: 'Lỗi thêm căn tin', error: error.message });
+    }
+  }
+
+  public async updateCanteen(req: Request, res: Response) {
+    try {
+      const canteen = await canteenService.updateCanteen(req.params.id, req.body);
+      if (!canteen) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy căn tin để cập nhật' });
+      }
+      return res.json({
+        success: true,
+        message: `Đã cập nhật căn tin "${canteen.name}" thành công!`,
+        data: typeof (canteen as any)?.toJSON === 'function' ? (canteen as any).toJSON() : canteen,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, message: 'Lỗi cập nhật căn tin', error: error.message });
+    }
+  }
+
+  public async deleteCanteen(req: Request, res: Response) {
+    try {
+      const ok = await canteenService.deleteCanteen(req.params.id);
+      if (!ok) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy căn tin để xóa' });
+      }
+      return res.json({ success: true, message: 'Đã xóa căn tin thành công' });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, message: 'Lỗi xóa căn tin', error: error.message });
     }
   }
 }

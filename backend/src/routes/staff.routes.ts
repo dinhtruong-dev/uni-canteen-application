@@ -22,6 +22,7 @@ router.get('/tables', (req, res) => staffController.getTables(req, res));
 router.post('/tables', (req, res) => staffController.createTable(req, res));
 router.put('/tables/:id', (req, res) => staffController.updateTable(req, res));
 router.delete('/tables/:id', (req, res) => staffController.deleteTable(req, res));
+router.post('/tables/:id/clean', (req, res) => staffController.cleanTable(req, res));
 
 // 5. Foods
 router.get('/foods', (req, res) => staffController.getFoods(req, res));

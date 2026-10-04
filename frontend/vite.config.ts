@@ -25,10 +25,29 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
+        configure: (proxy) => {
+          proxy.on('error', (_err: any, _req: any, res: any) => {
+            if (res && 'writeHead' in res && !res.headersSent) {
+              res.writeHead(503, { 'Content-Type': 'application/json' });
+              res.end(
+                JSON.stringify({
+                  success: false,
+                  message: 'Backend API server (port 5000) chưa được bật hoặc đang khởi động.',
+                })
+              );
+            }
+          });
+        },
       },
       '/socket.io': {
         target: 'http://localhost:5000',
         ws: true,
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', () => {
+            // Bỏ qua lỗi kết nối socket khi backend chưa bật
+          });
+        },
       },
     },
   },

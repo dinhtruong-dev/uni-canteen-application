@@ -8,6 +8,7 @@ export type OrderStatus =
   | 'READY'
   | 'WAITING_PICKUP'
   | 'DELIVERING'
+  | 'SERVED'
   | 'COMPLETED'
   | 'CANCELLED';
 
@@ -21,6 +22,7 @@ export class Order {
   public userPhone: string;
   public canteenId: string;
   public canteenName: string;
+  public voucherId?: string;
   public orderDetails: OrderDetail[];
   public totalAmount: number;
   public discountAmount: number;
@@ -51,6 +53,7 @@ export class Order {
     orderType: OrderType,
     paymentMethod: PaymentMethod,
     options?: {
+      voucherId?: string;
       discountAmount?: number;
       tableId?: string;
       tableNumber?: string;
@@ -72,6 +75,7 @@ export class Order {
     this.userPhone = userPhone;
     this.canteenId = canteenId;
     this.canteenName = canteenName;
+    this.voucherId = options?.voucherId;
     this.orderDetails = orderDetails;
     this.orderType = orderType;
     this.paymentMethod = paymentMethod;
@@ -96,7 +100,7 @@ export class Order {
   public updateStatus(newStatus: OrderStatus): void {
     this.status = newStatus;
     this.updatedAt = new Date();
-    if (newStatus === 'COMPLETED' || newStatus === 'READY') {
+    if (newStatus === 'COMPLETED' || newStatus === 'READY' || newStatus === 'SERVED') {
       this.isPaid = true;
     }
   }
@@ -121,6 +125,7 @@ export class Order {
       userPhone: this.userPhone,
       canteenId: this.canteenId,
       canteenName: this.canteenName,
+      voucherId: this.voucherId,
       orderDetails: this.orderDetails.map((detail) => detail.toJSON()),
       totalAmount: this.totalAmount,
       discountAmount: this.discountAmount,

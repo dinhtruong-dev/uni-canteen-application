@@ -32,7 +32,6 @@ export const StaffDashboardView: React.FC = () => {
     setSelectedCanteen,
     setQrScannerOpen,
     showToast,
-    switchUserRole,
     navigateTo,
   } = useApp();
 
@@ -86,13 +85,6 @@ export const StaffDashboardView: React.FC = () => {
             >
               <Flame className="w-4 h-4 fill-white" />
               <span>Màn Hình Bếp KDS (Ngang / Cảm Ứng)</span>
-            </button>
-
-            <button
-              onClick={() => switchUserRole('STUDENT')}
-              className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <span>Về Sinh Viên</span>
             </button>
 
             <button

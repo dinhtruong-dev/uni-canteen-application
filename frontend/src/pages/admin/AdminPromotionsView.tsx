@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TicketPercent,
   Plus,
@@ -15,13 +15,18 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../store/AppContext';
 import { Promotion } from '../../types';
+import { apiClient } from '../../services/api/apiClient';
 
 export const AdminPromotionsView: React.FC = () => {
-  const { promotions, showToast } = useApp();
+  const { promotions, showToast, refreshData } = useApp();
 
   const [localPromotions, setLocalPromotions] = useState<Promotion[]>(promotions);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'PERCENT' | 'FIXED'>('ALL');
+
+  useEffect(() => {
+    setLocalPromotions(promotions);
+  }, [promotions]);
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,11 +52,18 @@ export const AdminPromotionsView: React.FC = () => {
     return matchSearch && matchType;
   });
 
-  const handleToggle = (id: string) => {
-    setLocalPromotions((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, isAvailable: !p.isAvailable } : p))
-    );
-    showToast('Đã thay đổi trạng thái kích hoạt của mã khuyến mãi!', 'success');
+  const handleToggle = async (id: string) => {
+    const target = localPromotions.find((p) => p.id === id);
+    if (!target) return;
+    try {
+      await apiClient.put(`/staff/promotions/${id}`, {
+        isActive: !target.isAvailable,
+      });
+      showToast(`Đã thay đổi trạng thái kích hoạt mã ${target.code}!`, 'success');
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi thay đổi trạng thái mã', 'error');
+    }
   };
 
   const handleOpenCreate = () => {
@@ -84,61 +96,53 @@ export const AdminPromotionsView: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formCode.trim() || !formTitle.trim()) {
       showToast('Vui lòng nhập mã code và tiêu đề!', 'error');
       return;
     }
 
-    if (editingPromo) {
-      setLocalPromotions((prev) =>
-        prev.map((p) =>
-          p.id === editingPromo.id
-            ? {
-                ...p,
-                code: formCode.trim().toUpperCase(),
-                title: formTitle.trim(),
-                description: formDescription.trim(),
-                discountType: formDiscountType,
-                discountValue: Number(formDiscountValue),
-                minOrderValue: Number(formMinOrderValue),
-                maxDiscount: formMaxDiscount ? Number(formMaxDiscount) : undefined,
-                startDate: formStartDate,
-                endDate: formEndDate,
-                usageLimit: Number(formUsageLimit),
-              }
-            : p
-        )
-      );
-      showToast(`Đã cập nhật mã "${formCode.toUpperCase()}"!`, 'success');
-    } else {
-      const newPromo: Promotion = {
-        id: `promo-${Date.now()}`,
-        code: formCode.trim().toUpperCase(),
-        title: formTitle.trim(),
-        description: formDescription.trim(),
-        discountType: formDiscountType,
-        discountValue: Number(formDiscountValue),
-        minOrderValue: Number(formMinOrderValue),
-        maxDiscount: formMaxDiscount ? Number(formMaxDiscount) : undefined,
-        startDate: formStartDate,
-        endDate: formEndDate,
-        usageLimit: Number(formUsageLimit),
-        usedCount: 0,
-        isAvailable: true,
-      };
-      setLocalPromotions((prev) => [newPromo, ...prev]);
-      showToast(`Đã phát hành mã khuyến mãi mới "${newPromo.code}"!`, 'success');
+    try {
+      if (editingPromo) {
+        await apiClient.put(`/staff/promotions/${editingPromo.id}`, {
+          title: formTitle.trim(),
+          description: formDescription.trim(),
+          discountValue: Number(formDiscountValue),
+          minOrderAmount: Number(formMinOrderValue),
+          maxDiscount: formMaxDiscount ? Number(formMaxDiscount) : null,
+          usageLimit: Number(formUsageLimit),
+        });
+        showToast(`Đã cập nhật mã "${formCode.toUpperCase()}" vào CSDL!`, 'success');
+      } else {
+        await apiClient.post('/staff/promotions', {
+          code: formCode.trim().toUpperCase(),
+          title: formTitle.trim(),
+          description: formDescription.trim(),
+          discountType: formDiscountType === 'PERCENT' ? 'PERCENTAGE' : 'FIXED',
+          discountValue: Number(formDiscountValue),
+          minOrderAmount: Number(formMinOrderValue),
+          maxDiscount: formMaxDiscount ? Number(formMaxDiscount) : null,
+          usageLimit: Number(formUsageLimit),
+        });
+        showToast(`Đã phát hành mã khuyến mãi mới "${formCode.toUpperCase()}" vào CSDL!`, 'success');
+      }
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi lưu mã khuyến mãi', 'error');
     }
 
     setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Bạn có chắc muốn xóa mã khuyến mãi này?')) {
-      setLocalPromotions((prev) => prev.filter((p) => p.id !== id));
-      showToast('Đã xóa mã khuyến mãi!', 'info');
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Bạn có chắc muốn xóa mã khuyến mãi này khỏi CSDL?')) return;
+    try {
+      await apiClient.delete(`/staff/promotions/${id}`);
+      showToast('Đã xóa mã khuyến mãi khỏi CSDL!', 'info');
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi xóa mã khuyến mãi', 'error');
     }
   };
 

@@ -4,7 +4,6 @@ import { FoodCard } from '../components/FoodCard';
 import { BannerSlider } from '../components/BannerSlider';
 import { FlashSaleSection } from '../components/FlashSaleSection';
 import { HorizontalScrollContainer } from '../components/HorizontalScrollContainer';
-import { MOCK_CATEGORIES } from '../data/mockData';
 import { FoodItem, Canteen, OrderType } from '../types';
 import {
   ShoppingBag,
@@ -42,7 +41,7 @@ export const HomeView: React.FC = () => {
     applyPromotion,
   } = useApp();
 
-  const displayCategories = categories && categories.length > 0 ? categories : MOCK_CATEGORIES;
+  const displayCategories = categories;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [couponInput, setCouponInput] = useState('');

@@ -62,6 +62,27 @@ export class CanteenApiService {
     }
     return null;
   }
+
+  public async createCanteen(data: any): Promise<Canteen | null> {
+    const res = await apiClient.post<{ success: boolean; data: any }>('/canteens', data);
+    if (res?.success && res.data) {
+      return res.data as Canteen;
+    }
+    return null;
+  }
+
+  public async updateCanteen(id: string, data: any): Promise<Canteen | null> {
+    const res = await apiClient.put<{ success: boolean; data: any }>(`/canteens/${id}`, data);
+    if (res?.success && res.data) {
+      return res.data as Canteen;
+    }
+    return null;
+  }
+
+  public async deleteCanteen(id: string): Promise<boolean> {
+    const res = await apiClient.delete<{ success: boolean }>(`/canteens/${id}`);
+    return Boolean(res?.success);
+  }
 }
 
 export const canteenApiService = new CanteenApiService();

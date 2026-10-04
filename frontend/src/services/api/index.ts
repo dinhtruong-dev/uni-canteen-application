@@ -8,3 +8,5 @@ export * from './search.service';
 export * from './canteen.service';
 export * from './kds.service';
 export * from './staff.service';
+export * from './user.service';
+export * from './admin.service';

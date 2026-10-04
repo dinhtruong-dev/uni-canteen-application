@@ -26,6 +26,7 @@ export * from './Payment';
 export * from './Banner';
 export * from './FlashSale';
 export * from './Voucher';
+export * from './UserVoucher';
 
 // Group 7: Nhóm Tương tác & Trải nghiệm khách hàng
 export * from './Review';

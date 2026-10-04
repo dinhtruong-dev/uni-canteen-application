@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   QrCode,
   Plus,
@@ -15,6 +15,8 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useApp } from '../../store/AppContext';
+import { tableService } from '../../services/api/table.service';
+import { TableQRScannerModal } from '../../components/TableQRScannerModal';
 
 interface TableRecord {
   id: string;
@@ -27,55 +29,51 @@ interface TableRecord {
 }
 
 export const AdminTablesView: React.FC = () => {
-  const { canteens, showToast } = useApp();
+  const { canteens, diningTables, showToast, refreshData } = useApp();
 
-  const [tables, setTables] = useState<TableRecord[]>([
-    {
-      id: 'tbl-1',
-      tableNumber: 'BÀN A01',
-      canteenId: 'cant-a',
-      canteenName: 'Căng Tin A - Giảng Đường Trung Tâm A2',
-      capacity: 4,
-      status: 'AVAILABLE',
-      qrCodeValue: 'https://unieat.campus.edu.vn/?canteen=cant-a&table=A01',
-    },
-    {
-      id: 'tbl-2',
-      tableNumber: 'BÀN A02',
-      canteenId: 'cant-a',
-      canteenName: 'Căng Tin A - Giảng Đường Trung Tâm A2',
-      capacity: 4,
-      status: 'OCCUPIED',
-      qrCodeValue: 'https://unieat.campus.edu.vn/?canteen=cant-a&table=A02',
-    },
-    {
-      id: 'tbl-3',
-      tableNumber: 'BÀN A03',
-      canteenId: 'cant-a',
-      canteenName: 'Căng Tin A - Giảng Đường Trung Tâm A2',
-      capacity: 6,
-      status: 'AVAILABLE',
-      qrCodeValue: 'https://unieat.campus.edu.vn/?canteen=cant-a&table=A03',
-    },
-    {
-      id: 'tbl-4',
-      tableNumber: 'BÀN B01',
-      canteenId: 'cant-b',
-      canteenName: 'Căng Tin B - Nhà Bếp Ký Túc Xá B5',
-      capacity: 4,
-      status: 'AVAILABLE',
-      qrCodeValue: 'https://unieat.campus.edu.vn/?canteen=cant-b&table=B01',
-    },
-    {
-      id: 'tbl-5',
-      tableNumber: 'BÀN B02',
-      canteenId: 'cant-b',
-      canteenName: 'Căng Tin B - Nhà Bếp Ký Túc Xá B5',
-      capacity: 8,
-      status: 'OCCUPIED',
-      qrCodeValue: 'https://unieat.campus.edu.vn/?canteen=cant-b&table=B02',
-    },
-  ]);
+  const [tables, setTables] = useState<TableRecord[]>([]);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const fetchLiveTables = async () => {
+    try {
+      const data = await tableService.getTables();
+      if (Array.isArray(data) && data.length > 0) {
+        setTables(
+          data.map((t: any) => ({
+            id: t.id,
+            tableNumber: t.tableNumber || `Bàn ${t.id}`,
+            canteenId: t.canteenId || 'cant-a',
+            canteenName: t.canteenName || 'Căng tin Campus',
+            capacity: Number(t.capacity) || 4,
+            status: t.status === 'EMPTY' ? 'AVAILABLE' : (t.status || 'AVAILABLE'),
+            qrCodeValue: t.qrCode || `https://unieat.campus.edu.vn/?canteen=${t.canteenId}&table=${t.id}`,
+          }))
+        );
+      }
+    } catch (err) {
+      console.warn('Live tables fetch error:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveTables();
+  }, []);
+
+  useEffect(() => {
+    if (diningTables && diningTables.length > 0) {
+      setTables(
+        diningTables.map((t: any) => ({
+          id: t.id,
+          tableNumber: t.tableNumber || `Bàn ${t.id}`,
+          canteenId: t.canteenId || 'cant-a',
+          canteenName: t.canteenName || 'Căng tin Campus',
+          capacity: Number(t.capacity) || 4,
+          status: t.status === 'EMPTY' ? 'AVAILABLE' : (t.status || 'AVAILABLE'),
+          qrCodeValue: t.qrCode || `https://unieat.campus.edu.vn/?canteen=${t.canteenId}&table=${t.id}`,
+        }))
+      );
+    }
+  }, [diningTables]);
 
   const [canteenFilter, setCanteenFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -107,35 +105,40 @@ export const AdminTablesView: React.FC = () => {
     setIsQRModalOpen(true);
   };
 
-  const handleSaveCreate = (e: React.FormEvent) => {
+  const handleSaveCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formNumber.trim()) {
       showToast('Vui lòng nhập số hiệu bàn!', 'error');
       return;
     }
 
-    const matchedCanteen = canteens.find((c) => c.id === formCanteenId);
-    const newTable: TableRecord = {
-      id: `tbl-${Date.now()}`,
-      tableNumber: formNumber.trim().toUpperCase(),
-      canteenId: formCanteenId,
-      canteenName: matchedCanteen?.name || 'Căn tin Campus',
-      capacity: Number(formCapacity) || 4,
-      status: 'AVAILABLE',
-      qrCodeValue: `https://unieat.campus.edu.vn/?canteen=${formCanteenId}&table=${encodeURIComponent(
-        formNumber.trim()
-      )}`,
-    };
+    try {
+      const matchedCanteen = canteens.find((c) => c.id === formCanteenId);
+      await tableService.createTable({
+        tableNumber: formNumber.trim().toUpperCase(),
+        canteenId: formCanteenId,
+        canteenName: matchedCanteen?.name || 'Căn tin Campus',
+        capacity: Number(formCapacity) || 4,
+        area: 'Sảnh chính',
+        status: 'AVAILABLE',
+      });
+      showToast(`Đã thêm bàn ${formNumber.trim().toUpperCase()} vào CSDL và tự động sinh mã QR!`, 'success');
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi thêm bàn mới', 'error');
+    }
 
-    setTables((prev) => [...prev, newTable]);
     setIsCreateModalOpen(false);
-    showToast(`Đã thêm bàn ${newTable.tableNumber} và tự động sinh mã QR!`, 'success');
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Bạn có chắc muốn xóa bàn này khỏi danh sách?')) {
-      setTables((prev) => prev.filter((t) => t.id !== id));
-      showToast('Đã xóa bàn!', 'info');
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Bạn có chắc muốn xóa bàn này khỏi CSDL?')) return;
+    try {
+      await tableService.deleteTable(id);
+      showToast('Đã xóa bàn ăn khỏi CSDL!', 'info');
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi xóa bàn ăn', 'error');
     }
   };
 
@@ -158,16 +161,26 @@ export const AdminTablesView: React.FC = () => {
             </p>
           </div>
 
-          <button
-            onClick={() => {
-              setFormNumber(`BÀN ${String.fromCharCode(65 + Math.floor(Math.random() * 3))}0${tables.length + 1}`);
-              setIsCreateModalOpen(true);
-            }}
-            className="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30 transition-all shrink-0 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Thêm Bàn Ăn Mới</span>
-          </button>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              onClick={() => setIsScannerOpen(true)}
+              className="px-4 py-2.5 rounded-2xl bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30 font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all shrink-0 cursor-pointer"
+            >
+              <QrCode className="w-4 h-4 text-purple-400" />
+              <span>Quét Mã QR Bàn Ăn</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setFormNumber(`BÀN ${String.fromCharCode(65 + Math.floor(Math.random() * 3))}0${tables.length + 1}`);
+                setIsCreateModalOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30 transition-all shrink-0 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Thêm Bàn Ăn Mới</span>
+            </button>
+          </div>
         </div>
 
         {/* Filters and Search */}
@@ -405,6 +418,16 @@ export const AdminTablesView: React.FC = () => {
           </form>
         </div>
       )}
+
+      {/* Table QR Scanner Modal */}
+      <TableQRScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onTableUpdated={() => {
+          fetchLiveTables();
+          refreshData();
+        }}
+      />
     </div>
   );
 };

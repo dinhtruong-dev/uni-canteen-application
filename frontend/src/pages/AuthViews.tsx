@@ -3,19 +3,26 @@ import { useApp } from '../context/AppContext';
 import { Utensils, Eye, EyeOff, Lock, Mail, User, Phone, GraduationCap, CheckCircle2, ArrowRight } from 'lucide-react';
 
 export const LoginView: React.FC = () => {
-  const { login, navigateTo } = useApp();
-  const [email, setEmail] = useState('an.nguyen22@st.university.edu.vn');
-  const [password, setPassword] = useState('123456');
+  const { login, navigateTo, viewParams } = useApp();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Lấy đường dẫn chuyển tiếp (Shopee pattern: ?next=...)
+  const nextTarget =
+    viewParams?.next ||
+    (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('next') : '') ||
+    '';
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim() || !password) {
+      return;
+    }
     setLoading(true);
-    setTimeout(() => {
-      login(email);
-      setLoading(false);
-    }, 600);
+    await login(email.trim(), password, nextTarget || undefined);
+    setLoading(false);
   };
 
   return (
@@ -63,19 +70,26 @@ export const LoginView: React.FC = () => {
 
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">Đăng Nhập</h2>
             <p className="text-xs text-slate-500 mt-1">
-              Nhập tài khoản email sinh viên hoặc MSSV để tiếp tục
+              Vui lòng nhập tài khoản email và mật khẩu của bạn
             </p>
+
+            {nextTarget && (
+              <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Bạn sẽ được tự động chuyển tiếp tới trang đã chọn sau khi đăng nhập.</span>
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Email sinh viên / MSSV:</label>
+              <label className="font-bold text-slate-700 block mb-1">Email đăng nhập:</label>
               <div className="relative">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="an.nguyen22@st.university.edu.vn"
+                  placeholder="Nhập email của bạn..."
                   required
                   className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:outline-hidden focus:border-orange-500"
                 />
@@ -122,17 +136,17 @@ export const LoginView: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-orange-500 hover:bg-orange-600 active:scale-98 text-white font-extrabold py-3.5 rounded-xl text-sm transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2"
+              className="w-full bg-orange-500 hover:bg-orange-600 active:scale-98 text-white font-extrabold py-3.5 rounded-xl text-sm transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 cursor-pointer"
             >
-              {loading ? 'Đang xác thực...' : 'Đăng Nhập Ngay'}
+              {loading ? 'Đang xác thực qua Backend API...' : 'Đăng Nhập Ngay'}
             </button>
           </form>
 
           <div className="pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
             Chưa có tài khoản?{' '}
             <button
-              onClick={() => navigateTo('register')}
-              className="text-orange-600 font-extrabold hover:underline"
+              onClick={() => navigateTo('register', nextTarget ? { next: nextTarget } : {})}
+              className="text-orange-600 font-extrabold hover:underline cursor-pointer"
             >
               Đăng ký tài khoản sinh viên
             </button>
@@ -144,17 +158,41 @@ export const LoginView: React.FC = () => {
 };
 
 export const RegisterView: React.FC = () => {
-  const { register, navigateTo } = useApp();
+  const { register, navigateTo, showToast, viewParams } = useApp();
   const [name, setName] = useState('');
   const [studentId, setStudentId] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [department, setDepartment] = useState('Công Nghệ Thông Tin');
   const [className, setClassName] = useState('CNTT 01 - K68');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Lấy đường dẫn chuyển tiếp (Shopee pattern: ?next=...)
+  const nextTarget =
+    viewParams?.next ||
+    (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('next') : '') ||
+    '';
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    register({ name, studentId, email, phone, department, className });
+
+    if (password.length < 6) {
+      showToast('Mật khẩu bảo mật phải có tối thiểu 6 ký tự!', 'error');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showToast('Mật khẩu xác nhận không khớp! Vui lòng kiểm tra lại.', 'error');
+      return;
+    }
+
+    setLoading(true);
+    await register({ name, studentId, email, phone, department, className, password }, nextTarget || undefined);
+    setLoading(false);
   };
 
   return (
@@ -163,6 +201,13 @@ export const RegisterView: React.FC = () => {
         <div>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight">Tạo Tài Khoản Sinh Viên</h2>
           <p className="text-xs text-slate-500 mt-1">Đăng ký tài khoản nội bộ trường để nhận ưu đãi nạp ví</p>
+
+          {nextTarget && (
+            <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Tự động chuyển tiếp đến trang bạn đang chọn sau khi đăng ký thành công.</span>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
@@ -229,6 +274,46 @@ export const RegisterView: React.FC = () => {
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
               />
             </div>
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Mật khẩu (tối thiểu 6 ký tự):</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full p-2.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Xác nhận mật khẩu:</label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full p-2.5 pr-9 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
           </div>
 
           <label className="flex items-center gap-2 cursor-pointer pt-2 font-medium text-slate-600">
@@ -238,15 +323,19 @@ export const RegisterView: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-extrabold py-3.5 rounded-xl text-sm transition-all shadow-md shadow-orange-500/20"
+            disabled={loading}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-extrabold py-3.5 rounded-xl text-sm transition-all shadow-md shadow-orange-500/20 disabled:opacity-50 cursor-pointer"
           >
-            Tạo Tài Khoản (+Tặng 50.000đ vào Ví)
+            {loading ? 'Đang tạo tài khoản...' : 'Tạo Tài Khoản (+Tặng 50.000đ vào Ví)'}
           </button>
         </form>
 
         <div className="text-center text-xs text-slate-500">
           Đã có tài khoản?{' '}
-          <button onClick={() => navigateTo('login')} className="text-orange-600 font-bold hover:underline">
+          <button
+            onClick={() => navigateTo('login', nextTarget ? { next: nextTarget } : {})}
+            className="text-orange-600 font-bold hover:underline cursor-pointer"
+          >
             Đăng nhập ngay
           </button>
         </div>

@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { MOCK_CATEGORIES } from '../data/mockData';
 import { FoodItem, Canteen } from '../types';
 import {
   ArrowLeft,
@@ -52,7 +51,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
     categories,
   } = useApp();
 
-  const activeCategories = categories && categories.length > 0 ? categories : MOCK_CATEGORIES;
+  const activeCategories = categories;
 
   // Determine if this is Canteen Mode (user clicked on a specific canteen)
   const incomingCanteenId =

@@ -3,10 +3,9 @@ import { useApp } from '../context/AppContext';
 import { X, Camera, Flashlight, AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import jsQR from 'jsqr';
-import { MOCK_TABLES } from '../data/mockData';
 
 export const QRScannerModal: React.FC = () => {
-  const { qrScannerOpen, setQrScannerOpen, handleScannedQR } = useApp();
+  const { qrScannerOpen, setQrScannerOpen, handleScannedQR, diningTables } = useApp();
   
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -321,20 +320,24 @@ export const QRScannerModal: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-2 gap-1.5">
-                    {MOCK_TABLES.slice(0, 4).map((table) => (
-                      <button
-                        key={table.tableCode}
-                        type="button"
-                        onClick={() => {
-                          handleScannedQR(table.tableCode);
-                          stopCamera();
-                        }}
-                        className="p-2 bg-slate-50 hover:bg-orange-50 border border-slate-200/80 hover:border-orange-300 rounded-xl text-left transition-colors cursor-pointer"
-                      >
-                        <span className="font-bold text-xs text-slate-900 block">{table.tableCode}</span>
-                        <span className="text-[10px] text-slate-500 block truncate">{table.tableName}</span>
-                      </button>
-                    ))}
+                    {(diningTables || []).slice(0, 4).map((table: any) => {
+                      const code = table.tableCode || table.id || 'TBL-01';
+                      const name = table.tableName || table.tableNumber || 'Bàn ăn';
+                      return (
+                        <button
+                          key={code}
+                          type="button"
+                          onClick={() => {
+                            handleScannedQR(code);
+                            stopCamera();
+                          }}
+                          className="p-2 bg-slate-50 hover:bg-orange-50 border border-slate-200/80 hover:border-orange-300 rounded-xl text-left transition-colors cursor-pointer"
+                        >
+                          <span className="font-bold text-xs text-slate-900 block">{code}</span>
+                          <span className="text-[10px] text-slate-500 block truncate">{name}</span>
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <form

@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Home, Clock, Heart, User, Bell, ShoppingBag } from 'lucide-react';
 
 export const BottomNavigation: React.FC = () => {
-  const { currentView, navigateTo, cart, unreadNotifCount } = useApp();
+  const { currentView, navigateTo, cart, unreadNotifCount, currentUser, showToast } = useApp();
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollYRef = useRef(0);
 
@@ -72,6 +72,25 @@ export const BottomNavigation: React.FC = () => {
     { id: 'profile', label: 'Tài khoản', icon: User },
   ];
 
+  const handleItemClick = (id: string) => {
+    if (id === 'home') {
+      navigateTo('home');
+      return;
+    }
+    if (!currentUser) {
+      const messages: Record<string, string> = {
+        orders: 'Vui lòng đăng nhập để xem lịch sử đơn hàng!',
+        favorites: 'Vui lòng đăng nhập để xem danh sách món yêu thích!',
+        notifications: 'Vui lòng đăng nhập để xem thông báo!',
+        profile: 'Vui lòng đăng nhập để quản lý tài khoản!',
+      };
+      showToast(messages[id] || 'Vui lòng đăng nhập để tiếp tục!', 'info');
+      navigateTo('login', { next: id });
+      return;
+    }
+    navigateTo(id);
+  };
+
   return (
     <div
       className={`fixed bottom-4 left-0 right-0 z-50 pointer-events-none flex items-center justify-center px-4 transition-all duration-300 ease-in-out ${
@@ -96,7 +115,7 @@ export const BottomNavigation: React.FC = () => {
               <button
                 key={item.id}
                 id={`taskbar-btn-${item.id}`}
-                onClick={() => navigateTo(item.id)}
+                onClick={() => handleItemClick(item.id)}
                 className={`relative flex items-center justify-center rounded-full transition-all cursor-pointer ${
                   isActive
                     ? 'w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-tr from-[#9af4ed] to-[#cbfcf8] text-[#007068] shadow-xs scale-105'

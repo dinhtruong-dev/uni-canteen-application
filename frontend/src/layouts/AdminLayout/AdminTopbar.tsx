@@ -29,7 +29,7 @@ export const AdminTopbar: React.FC<AdminTopbarProps> = ({
   onSelectTab,
   unreadNotifsCount = 0,
 }) => {
-  const { currentUser, switchUserRole, refreshData, isLoadingData, logout, notifications } = useApp();
+  const { currentUser, refreshData, isLoadingData, logout, notifications } = useApp();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -172,43 +172,6 @@ export const AdminTopbar: React.FC<AdminTopbarProps> = ({
                   Role: {currentUser?.role}
                 </span>
               </div>
-
-              <div className="px-3 py-1 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                Chuyển vai trò thử nghiệm
-              </div>
-
-              <button
-                onClick={() => {
-                  setShowUserMenu(false);
-                  switchUserRole('STUDENT');
-                }}
-                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 flex items-center justify-between cursor-pointer"
-              >
-                <span>Sinh viên (Customer)</span>
-                <span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">Mobile UI</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowUserMenu(false);
-                  switchUserRole('STAFF');
-                }}
-                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 flex items-center justify-between cursor-pointer"
-              >
-                <span>Nhân viên Căn tin (Staff)</span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">Staff POS</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowUserMenu(false);
-                  switchUserRole('ADMIN');
-                }}
-                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-purple-300 bg-purple-600/10 flex items-center justify-between cursor-pointer"
-              >
-                <span>Quản trị viên (Admin)</span>
-                <CheckCircle2 className="w-3.5 h-3.5 text-purple-400" />
-              </button>
 
               <div className="border-t border-slate-800 pt-1 mt-1">
                 <button

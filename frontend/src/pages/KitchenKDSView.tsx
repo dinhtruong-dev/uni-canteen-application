@@ -214,12 +214,24 @@ export const KitchenKDSView: React.FC = () => {
         );
       };
 
+      const handleOrderCancelled = (data: any) => {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === data.orderId || o.orderCode === data.orderCode
+              ? { ...o, status: 'CANCELLED' }
+              : o
+          )
+        );
+      };
+
       socket.on('order:new', handleNewOrder);
       socket.on('order:status_updated', handleStatusUpdated);
+      socket.on('order:cancelled', handleOrderCancelled);
 
       return () => {
         socket.off('order:new', handleNewOrder);
         socket.off('order:status_updated', handleStatusUpdated);
+        socket.off('order:cancelled', handleOrderCancelled);
       };
     }
 

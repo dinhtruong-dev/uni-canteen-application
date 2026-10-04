@@ -108,14 +108,30 @@ export const OrderChatModal: React.FC<OrderChatModalProps> = ({
       }
     };
 
-    // New incoming message
+    // New incoming message (Deduplication against local optimistic messages)
     const handleNewMessage = (msg: OrderChatMessage) => {
       if (msg.orderId === orderId) {
         setMessages((prev) => {
-          const exists = prev.some((m) => m.id === msg.id);
-          if (exists) return prev;
+          // 1. Kiểm tra nếu ID đã có trong danh sách
+          if (prev.some((m) => m.id === msg.id)) return prev;
+
+          // 2. Kiểm tra nếu trùng với tin nhắn tạm gửi từ client (cùng người gửi và nội dung)
+          const localIdx = prev.findIndex(
+            (m) =>
+              (m.id.startsWith('msg-local-') || m.id === msg.id) &&
+              m.senderId === msg.senderId &&
+              m.message === msg.message
+          );
+
+          if (localIdx !== -1) {
+            const updated = [...prev];
+            updated[localIdx] = msg;
+            return updated;
+          }
+
           return [...prev, msg];
         });
+
         if (msg.senderId !== currentUserId) {
           playChatPing();
         }
@@ -144,9 +160,10 @@ export const OrderChatModal: React.FC<OrderChatModalProps> = ({
 
     const socket = getSocket();
     const timeNow = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const localId = `msg-local-${Date.now()}`;
 
     const localMsg: OrderChatMessage = {
-      id: `msg-local-${Date.now()}`,
+      id: localId,
       orderId,
       senderId: currentUserId,
       senderName: currentUserName,
@@ -161,6 +178,7 @@ export const OrderChatModal: React.FC<OrderChatModalProps> = ({
 
     if (socket) {
       socket.emit('order:message:send', {
+        clientMsgId: localId,
         orderId,
         senderId: currentUserId,
         senderName: currentUserName,

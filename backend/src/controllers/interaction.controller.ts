@@ -5,47 +5,61 @@ import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export class InteractionController {
   // Reviews
-  public getReviews(req: Request, res: Response) {
-    const { targetType, targetId } = req.query;
-    const reviews = interactionService
-      .getReviews(targetType as any, targetId as string)
-      .map((r) => r.toJSON());
-    res.json({ success: true, total: reviews.length, data: reviews });
+  public async getReviews(req: Request, res: Response) {
+    try {
+      const { targetType, targetId } = req.query;
+      const reviews = await interactionService.getReviews(targetType as any, targetId as string);
+      const data = reviews.map((r: any) => (typeof r?.toJSON === 'function' ? r.toJSON() : r));
+      res.json({ success: true, total: data.length, data });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: 'Lỗi tải đánh giá', error: err.message });
+    }
   }
 
-  public createReview(req: AuthenticatedRequest, res: Response) {
+  public async createReview(req: AuthenticatedRequest, res: Response) {
     const userId = req.user?.id || 'user-stu-1';
     const userName = req.user?.name || 'Sinh viên';
     try {
-      const review = interactionService.createReview({
+      const review = await interactionService.createReview({
         ...req.body,
         userId,
         userName,
       });
-      res.status(201).json({ success: true, message: 'Cảm ơn bạn đã gửi đánh giá!', data: review.toJSON() });
+      const data = typeof (review as any)?.toJSON === 'function' ? (review as any).toJSON() : review;
+      res.status(201).json({ success: true, message: 'Cảm ơn bạn đã gửi đánh giá!', data });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message || 'Không thể gửi đánh giá' });
     }
   }
 
   // Notifications
-  public getNotifications(req: AuthenticatedRequest, res: Response) {
-    const userId = req.user?.id || 'user-stu-1';
-    const notifications = interactionService.getNotifications(userId).map((n) => n.toJSON());
-    res.json({ success: true, total: notifications.length, data: notifications });
+  public async getNotifications(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id || 'user-stu-1';
+      const notifications = await interactionService.getNotifications(userId);
+      const data = notifications.map((n: any) => (typeof n?.toJSON === 'function' ? n.toJSON() : n));
+      res.json({ success: true, total: data.length, data });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: 'Lỗi tải thông báo', error: err.message });
+    }
   }
 
-  public markAsRead(req: AuthenticatedRequest, res: Response) {
-    const ok = interactionService.markAsRead(req.params.id);
+  public async markAsRead(req: AuthenticatedRequest, res: Response) {
+    const ok = await interactionService.markAsRead(req.params.id);
     if (!ok) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy thông báo' });
     }
     res.json({ success: true, message: 'Đã đánh dấu đã đọc' });
   }
 
-  public pushNotification(req: AuthenticatedRequest, res: Response) {
-    const notif = interactionService.createNotification(req.body);
-    res.status(201).json({ success: true, message: 'Đã gửi thông báo thành công', data: notif.toJSON() });
+  public async pushNotification(req: AuthenticatedRequest, res: Response) {
+    try {
+      const notif = await interactionService.createNotification(req.body);
+      const data = typeof (notif as any)?.toJSON === 'function' ? (notif as any).toJSON() : notif;
+      res.status(201).json({ success: true, message: 'Đã gửi thông báo thành công', data });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: 'Lỗi gửi thông báo', error: err.message });
+    }
   }
 
   // Real-time Event Stream (SSE)

@@ -32,7 +32,22 @@ export const socketConfig = {
 
   // Cấu hình chia sẻ tài nguyên (CORS) cho máy client kết nối
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      // Cho phép tất cả request local dev hoặc không có origin header
+      if (!origin) return callback(null, true);
+      const configuredClient = process.env.CLIENT_URL || 'http://localhost:5173';
+      const allowedOrigins = [
+        configuredClient,
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+      ];
+      if (allowedOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
   },

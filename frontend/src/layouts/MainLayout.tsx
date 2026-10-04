@@ -9,13 +9,29 @@ interface MainLayoutProps {
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  const { currentView } = useApp();
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-  const isLandingPage = currentView === 'landing';
+  const { currentView, currentUser, walletModalOpen, setWalletModalOpen } = useApp();
+  const isAuthPage =
+    !currentUser ||
+    currentView === 'login' ||
+    currentView === 'buyer/login' ||
+    currentView === 'register' ||
+    currentView === 'buyer/register' ||
+    currentView === 'forgot-password';
   const isCheckoutPage = currentView === 'checkout';
   const isKDS = currentView === 'kds' || currentView === 'kitchen-kds' || currentView === 'kitchen';
   const isStaff = currentView.startsWith('staff');
   const isAdmin = currentView.startsWith('admin');
+
+  if (isAuthPage) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-center">
+        <ToastContainer />
+        <main className="w-full">
+          {children}
+        </main>
+      </div>
+    );
+  }
 
   if (isKDS) {
     return (
@@ -47,7 +63,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
     <div
       className={`min-h-screen text-slate-900 flex flex-col font-sans selection:bg-[#22c3d3] selection:text-white ${
-        isLandingPage ? 'bg-slate-900' : isCheckoutPage ? 'bg-white' : 'bg-slate-50'
+        isCheckoutPage ? 'bg-white' : 'bg-slate-50'
       }`}
     >
       <ToastContainer />
@@ -55,9 +71,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       {/* Main Content Area */}
       <main
         className={
-          isLandingPage
-            ? 'flex-1 w-full'
-            : isCheckoutPage
+          isCheckoutPage
             ? 'flex-1 w-full mx-auto p-0 pb-0'
             : 'flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-4 pb-24 lg:pb-12'
         }
@@ -70,8 +84,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
       {/* Global Modals */}
       <WalletTopUpModal
-        isOpen={isWalletModalOpen}
-        onClose={() => setIsWalletModalOpen(false)}
+        isOpen={walletModalOpen}
+        onClose={() => setWalletModalOpen(false)}
       />
     </div>
   );

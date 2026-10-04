@@ -33,7 +33,7 @@ export const StaffTopbar: React.FC<StaffTopbarProps> = ({
   unreadNotifsCount = 0,
   canteenName = 'Căng Tin A - Giảng Đường Trung Tâm A2',
 }) => {
-  const { currentUser, navigateTo } = useApp();
+  const { currentUser, navigateTo, logout } = useApp();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [currentTime, setCurrentTime] = React.useState(new Date());
 
@@ -180,9 +180,7 @@ export const StaffTopbar: React.FC<StaffTopbarProps> = ({
               <button
                 onClick={() => {
                   setShowUserMenu(false);
-                  localStorage.removeItem('token');
-                  localStorage.removeItem('unieat_jwt');
-                  navigateTo('landing');
+                  logout();
                 }}
                 className="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2"
               >

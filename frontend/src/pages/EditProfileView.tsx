@@ -6,6 +6,20 @@ export const EditProfileView: React.FC = () => {
   const { currentUser, updateProfile, showToast, navigateTo } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  if (!currentUser) {
+    return (
+      <div className="max-w-md mx-auto text-center py-16 space-y-4">
+        <p className="text-slate-600 font-bold text-sm">Vui lòng đăng nhập để chỉnh sửa thông tin.</p>
+        <button
+          onClick={() => navigateTo('login', { next: 'edit-profile' })}
+          className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs"
+        >
+          Đăng nhập ngay
+        </button>
+      </div>
+    );
+  }
+
   // Phone state (only phone is editable)
   const [phone, setPhone] = useState(currentUser.phone);
   const [avatar, setAvatar] = useState(currentUser.avatar);

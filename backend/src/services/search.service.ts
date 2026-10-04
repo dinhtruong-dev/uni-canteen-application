@@ -82,7 +82,7 @@ export class SearchService {
     for (const canteen of allCanteensList) {
       const foodsInThisCanteen = matchingProducts
         .filter((p) => p.canteenId === canteen.id)
-        .map((p) => p.toJSON());
+        .map((p: any) => (typeof p?.toJSON === 'function' ? p.toJSON() : p));
 
       const totalFoodsInCanteen = Array.from(db.products.values()).filter(
         (p) => p.canteenId === canteen.id
@@ -92,7 +92,7 @@ export class SearchService {
 
       if (!q || foodsInThisCanteen.length > 0 || canteenMatchedDirectly) {
         groupedCanteens.push({
-          canteen: canteen.toJSON(),
+          canteen: typeof (canteen as any)?.toJSON === 'function' ? (canteen as any).toJSON() : canteen,
           foods: foodsInThisCanteen,
           totalFoodsInCanteen,
         });
@@ -104,7 +104,7 @@ export class SearchService {
       if (b.foods.length !== a.foods.length) {
         return b.foods.length - a.foods.length;
       }
-      return b.canteen.rating - a.canteen.rating;
+      return (b.canteen?.rating || 0) - (a.canteen?.rating || 0);
     });
 
     // 7. Server-side pagination
@@ -118,7 +118,7 @@ export class SearchService {
     const foodTotalPages = Math.max(1, Math.ceil(matchingProducts.length / foodLimit));
     const paginatedFoodItems = matchingProducts
       .slice((page - 1) * foodLimit, page * foodLimit)
-      .map((p) => p.toJSON());
+      .map((p: any) => (typeof p?.toJSON === 'function' ? p.toJSON() : p));
 
     // Small delay simulating network search
     await new Promise((resolve) => setTimeout(resolve, 300));
@@ -133,7 +133,7 @@ export class SearchService {
       totalCanteens,
       hasMore: page < totalPages,
       data: paginatedGrouped,
-      canteens: matchingCanteens.map((c) => c.toJSON()),
+      canteens: matchingCanteens.map((c: any) => (typeof c?.toJSON === 'function' ? c.toJSON() : c)),
       foodItems: paginatedFoodItems,
     };
   }

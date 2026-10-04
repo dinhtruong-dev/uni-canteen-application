@@ -245,23 +245,6 @@ export const StaffFoodsView: React.FC = () => {
         </form>
 
         <div className="flex items-center gap-3 w-full md:w-auto flex-wrap justify-end">
-          {/* Category Filter */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-400">Danh mục:</span>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-emerald-500"
-            >
-              <option value="ALL">Tất cả danh mục</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Availability Filter */}
           <div className="flex items-center gap-1.5">
             <span className="text-slate-400">Trạng thái:</span>
@@ -285,7 +268,6 @@ export const StaffFoodsView: React.FC = () => {
             <thead>
               <tr className="border-b border-slate-800 bg-slate-800/40 text-slate-400 font-semibold uppercase tracking-wider">
                 <th className="py-3.5 px-4">Ảnh & Tên món</th>
-                <th className="py-3.5 px-4">Danh mục</th>
                 <th className="py-3.5 px-4">Đơn giá</th>
                 <th className="py-3.5 px-4">Chuẩn bị / Calo</th>
                 <th className="py-3.5 px-4 text-center">Báo còn / hết món</th>
@@ -295,7 +277,7 @@ export const StaffFoodsView: React.FC = () => {
             <tbody className="divide-y divide-slate-800/60 font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-16 text-center text-slate-400">
+                  <td colSpan={5} className="py-16 text-center text-slate-400">
                     <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                     Đang tải thực đơn món ăn...
                   </td>
@@ -326,11 +308,6 @@ export const StaffFoodsView: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-semibold border border-slate-700">
-                        {food.categoryName || 'Món chính'}
-                      </span>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="font-mono font-bold text-sm text-emerald-400">

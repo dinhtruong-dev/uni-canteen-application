@@ -31,7 +31,7 @@ export const StaffSidebar: React.FC<StaffSidebarProps> = ({
   pendingOrdersCount = 0,
   unreadNotifsCount = 0,
 }) => {
-  const { currentUser, navigateTo } = useApp();
+  const { currentUser, navigateTo, logout } = useApp();
 
   const menuItems = [
     {
@@ -51,12 +51,6 @@ export const StaffSidebar: React.FC<StaffSidebarProps> = ({
       id: 'foods',
       label: 'Món ăn & Thực đơn',
       icon: UtensilsCrossed,
-      badge: null,
-    },
-    {
-      id: 'categories',
-      label: 'Danh mục món',
-      icon: FolderTree,
       badge: null,
     },
     {
@@ -205,9 +199,7 @@ export const StaffSidebar: React.FC<StaffSidebarProps> = ({
           </button>
           <button
             onClick={() => {
-              localStorage.removeItem('token');
-              localStorage.removeItem('unieat_jwt');
-              navigateTo('landing');
+              logout();
             }}
             className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors"
             title="Đăng xuất"

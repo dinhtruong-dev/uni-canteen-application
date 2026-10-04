@@ -25,11 +25,55 @@ import { SelectCanteenView } from '../pages/SelectCanteenView';
 import { KitchenKDSView } from '../pages/KitchenKDSView';
 
 export const AppRoutes: React.FC = () => {
-  const { currentView, viewParams } = useApp();
+  const { currentView, viewParams, currentUser } = useApp();
+
+  // 1. Khi chưa đăng nhập: Luôn hiển thị màn hình đăng nhập (bỏ hoàn toàn landing page khi vào web)
+  if (!currentUser) {
+    if (currentView === 'register' || currentView === 'buyer/register') {
+      return <RegisterView />;
+    }
+    if (currentView === 'forgot-password') {
+      return <ForgotPasswordView />;
+    }
+    return <LoginView />;
+  }
+
+  // 2. Khi đã đăng nhập: Nếu đang ở màn hình login/register/landing thì tự động vào giao diện theo Role
+  if (
+    currentView === 'login' ||
+    currentView === 'buyer/login' ||
+    currentView === 'register' ||
+    currentView === 'buyer/register' ||
+    currentView === 'landing'
+  ) {
+    if (currentUser.role === 'ADMIN') {
+      return <AdminPortalView />;
+    }
+    if (currentUser.role === 'STAFF') {
+      return <StaffPortalView />;
+    }
+    return <HomeView />;
+  }
+
+  // 3. Phân quyền truy cập theo vai trò tài khoản
+  if (currentView.startsWith('admin') && currentUser.role !== 'ADMIN') {
+    return <HomeView />;
+  }
+  if (currentView.startsWith('staff') && currentUser.role !== 'STAFF' && currentUser.role !== 'ADMIN') {
+    return <HomeView />;
+  }
+  if (currentUser.role === 'ADMIN' && currentView === 'home') {
+    return <AdminPortalView />;
+  }
+  if (currentUser.role === 'STAFF' && currentView === 'home') {
+    return <StaffPortalView />;
+  }
 
   switch (currentView) {
     case 'landing':
-      return <LandingView />;
+      if (currentUser.role === 'ADMIN') return <AdminPortalView />;
+      if (currentUser.role === 'STAFF') return <StaffPortalView />;
+      return <HomeView />;
     case 'home':
       return <HomeView />;
     case 'select-delivery':
@@ -115,8 +159,10 @@ export const AppRoutes: React.FC = () => {
     case 'admin-settings':
       return <AdminPortalView />;
     case 'login':
+    case 'buyer/login':
       return <LoginView />;
     case 'register':
+    case 'buyer/register':
       return <RegisterView />;
     case 'forgot-password':
       return <ForgotPasswordView />;

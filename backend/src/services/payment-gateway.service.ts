@@ -88,7 +88,8 @@ export class PaymentGatewayService {
     db.payments.set(payment.id, payment);
 
     // Notify via Socket.IO
-    socketService.emitOrderStatus(order.userId, order.toJSON());
+    const orderData = typeof (order as any)?.toJSON === 'function' ? (order as any).toJSON() : order;
+    socketService.emitOrderStatus(order.userId, orderData);
     return true;
   }
 }

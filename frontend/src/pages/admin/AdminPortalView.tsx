@@ -21,7 +21,7 @@ import { AdminSettingsView } from './AdminSettingsView';
 import { ShieldAlert, ArrowLeft, ShieldCheck, Lock } from 'lucide-react';
 
 export const AdminPortalView: React.FC = () => {
-  const { currentView, navigateTo, currentUser, switchUserRole } = useApp();
+  const { currentView, navigateTo, currentUser } = useApp();
 
   // Strict Role Check Enforcement
   if (!currentUser || currentUser.role !== 'ADMIN') {
@@ -58,11 +58,11 @@ export const AdminPortalView: React.FC = () => {
 
           <div className="space-y-2 pt-2">
             <button
-              onClick={() => switchUserRole('ADMIN')}
+              onClick={() => navigateTo('login')}
               className="w-full py-3 px-4 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30 transition-all cursor-pointer"
             >
-              <ShieldCheck className="w-4 h-4" />
-              <span>Chuyển Sang Quyền Admin (Thử nghiệm)</span>
+              <Lock className="w-4 h-4" />
+              <span>Đăng Nhập Tài Khoản Quản Trị Viên</span>
             </button>
 
             <button

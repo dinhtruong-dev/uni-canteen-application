@@ -10,22 +10,46 @@ export class TableService {
     return [];
   }
 
-  public async getTableByQr(qrCode: string): Promise<TableInfo | null> {
-    const res = await apiClient.get<{ success: boolean; data: any }>(`/tables/qr/${encodeURIComponent(qrCode)}`);
-    if (res?.success && res.data) {
-      return {
-        tableCode: res.data.id || qrCode,
-        tableName: res.data.tableNumber || 'Bàn ăn',
-        canteenId: res.data.canteenId || 'cant-a',
-        canteenName: res.data.canteenName || 'Căng tin A2',
-        status: res.data.status || 'AVAILABLE',
-      };
-    }
+  public async getTableByQr(qrCode: string): Promise<any | null> {
+    try {
+      const res = await apiClient.get<{ success: boolean; data: any }>(`/tables/qr/${encodeURIComponent(qrCode)}`);
+      if (res?.success && res.data) {
+        return res.data;
+      }
+    } catch {}
+
+    try {
+      const postRes = await apiClient.post<{ success: boolean; data: any }>('/tables/scan-qr', { code: qrCode });
+      if (postRes?.success && postRes.data) {
+        return postRes.data;
+      }
+    } catch {}
     return null;
+  }
+
+  public async scanQr(code: string): Promise<{ success: boolean; message?: string; data?: any }> {
+    try {
+      const res = await apiClient.post<any>('/tables/scan-qr', { code });
+      return res;
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Không tìm thấy thông tin bàn ăn' };
+    }
   }
 
   public async updateTableStatus(id: string, status: 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'CLEANING') {
     return apiClient.patch(`/tables/${id}/status`, { status });
+  }
+
+  public async createTable(data: any) {
+    return apiClient.post('/staff/tables', data);
+  }
+
+  public async updateTable(id: string, data: any) {
+    return apiClient.put(`/staff/tables/${id}`, data);
+  }
+
+  public async deleteTable(id: string) {
+    return apiClient.delete(`/staff/tables/${id}`);
   }
 }
 

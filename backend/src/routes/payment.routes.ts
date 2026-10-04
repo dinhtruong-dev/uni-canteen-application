@@ -11,7 +11,10 @@ router.get('/orders/:orderId', authMiddleware, (req, res) =>
   paymentController.getPaymentByOrder(req as any, res)
 );
 
-// Campus Wallet Top-up
+// Campus Wallet Top-up & Transactions
+router.get('/wallet/transactions', authMiddleware, (req, res) =>
+  paymentController.getWalletTransactions(req as any, res)
+);
 router.post('/wallet/topup', authMiddleware, (req, res) =>
   paymentController.topUpWallet(req as any, res)
 );

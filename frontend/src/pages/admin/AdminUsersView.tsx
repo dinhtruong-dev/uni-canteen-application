@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   Search,
@@ -17,12 +17,14 @@ import {
   Calendar,
   CheckCircle2,
   AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 import { useApp } from '../../store/AppContext';
 import { User, Role } from '../../types';
+import { userService } from '../../services/api/user.service';
 
 export const AdminUsersView: React.FC = () => {
-  const { users, currentUser, showToast } = useApp();
+  const { users, currentUser, showToast, refreshData } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'ALL' | Role>('ALL');
@@ -47,6 +49,10 @@ export const AdminUsersView: React.FC = () => {
 
   // Local user list state to support immediate CRUD operations
   const [localUsers, setLocalUsers] = useState<User[]>(users);
+
+  useEffect(() => {
+    setLocalUsers(users);
+  }, [users]);
 
   // Filtered List
   const filteredUsers = localUsers.filter((u) => {
@@ -96,82 +102,94 @@ export const AdminUsersView: React.FC = () => {
     setIsCreditModalOpen(true);
   };
 
-  const handleToggleBlock = (user: User) => {
-    const newStatus = user.status === 'ACTIVE' ? 'BLOCKED' : 'ACTIVE';
-    setLocalUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, status: newStatus } : u))
-    );
-    showToast(
-      `Đã ${newStatus === 'ACTIVE' ? 'mở khóa' : 'khóa'} tài khoản ${user.name}!`,
-      newStatus === 'ACTIVE' ? 'success' : 'warning'
-    );
+  const handleToggleBlock = async (user: User) => {
+    try {
+      await userService.toggleUserStatus(user.id);
+      const newStatus = user.status === 'ACTIVE' ? 'BLOCKED' : 'ACTIVE';
+      showToast(
+        `Đã ${newStatus === 'ACTIVE' ? 'mở khóa' : 'khóa'} tài khoản ${user.name}!`,
+        newStatus === 'ACTIVE' ? 'success' : 'warning'
+      );
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi thay đổi trạng thái tài khoản', 'error');
+    }
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
 
-    setLocalUsers((prev) =>
-      prev.map((u) =>
-        u.id === selectedUser.id
-          ? {
-              ...u,
-              name: formName.trim(),
-              email: formEmail.trim(),
-              phone: formPhone.trim(),
-              role: formRole,
-              status: formStatus,
-              department: formDepartment.trim(),
-              studentId: formStudentId.trim() || undefined,
-            }
-          : u
-      )
-    );
+    try {
+      await userService.updateUser(selectedUser.id, {
+        name: formName.trim(),
+        email: formEmail.trim(),
+        phone: formPhone.trim(),
+        role: formRole,
+        status: formStatus,
+        department: formDepartment.trim(),
+        studentId: formStudentId.trim() || undefined,
+      });
+      showToast(`Đã cập nhật thông tin tài khoản ${formName} vào CSDL!`, 'success');
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi cập nhật người dùng', 'error');
+    }
     setIsEditModalOpen(false);
-    showToast(`Đã cập nhật thông tin tài khoản ${formName}!`, 'success');
   };
 
-  const handleSaveCreate = (e: React.FormEvent) => {
+  const handleSaveCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim() || !formEmail.trim()) {
       showToast('Vui lòng nhập đầy đủ tên và email!', 'error');
       return;
     }
 
-    const newUser: User = {
-      id: `usr-${Date.now()}`,
-      name: formName.trim(),
-      email: formEmail.trim(),
-      phone: formPhone.trim() || '0987654321',
-      role: formRole,
-      status: formStatus,
-      department: formDepartment.trim() || undefined,
-      studentId: formStudentId.trim() || undefined,
-      avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=300`,
-      walletBalance: 0,
-      savedAddresses: [],
-      createdAt: new Date().toLocaleDateString('vi-VN'),
-    };
-
-    setLocalUsers((prev) => [newUser, ...prev]);
+    try {
+      await userService.createUser({
+        name: formName.trim(),
+        email: formEmail.trim(),
+        phone: formPhone.trim() || '0987654321',
+        role: formRole,
+        department: formDepartment.trim() || undefined,
+        studentId: formStudentId.trim() || undefined,
+      });
+      showToast(`Đã tạo thành công tài khoản ${formName} vào CSDL!`, 'success');
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi tạo người dùng', 'error');
+    }
     setIsCreateModalOpen(false);
-    showToast(`Đã tạo thành công tài khoản ${newUser.name}!`, 'success');
   };
 
-  const handleConfirmCredit = () => {
+  const handleConfirmCredit = async () => {
     if (!selectedUser) return;
-    setLocalUsers((prev) =>
-      prev.map((u) =>
-        u.id === selectedUser.id
-          ? { ...u, walletBalance: (u.walletBalance || 0) + Number(creditAmount) }
-          : u
-      )
-    );
+    try {
+      await userService.adminTopUpWallet(selectedUser.id, Number(creditAmount));
+      showToast(
+        `Đã nạp +${Number(creditAmount).toLocaleString('vi-VN')}đ vào ví cho ${selectedUser.name}!`,
+        'success'
+      );
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi nạp tiền vào ví', 'error');
+    }
     setIsCreditModalOpen(false);
-    showToast(
-      `Đã cấp +${Number(creditAmount).toLocaleString('vi-VN')}đ vào ví cho ${selectedUser.name}!`,
-      'success'
-    );
+  };
+
+  const handleDeleteUser = async (user: User) => {
+    if (user.id === currentUser?.id) {
+      showToast('Không thể tự xóa tài khoản của chính bạn!', 'warning');
+      return;
+    }
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa tài khoản "${user.name}" khỏi CSDL?`)) return;
+    try {
+      await userService.deleteUser(user.id);
+      showToast(`Đã xóa tài khoản ${user.name} khỏi CSDL!`, 'info');
+      await refreshData();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi xóa người dùng', 'error');
+    }
   };
 
   return (
@@ -369,6 +387,15 @@ export const AdminUsersView: React.FC = () => {
                           ) : (
                             <UserCheck className="w-3.5 h-3.5" />
                           )}
+                        </button>
+
+                        {/* Delete User */}
+                        <button
+                          onClick={() => handleDeleteUser(u)}
+                          className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors cursor-pointer"
+                          title="Xóa tài khoản"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>

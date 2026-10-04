@@ -75,7 +75,9 @@ class SocketManager {
 
       // Ngắt kết nối
       socket.on('disconnect', (reason) => {
-        console.log(`🔌 [Socket.IO] Client ngắt kết nối: ${socket.id} (Lý do: ${reason})`);
+        const isClientAction = reason === 'transport close' || reason === 'client namespace disconnect';
+        const actionNote = isClientAction ? ' (F5 làm mới, đóng tab hoặc đổi trang)' : '';
+        console.log(`🔌 [Socket.IO] Client ngắt kết nối: ${socket.id} (User: ${userId}, Role: ${role}) -> Lý do: ${reason}${actionNote}`);
       });
     });
 

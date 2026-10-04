@@ -12,9 +12,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-export const OrderSuccessView: React.FC = () => {
+export const OrderSuccessView: React.FC<{ orderId?: string }> = ({ orderId: propOrderId }) => {
   const { viewParams, orders, navigateTo } = useApp();
-  const orderId = viewParams?.orderId;
+  const orderId = propOrderId || viewParams?.orderId;
 
   const currentOrder = orders.find((o) => o.id === orderId) || orders[0];
 

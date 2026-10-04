@@ -124,6 +124,13 @@ export const CheckoutView: React.FC = () => {
   // Active page state: 'main' or full-screen sub-page (No popups)
   const [activePage, setActivePage] = useState<CheckoutSubPage>('main');
 
+  useEffect(() => {
+    if (!currentUser) {
+      showToast('Vui lòng đăng nhập để tiến hành thanh toán đơn hàng!', 'info');
+      navigateTo('login', { next: 'checkout' });
+    }
+  }, [currentUser]);
+
   // If cart is empty when opening, automatically seed the item shown in the user screenshot: "Cơm Tấm Sườn Nướng" 62.000đ
   useEffect(() => {
     if (cart.length === 0) {

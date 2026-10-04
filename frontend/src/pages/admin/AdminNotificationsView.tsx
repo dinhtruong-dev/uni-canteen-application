@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../store/AppContext';
 import { Notification } from '../../types';
+import { adminService } from '../../services/api';
 
 export const AdminNotificationsView: React.FC = () => {
   const { notifications, showToast } = useApp();
@@ -26,39 +27,55 @@ export const AdminNotificationsView: React.FC = () => {
   const [formMessage, setFormMessage] = useState('');
   const [formTarget, setFormTarget] = useState<'ALL' | 'STUDENTS' | 'STAFF'>('ALL');
   const [formType, setFormType] = useState<'SYSTEM' | 'PROMO' | 'WALLET'>('SYSTEM');
+  const [isSending, setIsSending] = useState(false);
 
-  const handleSendNotification = (e: React.FormEvent) => {
+  const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTitle.trim() || !formMessage.trim()) {
       showToast('Vui lòng nhập đầy đủ tiêu đề và nội dung thông báo!', 'error');
       return;
     }
 
-    const newNotif: Notification = {
-      id: `notif-${Date.now()}`,
-      title: formTitle.trim(),
-      message: formMessage.trim(),
-      timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-      dateDisplay: 'Vừa xong',
-      read: false,
-      type: formType,
-    };
+    try {
+      setIsSending(true);
+      const res = await adminService.pushNotification({
+        target: formTarget,
+        title: formTitle.trim(),
+        message: formMessage.trim(),
+        type: formType,
+      });
 
-    setLocalNotifs((prev) => [newNotif, ...prev]);
-    setFormTitle('');
-    setFormMessage('');
+      if (res.success) {
+        const notifData = res.data;
+        const newNotif: Notification = {
+          id: notifData.id,
+          title: notifData.title,
+          message: notifData.message,
+          timestamp: 'Vừa xong',
+          dateDisplay: 'Hôm nay',
+          read: false,
+          type: formType,
+        };
+        setLocalNotifs((prev) => [newNotif, ...prev]);
+        setFormTitle('');
+        setFormMessage('');
 
-    // Trigger feedback
-    showToast(
-      `Đã phát thông báo "${newNotif.title}" tới ${
-        formTarget === 'ALL'
-          ? 'toàn bộ sinh viên & nhân viên'
-          : formTarget === 'STUDENTS'
-          ? 'tất cả sinh viên'
-          : 'đội ngũ nhân viên căn tin'
-      }!`,
-      'success'
-    );
+        showToast(
+          `Đã lưu CSDL & phát Socket.IO thông báo "${newNotif.title}" tới ${
+            formTarget === 'ALL'
+              ? 'toàn bộ người dùng'
+              : formTarget === 'STUDENTS'
+              ? 'tất cả sinh viên'
+              : 'đội ngũ nhân viên'
+          }!`,
+          'success'
+        );
+      }
+    } catch (err: any) {
+      showToast('Lỗi khi gửi thông báo: ' + (err.message || 'Không thể gửi'), 'error');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleDelete = (id: string) => {

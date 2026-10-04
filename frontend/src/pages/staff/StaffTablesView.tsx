@@ -15,12 +15,15 @@ import {
   Share2,
 } from 'lucide-react';
 import { staffService } from '../../services/api';
+import { TableQRScannerModal } from '../../components/TableQRScannerModal';
+import { getSocket } from '../../services/socket.client';
 
 export const StaffTablesView: React.FC = () => {
   const [tables, setTables] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modals
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<any | null>(null);
   const [formData, setFormData] = useState({
@@ -48,9 +51,36 @@ export const StaffTablesView: React.FC = () => {
     }
   };
 
+  const [cleaningId, setCleaningId] = useState<string | null>(null);
+
   useEffect(() => {
     fetchTables();
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('join:staff', 'cant-a');
+      const handleTableChange = () => fetchTables();
+      socket.on('table:occupied', handleTableChange);
+      socket.on('table:released', handleTableChange);
+      socket.on('order:status_updated', handleTableChange);
+      return () => {
+        socket.off('table:occupied', handleTableChange);
+        socket.off('table:released', handleTableChange);
+        socket.off('order:status_updated', handleTableChange);
+      };
+    }
   }, []);
+
+  const handleCleanTable = async (tableId: string) => {
+    try {
+      setCleaningId(tableId);
+      await staffService.cleanTable(tableId);
+      await fetchTables();
+    } catch (err) {
+      console.error('Clean table error:', err);
+    } finally {
+      setCleaningId(null);
+    }
+  };
 
   const handleOpenCreateModal = () => {
     setEditingTable(null);
@@ -138,13 +168,23 @@ export const StaffTablesView: React.FC = () => {
           <h2 className="text-2xl font-black text-slate-100 mt-1">Quản lý Bàn Ăn & Mã QR Đặt Món</h2>
         </div>
 
-        <button
-          onClick={handleOpenCreateModal}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all hover:scale-102"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Thêm bàn ăn mới</span>
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={() => setIsScannerOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30 font-bold text-xs shadow-lg transition-all cursor-pointer"
+          >
+            <QrCode className="w-4 h-4 text-purple-400" />
+            <span>Quét Mã QR Bàn</span>
+          </button>
+
+          <button
+            onClick={handleOpenCreateModal}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all hover:scale-102 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Thêm bàn ăn mới</span>
+          </button>
+        </div>
       </div>
 
       {/* Tables Grid */}
@@ -162,12 +202,15 @@ export const StaffTablesView: React.FC = () => {
           tables.map((t) => {
             const isOccupied = t.status === 'OCCUPIED';
             const isReserved = t.status === 'RESERVED';
+            const isCompletedOrder = isOccupied && t.orderStatus === 'COMPLETED';
 
             return (
               <div
                 key={t.id}
                 className={`p-4 rounded-3xl bg-slate-900 border transition-all flex flex-col justify-between group shadow-lg ${
-                  isOccupied
+                  isCompletedOrder
+                    ? 'border-amber-500/50 shadow-amber-950/30 ring-1 ring-amber-500/30'
+                    : isOccupied
                     ? 'border-rose-500/40 shadow-rose-950/20'
                     : isReserved
                     ? 'border-amber-500/40 shadow-amber-950/20'
@@ -181,14 +224,22 @@ export const StaffTablesView: React.FC = () => {
                     </span>
                     <span
                       className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        isOccupied
+                        isCompletedOrder
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
+                          : isOccupied
                           ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                           : isReserved
                           ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                           : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                       }`}
                     >
-                      {isOccupied ? 'Có khách' : isReserved ? 'Đã đặt' : 'Bàn trống'}
+                      {isCompletedOrder
+                        ? 'Cần làm sạch'
+                        : isOccupied
+                        ? 'Có khách ngồi ăn'
+                        : isReserved
+                        ? 'Đã đặt'
+                        : 'Còn trống'}
                     </span>
                   </div>
 
@@ -222,21 +273,44 @@ export const StaffTablesView: React.FC = () => {
 
                   <button
                     onClick={() => setPreviewQrTable(t)}
-                    className="p-1.5 rounded-xl bg-slate-700/80 hover:bg-emerald-500 hover:text-slate-950 text-slate-300 transition-colors"
+                    className="p-1.5 rounded-xl bg-slate-700/80 hover:bg-emerald-500 hover:text-slate-950 text-slate-300 transition-colors cursor-pointer"
                     title="Xem & in decal dán bàn"
                   >
                     <Printer className="w-4 h-4" />
                   </button>
                 </div>
 
+                {/* Nút Làm Sạch Bàn khi có khách hoặc sau khi khách hoàn thành bữa ăn */}
+                {isOccupied && (
+                  <button
+                    onClick={() => handleCleanTable(t.id)}
+                    disabled={cleaningId === t.id}
+                    className={`mb-3 w-full py-2.5 px-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg active:scale-98 cursor-pointer disabled:opacity-50 ${
+                      isCompletedOrder
+                        ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
+                        : 'bg-teal-500 hover:bg-teal-400 text-slate-950 shadow-teal-500/20'
+                    }`}
+                    title="Khách dùng bữa xong - Dọn dẹp làm sạch bàn để đưa bàn về Còn trống"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>
+                      {cleaningId === t.id
+                        ? 'Đang làm sạch...'
+                        : isCompletedOrder
+                        ? 'Làm sạch (Đưa về Còn trống)'
+                        : 'Làm sạch bàn (Đưa về Còn trống)'}
+                    </span>
+                  </button>
+                )}
+
                 {/* Status Switcher & Actions */}
                 <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
                   <select
-                    value={t.status || 'EMPTY'}
+                    value={t.status === 'EMPTY' ? 'AVAILABLE' : (t.status || 'AVAILABLE')}
                     onChange={(e) => handleQuickStatusChange(t, e.target.value)}
-                    className="bg-slate-800 border border-slate-700 text-slate-300 text-[11px] rounded-lg px-2 py-1 focus:outline-none focus:border-emerald-500"
+                    className="bg-slate-800 border border-slate-700 text-slate-300 text-[11px] rounded-lg px-2 py-1 focus:outline-none focus:border-emerald-500 cursor-pointer"
                   >
-                    <option value="EMPTY">Trống</option>
+                    <option value="AVAILABLE">Còn trống</option>
                     <option value="OCCUPIED">Có khách</option>
                     <option value="RESERVED">Đã đặt</option>
                   </select>
@@ -404,6 +478,13 @@ export const StaffTablesView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Table QR Scanner Modal */}
+      <TableQRScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onTableUpdated={fetchTables}
+      />
     </div>
   );
 };

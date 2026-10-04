@@ -5,28 +5,39 @@ import { paymentService } from '../services/payment.service';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export class OrderController {
-  public getAllOrders(req: AuthenticatedRequest, res: Response) {
-    const userId = req.query.all === 'true' ? undefined : req.user?.id || 'user-stu-1';
-    const orders = orderService.getAllOrders(userId).map((o) => o.toJSON());
-    res.json({ success: true, total: orders.length, data: orders });
+  public async getAllOrders(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.query.all === 'true' ? undefined : req.user?.id || 'user-stu-1';
+      const rawOrders = await orderService.getAllOrders(userId);
+      const orders = rawOrders.map((o: any) => (typeof o?.toJSON === 'function' ? o.toJSON() : o));
+      res.json({ success: true, total: orders.length, data: orders });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: 'Lỗi tải danh sách đơn hàng', error: err.message });
+    }
   }
 
   public getOrderById(req: AuthenticatedRequest, res: Response) {
-    const order = orderService.getOrderById(req.params.id);
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+    try {
+      const order = orderService.getOrderById(req.params.id);
+      if (!order) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+      }
+      const payment = paymentService.getPaymentByOrderId(order.id);
+      const orderData = typeof (order as any)?.toJSON === 'function' ? (order as any).toJSON() : order;
+      const paymentData = payment ? (typeof (payment as any)?.toJSON === 'function' ? (payment as any).toJSON() : payment) : null;
+      res.json({
+        success: true,
+        data: {
+          ...orderData,
+          payment: paymentData,
+        },
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: 'Lỗi tải chi tiết đơn hàng', error: err.message });
     }
-    const payment = paymentService.getPaymentByOrderId(order.id);
-    res.json({
-      success: true,
-      data: {
-        ...order.toJSON(),
-        payment: payment ? payment.toJSON() : null,
-      },
-    });
   }
 
-  public createOrder(req: AuthenticatedRequest, res: Response) {
+  public async createOrder(req: AuthenticatedRequest, res: Response) {
     const userId = req.user?.id || 'user-stu-1';
     const userCart = cartService.getOrCreateCart(userId);
 
@@ -48,8 +59,8 @@ export class OrderController {
     }
 
     try {
-      // 1. Create order
-      const order = orderService.createOrder({
+      // 1. Create order (persisted to MySQL DB)
+      const order = await orderService.createOrder({
         ...req.body,
         userId,
         userName: req.body.userName || req.user?.name,
@@ -72,12 +83,14 @@ export class OrderController {
       // 3. Clear cart if order placed from cart
       cartService.clearCart(userId);
 
+      const orderData = typeof (order as any)?.toJSON === 'function' ? (order as any).toJSON() : order;
+      const paymentData = typeof (payment as any)?.toJSON === 'function' ? (payment as any).toJSON() : payment;
       res.status(201).json({
         success: true,
         message: 'Đặt đơn hàng thành công!',
         data: {
-          order: order.toJSON(),
-          payment: payment.toJSON(),
+          order: orderData,
+          payment: paymentData,
         },
       });
     } catch (err: any) {
@@ -85,33 +98,36 @@ export class OrderController {
     }
   }
 
-  public updateStatus(req: AuthenticatedRequest, res: Response) {
+  public async updateStatus(req: AuthenticatedRequest, res: Response) {
     const { status } = req.body;
-    const order = orderService.updateStatus(req.params.id, status);
+    const order = await orderService.updateStatus(req.params.id, status);
     if (!order) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
     }
-    res.json({ success: true, message: 'Cập nhật trạng thái đơn thành công', data: order.toJSON() });
+    const data = typeof (order as any)?.toJSON === 'function' ? (order as any).toJSON() : order;
+    res.json({ success: true, message: 'Cập nhật trạng thái đơn thành công', data });
   }
 
-  public cancelOrder(req: AuthenticatedRequest, res: Response) {
-    const ok = orderService.cancelOrder(req.params.id);
+  public async cancelOrder(req: AuthenticatedRequest, res: Response) {
+    const ok = await orderService.cancelOrder(req.params.id);
     if (!ok) {
       return res.status(400).json({
         success: false,
         message: 'Không thể hủy đơn hàng (đơn đã chuẩn bị hoặc đã hoàn thành)',
       });
     }
-    res.json({ success: true, message: 'Đã hủy đơn hàng thành công' });
+    const order = orderService.getOrderById(req.params.id);
+    const data = typeof (order as any)?.toJSON === 'function' ? (order as any).toJSON() : order;
+    res.json({ success: true, message: 'Đã hủy đơn hàng thành công', data });
   }
 
   /**
    * KDS (Kitchen Display System): Get all active orders grouped/sorted for kitchen screen
    */
-  public getKDSOrders(req: any, res: Response) {
+  public async getKDSOrders(req: any, res: Response) {
     try {
       const canteenId = req.query.canteenId as string;
-      const allOrders = orderService.getAllOrders(); // returns all orders
+      const allOrders = await orderService.getAllOrders(); // returns all orders
 
       // KDS / POS bếp chỉ nhận các đơn ĐÃ ĐƯỢC NHÂN VIÊN DUYỆT ('CONFIRMED') hoặc ĐANG NẤU ('PREPARING')
       const activeStatuses = ['CONFIRMED', 'PREPARING'];
@@ -127,7 +143,7 @@ export class OrderController {
 
       const now = Date.now();
       const enriched = filtered.map((o) => {
-        const json = o.toJSON();
+        const json = typeof (o as any)?.toJSON === 'function' ? (o as any).toJSON() : o;
         const elapsedMinutes = Math.max(0, Math.floor((now - new Date(o.createdAt).getTime()) / 60000));
         return {
           ...json,
@@ -161,10 +177,10 @@ export class OrderController {
   /**
    * KDS: Get history of completed orders today
    */
-  public getKDSHistory(req: any, res: Response) {
+  public async getKDSHistory(req: any, res: Response) {
     try {
       const canteenId = req.query.canteenId as string;
-      const allOrders = orderService.getAllOrders();
+      const allOrders = await orderService.getAllOrders();
 
       let completed = allOrders.filter((o) => o.status === 'COMPLETED');
       if (canteenId && canteenId !== 'ALL') {
@@ -174,7 +190,7 @@ export class OrderController {
       // Sort newest first
       completed.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-      const data = completed.slice(0, 50).map((o) => o.toJSON());
+      const data = completed.slice(0, 50).map((o: any) => (typeof o?.toJSON === 'function' ? o.toJSON() : o));
       return res.json({
         success: true,
         total: data.length,
@@ -234,7 +250,7 @@ export class OrderController {
   /**
    * KDS: Update status directly from touch kitchen screen
    */
-  public updateKDSStatus(req: any, res: Response) {
+  public async updateKDSStatus(req: any, res: Response) {
     try {
       const orderId = req.params.id;
       const { status } = req.body;
@@ -243,7 +259,7 @@ export class OrderController {
         return res.status(400).json({ success: false, message: 'Trạng thái mới không hợp lệ' });
       }
 
-      const order = orderService.updateStatus(orderId, status);
+      const order = await orderService.updateStatus(orderId, status);
       if (!order) {
         return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
       }
@@ -251,7 +267,7 @@ export class OrderController {
       return res.json({
         success: true,
         message: `Đơn hàng #${order.orderCode} đã chuyển sang trạng thái ${status}`,
-        data: order.toJSON(),
+        data: typeof (order as any)?.toJSON === 'function' ? (order as any).toJSON() : order,
       });
     } catch (err: any) {
       console.error('[KDS updateKDSStatus Error]:', err);
