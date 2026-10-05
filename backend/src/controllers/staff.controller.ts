@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../services/database.service';
 import { orderService } from '../services/order.service';
+import { interactionService } from '../services/interaction.service';
 import { socketService } from '../services/socket.service';
 import { executeQuery } from '../config/db.config';
 import { redisService } from '../services/redis.service';
@@ -338,18 +339,46 @@ export class StaffController {
   }
 
   /**
-   * 5. Khung giờ nhận món (Pickup Slots)
+   * 5. Khung giờ nhận món (Pickup Slots) - Lấy trực tiếp từ MySQL CSDL
    */
-  public getPickupSlots(req: Request, res: Response) {
-    const canteenId = req.query.canteenId as string;
+  public async getPickupSlots(req: Request, res: Response) {
+    try {
+      const canteenId = req.query.canteenId as string;
+      let sql = 'SELECT * FROM pickup_slots';
+      const params: any[] = [];
+      if (canteenId && canteenId !== 'ALL') {
+        sql += ' WHERE canteen_id = ?';
+        params.push(canteenId);
+      }
+      sql += ' ORDER BY time_range ASC';
+
+      const rows = await executeQuery(sql, params);
+      if (Array.isArray(rows) && rows.length > 0) {
+        const slots = rows.map((r: any) => ({
+          id: r.id,
+          canteenId: r.canteen_id,
+          timeRange: r.time_range,
+          maxOrders: Number(r.max_orders) || 25,
+          currentOrders: Number(r.current_orders) || 0,
+          status: r.status || 'AVAILABLE',
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        }));
+        return res.json({ success: true, total: slots.length, data: slots });
+      }
+    } catch (err: any) {
+      console.warn('[StaffController] MySQL getPickupSlots notice:', err.message);
+    }
+
     let slots = Array.from(db.pickupSlots.values());
+    const canteenId = req.query.canteenId as string;
     if (canteenId && canteenId !== 'ALL') {
       slots = slots.filter((s) => s.canteenId === canteenId);
     }
     return res.json({ success: true, total: slots.length, data: slots.map((s) => s.toJSON()) });
   }
 
-  public createPickupSlot(req: Request, res: Response) {
+  public async createPickupSlot(req: Request, res: Response) {
     try {
       const { canteenId = 'cant-a', timeRange, maxOrders = 25 } = req.body;
       if (!timeRange) {
@@ -358,30 +387,50 @@ export class StaffController {
       const id = `ps-${Date.now()}`;
       const slot = new PickupSlot(id, canteenId, timeRange, Number(maxOrders) || 25, 0, 'AVAILABLE');
       db.pickupSlots.set(slot.id, slot);
+
+      try {
+        await executeQuery(
+          'INSERT INTO pickup_slots (id, canteen_id, time_range, max_orders, current_orders, status) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, canteenId, timeRange, Number(maxOrders) || 25, 0, 'AVAILABLE']
+        );
+      } catch (sqlErr: any) {
+        console.warn('[StaffController] MySQL createPickupSlot notice:', sqlErr.message);
+      }
+
       return res.status(201).json({ success: true, message: 'Đã tạo khung giờ nhận món mới', data: slot.toJSON() });
     } catch (err: any) {
       return res.status(500).json({ success: false, message: 'Lỗi tạo khung giờ nhận' });
     }
   }
 
-  public updatePickupSlot(req: Request, res: Response) {
+  public async updatePickupSlot(req: Request, res: Response) {
     const slot = db.pickupSlots.get(req.params.id);
-    if (!slot) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy khung giờ nhận' });
-    }
     const { timeRange, maxOrders, status } = req.body;
-    if (timeRange) slot.timeRange = timeRange;
-    if (maxOrders !== undefined) slot.maxOrders = Number(maxOrders);
-    if (status) slot.status = status;
-    slot.updatedAt = new Date();
+    if (slot) {
+      if (timeRange) slot.timeRange = timeRange;
+      if (maxOrders !== undefined) slot.maxOrders = Number(maxOrders);
+      if (status) slot.status = status;
+      slot.updatedAt = new Date();
+    }
 
-    return res.json({ success: true, message: 'Đã cập nhật khung giờ nhận món', data: slot.toJSON() });
+    try {
+      await executeQuery(
+        'UPDATE pickup_slots SET time_range = COALESCE(?, time_range), max_orders = COALESCE(?, max_orders), status = COALESCE(?, status), updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [timeRange || null, maxOrders ? Number(maxOrders) : null, status || null, req.params.id]
+      );
+    } catch (sqlErr: any) {
+      console.warn('[StaffController] MySQL updatePickupSlot notice:', sqlErr.message);
+    }
+
+    return res.json({ success: true, message: 'Đã cập nhật khung giờ nhận món', data: slot ? slot.toJSON() : { id: req.params.id } });
   }
 
-  public deletePickupSlot(req: Request, res: Response) {
+  public async deletePickupSlot(req: Request, res: Response) {
     const ok = db.pickupSlots.delete(req.params.id);
-    if (!ok) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy khung giờ nhận' });
+    try {
+      await executeQuery('DELETE FROM pickup_slots WHERE id = ?', [req.params.id]);
+    } catch (sqlErr: any) {
+      console.warn('[StaffController] MySQL deletePickupSlot notice:', sqlErr.message);
     }
     return res.json({ success: true, message: 'Đã xóa khung giờ nhận món' });
   }
@@ -832,37 +881,47 @@ export class StaffController {
   /**
    * 10. Đánh giá (Reviews)
    */
-  public getReviews(req: Request, res: Response) {
-    const { rating, canteenId } = req.query;
-    let list = Array.from(db.reviews.values());
-
-    if (rating && rating !== 'ALL') {
-      const r = Number(rating);
-      list = list.filter((rev) => rev.rating === r);
+  public async getReviews(req: Request, res: Response) {
+    try {
+      const { rating, canteenId } = req.query;
+      const reviews = await interactionService.getAllReviewsForAdmin(canteenId as string, rating as string);
+      return res.json({ success: true, total: reviews.length, data: reviews });
+    } catch (err: any) {
+      console.error('[StaffController getReviews error]:', err);
+      let list = Array.from(db.reviews.values());
+      if (req.query.rating && req.query.rating !== 'ALL') {
+        list = list.filter((r) => r.rating === Number(req.query.rating));
+      }
+      const enriched = list.map((rev) => ({
+        ...rev.toJSON(),
+        reply: rev.replyText,
+        productName: db.products.get(rev.targetId)?.name || 'Món ăn',
+        productImage: db.products.get(rev.targetId)?.image || '',
+      }));
+      return res.json({ success: true, total: enriched.length, data: enriched });
     }
-
-    const enriched = list.map((rev) => {
-      const json = rev.toJSON();
-      const product = db.products.get(rev.targetId);
-      return {
-        ...json,
-        productName: product ? product.name : 'Món ăn',
-        productImage: product ? product.image : '',
-      };
-    });
-
-    return res.json({ success: true, total: enriched.length, data: enriched });
   }
 
-  public replyReview(req: Request, res: Response) {
-    const rev = db.reviews.get(req.params.id);
-    if (!rev) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy đánh giá' });
+  public async replyReview(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { replyText } = req.body;
+      if (!replyText || !replyText.trim()) {
+        return res.status(400).json({ success: false, message: 'Nội dung phản hồi không được để trống' });
+      }
+      const ok = await interactionService.replyReview(id, replyText.trim());
+      if (!ok) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy đánh giá' });
+      }
+      const updatedRev = db.reviews.get(id);
+      return res.json({
+        success: true,
+        message: 'Đã gửi phản hồi đánh giá thành công',
+        data: updatedRev ? updatedRev.toJSON() : { id, reply: replyText.trim(), replyText: replyText.trim() },
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, message: 'Lỗi gửi phản hồi đánh giá' });
     }
-    const { replyText } = req.body;
-    (rev as any).reply = replyText;
-    (rev as any).repliedAt = new Date().toISOString();
-    return res.json({ success: true, message: 'Đã gửi phản hồi đánh giá', data: rev.toJSON() });
   }
 
   /**

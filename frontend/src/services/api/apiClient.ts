@@ -28,10 +28,19 @@ class ApiClient {
     }
 
     const token = this.getToken();
+    let currentUserId: string | null = null;
+    try {
+      const userStr = typeof window !== 'undefined' ? localStorage.getItem('unieat_current_user') : null;
+      if (userStr) {
+        currentUserId = JSON.parse(userStr)?.id || null;
+      }
+    } catch {}
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(currentUserId ? { 'X-User-Id': currentUserId } : {}),
         ...headers,
       },
       ...customConfig,

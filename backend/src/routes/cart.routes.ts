@@ -15,6 +15,7 @@ router.patch('/items/:itemId', authMiddleware, validateUpdateCartItem, (req, res
 router.delete('/items/:itemId', authMiddleware, (req, res) =>
   cartController.removeItem(req as any, res)
 );
+router.post('/sync', authMiddleware, (req, res) => cartController.syncCart(req as any, res));
 router.delete('/', authMiddleware, (req, res) => cartController.clearCart(req as any, res));
 
 export default router;

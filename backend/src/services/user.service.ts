@@ -66,7 +66,27 @@ export class UserService {
   }
 
   // Delivery Addresses
-  public getAddressesByUserId(userId: string): DeliveryAddress[] {
+  public async getAddressesByUserId(userId: string): Promise<DeliveryAddress[]> {
+    try {
+      const rows = await executeQuery(
+        'SELECT * FROM delivery_addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC',
+        [userId]
+      );
+      if (Array.isArray(rows) && rows.length > 0) {
+        return rows.map((r: any) => new DeliveryAddress(
+          r.id,
+          r.user_id,
+          r.recipient_name,
+          r.recipient_phone,
+          r.dorm_block,
+          r.room_number,
+          r.notes,
+          Boolean(r.is_default)
+        ));
+      }
+    } catch (err: any) {
+      console.warn('[UserService getAddressesByUserId MySQL notice]:', err.message);
+    }
     return Array.from(db.addresses.values()).filter((a) => a.userId === userId);
   }
 

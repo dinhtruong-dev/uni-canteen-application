@@ -33,6 +33,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     );
   }
 
+  // 1. Màn hình KDS Bếp
   if (isKDS) {
     return (
       <div className="w-screen h-screen overflow-hidden bg-slate-950">
@@ -42,18 +43,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     );
   }
 
-  if (isStaff) {
+  // 2. Phân hệ Quản trị Admin: Giao diện độc lập hoàn toàn, không có taskbar khách hàng
+  if (currentUser?.role === 'ADMIN' || isAdmin) {
     return (
-      <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+      <div className="w-full h-screen overflow-hidden bg-slate-950 text-slate-100 flex flex-col">
         <ToastContainer />
         {children}
       </div>
     );
   }
 
-  if (isAdmin) {
+  // 3. Phân hệ Bếp & Quầy Staff: Giao diện độc lập hoàn toàn, không có taskbar khách hàng
+  if (currentUser?.role === 'STAFF' || isStaff) {
     return (
-      <div className="w-full h-screen overflow-hidden bg-slate-950 text-slate-100 flex flex-col">
+      <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col">
         <ToastContainer />
         {children}
       </div>

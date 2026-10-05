@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { PaymentMethod, FoodItem } from '../../types';
 import { OnlinePaymentModal } from '../../components/OnlinePaymentModal';
+import { userService, cartApiService } from '../../services/api';
 import {
   ArrowLeft,
   X,
@@ -95,7 +96,6 @@ type CheckoutSubPage =
   | 'address'
   | 'payment'
   | 'voucher'
-  | 'delivery'
   | 'invoice'
   | 'insurance'
   | 'note';
@@ -118,11 +118,32 @@ export const CheckoutView: React.FC = () => {
     createOrder,
     navigateTo,
     currentUser,
+    pickupTimeSlot,
+    setPickupTimeSlot,
     showToast,
   } = useApp();
 
-  // Active page state: 'main' or full-screen sub-page (No popups)
+  // Active page state: 'main' or full-screen sub-page
   const [activePage, setActivePage] = useState<CheckoutSubPage>('main');
+
+  // Customer addresses from MySQL database
+  const [dbAddresses, setDbAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+  const [loadingAddresses, setLoadingAddresses] = useState<boolean>(false);
+  const [isAddingNewAddress, setIsAddingNewAddress] = useState<boolean>(false);
+  const [newAddressForm, setNewAddressForm] = useState({
+    recipientName: currentUser?.name || '',
+    recipientPhone: currentUser?.phone || '',
+    dormBlock: 'Tòa A1',
+    roomNumber: '',
+    fullAddress: '',
+    notes: '',
+  });
+
+  // Pickup Slots from MySQL database
+  const [pickupSlots, setPickupSlots] = useState<any[]>([]);
+  const [selectedSlotTime, setSelectedSlotTime] = useState<string>(pickupTimeSlot || '11:45 - 12:00');
+  const [loadingSlots, setLoadingSlots] = useState<boolean>(false);
 
   useEffect(() => {
     if (!currentUser) {
@@ -131,7 +152,84 @@ export const CheckoutView: React.FC = () => {
     }
   }, [currentUser]);
 
-  // If cart is empty when opening, automatically seed the item shown in the user screenshot: "Cơm Tấm Sườn Nướng" 62.000đ
+  // Luôn chuyển sang chế độ "Đặt đồ ăn đến lấy"
+  useEffect(() => {
+    setOrderType('PICKUP');
+  }, []);
+
+  // Nạp địa chỉ thực tế của khách hàng từ CSDL MySQL (bỏ danh sách mặc định fix cứng)
+  const loadAddressesFromDb = async () => {
+    setLoadingAddresses(true);
+    try {
+      const list = await userService.getAddresses();
+      if (Array.isArray(list) && list.length > 0) {
+        setDbAddresses(list);
+        const def = list.find((a: any) => a.isDefault) || list[0];
+        if (def) {
+          setSelectedAddressId(def.id);
+          const full = def.fullAddress || `${def.roomNumber || def.room ? `Phòng ${def.roomNumber || def.room}, ` : ''}${def.dormBlock || def.building || ''}`;
+          setAddressData({
+            street: full,
+            customerName: def.recipientName || currentUser?.name || 'Khách hàng',
+            phone: def.recipientPhone || currentUser?.phone || '0987654321',
+            distance: 'Tại khuôn viên',
+            driverNote: def.notes || def.note || '',
+            building: def.dormBlock || def.building || '',
+            room: def.roomNumber || def.room || '',
+          });
+          setDeliveryAddress({
+            id: def.id,
+            building: def.dormBlock || def.building || '',
+            room: def.roomNumber || def.room || '',
+            phone: def.recipientPhone || currentUser?.phone || '',
+            note: def.notes || def.note || '',
+            isDefault: Boolean(def.isDefault),
+          });
+        }
+      } else {
+        setDbAddresses([]);
+      }
+    } catch (err) {
+      console.warn('[CheckoutView] Failed to load DB addresses:', err);
+    } finally {
+      setLoadingAddresses(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAddressesFromDb();
+  }, [currentUser?.id]);
+
+  // Nạp các khung giờ nhận món được cấu hình trong CSDL (pickup_slots)
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      setLoadingSlots(true);
+      try {
+        const slots = await cartApiService.getPickupSlots(selectedCanteen?.id || 'cant-a');
+        if (isMounted && Array.isArray(slots) && slots.length > 0) {
+          setPickupSlots(slots);
+          const found = slots.find((s) => s.timeRange === pickupTimeSlot);
+          if (found) {
+            setSelectedSlotTime(found.timeRange);
+          } else {
+            const firstAvail = slots.find((s) => s.status === 'AVAILABLE') || slots[0];
+            if (firstAvail) {
+              setSelectedSlotTime(firstAvail.timeRange);
+              setPickupTimeSlot(firstAvail.timeRange);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[CheckoutView] Failed to load pickup slots:', err);
+      } finally {
+        if (isMounted) setLoadingSlots(false);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, [selectedCanteen?.id]);
+
+  // If cart is empty when opening, automatically seed demo item
   useEffect(() => {
     if (cart.length === 0) {
       const defaultItem: FoodItem = {
@@ -154,23 +252,23 @@ export const CheckoutView: React.FC = () => {
     }
   }, []);
 
-  // Delivery Address info matching screenshot
+  // Delivery Address info
   const [addressData, setAddressData] = useState({
     street: deliveryAddress?.building
       ? `${deliveryAddress.room}, ${deliveryAddress.building}`
-      : 'Phòng 402, Tòa A1, Ký Túc Xá Sinh Viên ĐHQG',
-    customerName: currentUser?.name || 'Đinh Văn Trường',
-    phone: deliveryAddress?.phone || currentUser?.phone || '+84339104921',
-    distance: '0.2km',
-    driverNote: deliveryAddress?.note || 'Gọi trước khi đến cổng, giao tận cửa phòng',
-    building: deliveryAddress?.building || 'Ký Túc Xá A1',
-    room: deliveryAddress?.room || 'Phòng 402',
+      : 'Ký Túc Xá Sinh Viên ĐHQG',
+    customerName: currentUser?.name || 'Khách hàng',
+    phone: deliveryAddress?.phone || currentUser?.phone || '0987654321',
+    distance: 'Tại khuôn viên',
+    driverNote: deliveryAddress?.note || '',
+    building: deliveryAddress?.building || '',
+    room: deliveryAddress?.room || '',
   });
 
   // State management
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
-  const [greenCareEnabled, setGreenCareEnabled] = useState(true);
+  const [greenCareEnabled, setGreenCareEnabled] = useState(false);
 
   // Note editing state for a cart item
   const [editingItemNote, setEditingItemNote] = useState<{ id: string; name: string; note: string } | null>(null);
@@ -195,10 +293,10 @@ export const CheckoutView: React.FC = () => {
     provider: 'VNPAY' | 'MOMO';
   } | null>(null);
 
-  // Price calculations
+  // Price calculations: Đặt đồ ăn đến lấy -> Phí giao hàng = 0đ
   const itemsSubtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const shippingFee = orderType === 'DELIVERY' ? 20000 : 0;
-  const serviceFee = 4000;
+  const shippingFee = 0; // Đặt đồ ăn đến lấy: Miễn phí 0đ
+  const serviceFee = 2000;
   const insuranceFee = greenCareEnabled ? 1000 : 0;
 
   // Discount calculation
@@ -334,135 +432,237 @@ export const CheckoutView: React.FC = () => {
         </header>
 
         <main className="p-4 space-y-4">
-          {/* Quick preset addresses */}
+          {/* Danh sách địa chỉ của khách hàng trong Database */}
           <div>
-            <h2 className="text-[13px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-              Địa chỉ gợi ý / Đã lưu
-            </h2>
-            <div className="space-y-2">
-              {[
-                {
-                  title: 'Đình Thôn (Vị trí hiện tại)',
-                  detail: '3 Ngõ 119 Đình Thôn, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội',
-                  tag: 'Mặc định',
-                  distance: '0.38km',
-                },
-                {
-                  title: 'Ký Túc Xá Sinh Viên - Tòa A3',
-                  detail: 'Phòng 402, Tòa A3, KTX Đại học Quốc Gia Hà Nội',
-                  tag: 'KTX',
-                  distance: '1.2km',
-                },
-                {
-                  title: 'Nhà Thư Viện Trung Tâm',
-                  detail: 'Bàn tự học tầng 2, Thư viện Đại học',
-                  tag: 'Khu tự học',
-                  distance: '0.8km',
-                },
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => {
-                    setAddressData((prev) => ({
-                      ...prev,
-                      street: item.detail,
-                      distance: item.distance,
-                    }));
-                    showToast(`Đã chọn địa chỉ: ${item.title}`, 'info');
-                  }}
-                  className={`p-3.5 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${addressData.street === item.detail
-                    ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
-                    : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
-                      <Building2 className="w-4 h-4 text-[#22c3d3]" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-bold text-slate-900">{item.title}</span>
-                        <span className="text-[10px] font-bold text-[#22c3d3] bg-[#e6f8fa] px-1.5 py-0.5 rounded-md">
-                          {item.tag}
-                        </span>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-[13px] font-bold text-slate-700 uppercase tracking-wider">
+                Địa chỉ của bạn (Đã lưu trong CSDL)
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsAddingNewAddress(!isAddingNewAddress)}
+                className="text-[12px] font-bold text-[#22c3d3] hover:underline cursor-pointer flex items-center gap-1"
+              >
+                {isAddingNewAddress ? '✕ Hủy thêm' : '+ Thêm địa chỉ mới'}
+              </button>
+            </div>
+
+            {loadingAddresses ? (
+              <div className="p-6 bg-white rounded-2xl border border-slate-200 text-center text-slate-500 text-sm">
+                Đang tải danh sách địa chỉ từ cơ sở dữ liệu...
+              </div>
+            ) : dbAddresses.length > 0 ? (
+              <div className="space-y-2">
+                {dbAddresses.map((item) => {
+                  const full = item.fullAddress || `${item.roomNumber || item.room ? `Phòng ${item.roomNumber || item.room}, ` : ''}${item.dormBlock || item.building || ''}`;
+                  const isSelected = selectedAddressId === item.id || addressData.street === full;
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        setSelectedAddressId(item.id);
+                        setAddressData({
+                          street: full,
+                          customerName: item.recipientName || currentUser?.name || 'Khách hàng',
+                          phone: item.recipientPhone || currentUser?.phone || '0987654321',
+                          distance: 'Tại khuôn viên',
+                          driverNote: item.notes || item.note || '',
+                          building: item.dormBlock || item.building || '',
+                          room: item.roomNumber || item.room || '',
+                        });
+                        setDeliveryAddress({
+                          id: item.id,
+                          building: item.dormBlock || item.building || '',
+                          room: item.roomNumber || item.room || '',
+                          phone: item.recipientPhone || currentUser?.phone || '',
+                          note: item.notes || item.note || '',
+                          isDefault: Boolean(item.isDefault),
+                        });
+                        showToast(`Đã chọn địa chỉ: ${full}`, 'success');
+                      }}
+                      className={`p-3.5 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${
+                        isSelected
+                          ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
+                          <Building2 className="w-4 h-4 text-[#22c3d3]" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[14px] font-bold text-slate-900">
+                              {item.recipientName || currentUser?.name || 'Người nhận'}
+                            </span>
+                            {item.isDefault && (
+                              <span className="text-[10px] font-bold text-[#22c3d3] bg-[#e6f8fa] px-1.5 py-0.5 rounded-md">
+                                Mặc định
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[12px] text-slate-600 mt-1 leading-snug">{full}</p>
+                          <p className="text-[11px] text-slate-500 mt-1">
+                            SĐT: {item.recipientPhone || currentUser?.phone || 'Chưa có'}
+                            {item.notes && ` • Ghi chú: ${item.notes}`}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-[12px] text-slate-600 mt-1 leading-snug">{item.detail}</p>
-                      <p className="text-[11px] text-slate-400 mt-1">Cách căng tin: {item.distance}</p>
+                      {isSelected && (
+                        <div className="w-5 h-5 rounded-full bg-[#22c3d3] text-white flex items-center justify-center shrink-0 mt-1">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  {addressData.street === item.detail && (
-                    <div className="w-5 h-5 rounded-full bg-[#22c3d3] text-white flex items-center justify-center shrink-0 mt-1">
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                    </div>
-                  )}
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-5 bg-white rounded-2xl border border-slate-200 text-center space-y-2">
+                <p className="text-[13px] text-slate-500 font-medium">
+                  Bạn chưa có địa chỉ nào được lưu trong cơ sở dữ liệu.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingNewAddress(true)}
+                  className="px-4 py-2 bg-[#22c3d3] text-white text-[12px] font-bold rounded-xl hover:bg-[#1db3c1] transition-all cursor-pointer"
+                >
+                  + Thêm địa chỉ mới ngay
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Form thêm địa chỉ mới vào Database MySQL */}
+          {isAddingNewAddress && (
+            <div className="bg-white p-4 rounded-2xl border border-[#22c3d3]/40 space-y-3.5 shadow-sm">
+              <h2 className="text-[14px] font-bold text-slate-900 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#22c3d3]" /> Thêm địa chỉ vào CSDL MySQL
+              </h2>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[12px] font-semibold text-slate-600 block mb-1">
+                    Tên người nhận:
+                  </label>
+                  <input
+                    type="text"
+                    value={newAddressForm.recipientName}
+                    onChange={(e) => setNewAddressForm((prev) => ({ ...prev, recipientName: e.target.value }))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-medium text-slate-900 focus:outline-hidden focus:border-[#22c3d3] focus:bg-white"
+                    placeholder="VD: Nguyễn Văn A"
+                  />
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Form edit */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-3.5">
-            <h2 className="text-[14px] font-bold text-slate-900">Chỉnh sửa chi tiết địa chỉ</h2>
+                <div>
+                  <label className="text-[12px] font-semibold text-slate-600 block mb-1">
+                    Số điện thoại:
+                  </label>
+                  <input
+                    type="text"
+                    value={newAddressForm.recipientPhone}
+                    onChange={(e) => setNewAddressForm((prev) => ({ ...prev, recipientPhone: e.target.value }))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-medium text-slate-900 focus:outline-hidden focus:border-[#22c3d3] focus:bg-white"
+                    placeholder="0987654321"
+                  />
+                </div>
+              </div>
 
-            <div>
-              <label className="text-[12px] font-semibold text-slate-600 block mb-1">
-                Địa chỉ chi tiết (Số nhà, Ngõ/Đường, Phường, Quận):
-              </label>
-              <textarea
-                rows={3}
-                value={addressData.street}
-                onChange={(e) =>
-                  setAddressData((prev) => ({ ...prev, street: e.target.value }))
-                }
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-medium text-slate-900 focus:outline-hidden focus:border-[#22c3d3] focus:bg-white"
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[12px] font-semibold text-slate-600 block mb-1">
+                    Khu vực / Tòa nhà / KTX:
+                  </label>
+                  <input
+                    type="text"
+                    value={newAddressForm.dormBlock}
+                    onChange={(e) => setNewAddressForm((prev) => ({ ...prev, dormBlock: e.target.value }))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-medium text-slate-900 focus:outline-hidden focus:border-[#22c3d3] focus:bg-white"
+                    placeholder="VD: KTX Tòa A3"
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[12px] font-semibold text-slate-600 block mb-1">
+                    Số phòng:
+                  </label>
+                  <input
+                    type="text"
+                    value={newAddressForm.roomNumber}
+                    onChange={(e) => setNewAddressForm((prev) => ({ ...prev, roomNumber: e.target.value }))}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-medium text-slate-900 focus:outline-hidden focus:border-[#22c3d3] focus:bg-white"
+                    placeholder="VD: 402"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="text-[12px] font-semibold text-slate-600 block mb-1 flex items-center gap-1">
-                  <User className="w-3.5 h-3.5 text-slate-400" /> Tên người nhận
+                <label className="text-[12px] font-semibold text-slate-600 block mb-1">
+                  Địa chỉ chi tiết (Đầy đủ):
                 </label>
-                <input
-                  type="text"
-                  value={addressData.customerName}
-                  onChange={(e) =>
-                    setAddressData((prev) => ({ ...prev, customerName: e.target.value }))
-                  }
+                <textarea
+                  rows={2}
+                  value={newAddressForm.fullAddress}
+                  onChange={(e) => setNewAddressForm((prev) => ({ ...prev, fullAddress: e.target.value }))}
+                  placeholder="VD: Phòng 402, Tòa A3, KTX Đại học Quốc Gia"
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-medium text-slate-900 focus:outline-hidden focus:border-[#22c3d3] focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="text-[12px] font-semibold text-slate-600 block mb-1 flex items-center gap-1">
-                  <Phone className="w-3.5 h-3.5 text-slate-400" /> Số điện thoại
+                <label className="text-[12px] font-semibold text-slate-600 block mb-1">
+                  Ghi chú địa chỉ:
                 </label>
                 <input
                   type="text"
-                  value={addressData.phone}
-                  onChange={(e) =>
-                    setAddressData((prev) => ({ ...prev, phone: e.target.value }))
-                  }
+                  placeholder="VD: Gọi trước khi đến..."
+                  value={newAddressForm.notes}
+                  onChange={(e) => setNewAddressForm((prev) => ({ ...prev, notes: e.target.value }))}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-medium text-slate-900 focus:outline-hidden focus:border-[#22c3d3] focus:bg-white"
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="text-[12px] font-semibold text-slate-600 block mb-1">
-                Ghi chú cho tài xế giao hàng:
-              </label>
-              <input
-                type="text"
-                placeholder="VD: Để trước cửa phòng, gọi điện khi tới nơi..."
-                value={addressData.driverNote}
-                onChange={(e) =>
-                  setAddressData((prev) => ({ ...prev, driverNote: e.target.value }))
-                }
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-medium text-slate-900 focus:outline-hidden focus:border-[#22c3d3] focus:bg-white"
-              />
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!newAddressForm.dormBlock || !newAddressForm.roomNumber) {
+                      showToast('Vui lòng nhập Tòa nhà và Số phòng!', 'error');
+                      return;
+                    }
+                    const payload = {
+                      recipientName: newAddressForm.recipientName || currentUser?.name || 'Khách hàng',
+                      recipientPhone: newAddressForm.recipientPhone || currentUser?.phone || '0987654321',
+                      dormBlock: newAddressForm.dormBlock,
+                      roomNumber: newAddressForm.roomNumber,
+                      fullAddress: newAddressForm.fullAddress || `Phòng ${newAddressForm.roomNumber}, ${newAddressForm.dormBlock}`,
+                      notes: newAddressForm.notes,
+                      isDefault: dbAddresses.length === 0,
+                    };
+                    const res = await userService.createAddress(payload);
+                    if (res) {
+                      showToast('Đã lưu địa chỉ vào CSDL thành công!', 'success');
+                      setIsAddingNewAddress(false);
+                      await loadAddressesFromDb();
+                    } else {
+                      showToast('Không thể lưu địa chỉ vào DB!', 'error');
+                    }
+                  }}
+                  className="flex-1 py-2.5 bg-[#22c3d3] hover:bg-[#1db3c1] text-white font-bold text-[13px] rounded-xl transition-all cursor-pointer text-center"
+                >
+                  Lưu vào CSDL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingNewAddress(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[13px] rounded-xl transition-all cursor-pointer"
+                >
+                  Hủy
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </main>
 
         {/* Bottom Bar */}
@@ -470,19 +670,12 @@ export const CheckoutView: React.FC = () => {
           <div className="max-w-md sm:max-w-lg mx-auto">
             <button
               onClick={() => {
-                if (deliveryAddress) {
-                  setDeliveryAddress({
-                    ...deliveryAddress,
-                    phone: addressData.phone,
-                    note: addressData.driverNote,
-                  });
-                }
                 setActivePage('main');
-                showToast('Đã lưu địa chỉ giao hàng thành công!', 'success');
+                showToast(`Địa chỉ đã lưu: ${addressData.street}`, 'success');
               }}
               className="w-full py-3.5 rounded-2xl bg-[#22c3d3] hover:bg-[#1db3c1] text-white font-bold text-[15px] transition-all cursor-pointer shadow-md shadow-[#22c3d3]/20"
             >
-              Lưu & Tiếp tục
+              Xác nhận địa chỉ này
             </button>
           </div>
         </div>
@@ -910,159 +1103,7 @@ export const CheckoutView: React.FC = () => {
     );
   }
 
-  // ==========================================
-  // SUB-PAGE 4: HÌNH THỨC NHẬN HÀNG (FULL PAGE)
-  // ==========================================
-  if (activePage === 'delivery') {
-    return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 pb-28 max-w-md sm:max-w-lg mx-auto relative font-sans">
-        {/* Page Header */}
-        <header className="sticky top-0 z-30 bg-white border-b border-slate-100 px-4 py-3.5 flex items-center justify-between shadow-xs">
-          <button
-            onClick={() => setActivePage('main')}
-            className="p-1 -ml-1 text-slate-800 hover:text-black hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
-            aria-label="Đóng"
-          >
-            <X className="w-6 h-6 stroke-[2]" />
-          </button>
-          <h1 className="text-[17px] font-bold text-slate-900">Hình thức nhận hàng</h1>
-          <div className="w-6" />
-        </header>
 
-        <main className="p-4 space-y-4">
-          <div className="space-y-3">
-            {/* 1. Green Food */}
-            <div
-              onClick={() => {
-                setOrderType('DELIVERY');
-                showToast('Đã chọn hình thức Green Food (Giao tận nơi)', 'info');
-              }}
-              className={`p-4 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${orderType === 'DELIVERY'
-                ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
-                : 'border-slate-200 hover:border-slate-300'
-                }`}
-            >
-              <div className="flex items-start gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-[#e6f8fa] text-[#22c3d3] flex items-center justify-center shrink-0 font-bold text-xl">
-                  🛵
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-[15px] font-bold text-slate-900">
-                      Green Food (Giao tận phòng/nơi)
-                    </p>
-                    <span className="text-[10px] font-bold text-[#22c3d3] bg-[#e6f8fa] px-2 py-0.5 rounded-full">
-                      Phổ biến nhất
-                    </span>
-                  </div>
-                  <p className="text-[13px] font-bold text-slate-800 mt-1">
-                    Phí giao: 20.000đ • Thời gian: 12 - 22 phút
-                  </p>
-                  <p className="text-[12px] text-slate-500 mt-1 leading-snug">
-                    Tài xế nhận món từ căng tin và giao trực tiếp đến phòng KTX, giảng đường hoặc địa chỉ của bạn.
-                  </p>
-                </div>
-              </div>
-              {orderType === 'DELIVERY' && (
-                <div className="w-6 h-6 rounded-full bg-[#22c3d3] text-white flex items-center justify-center shrink-0 mt-1">
-                  <Check className="w-4 h-4 stroke-[3]" />
-                </div>
-              )}
-            </div>
-
-            {/* 2. Ăn tại bàn */}
-            <div
-              onClick={() => {
-                setOrderType('DINE_IN');
-                showToast('Đã chọn hình thức Ăn tại bàn (Quét mã QR Bàn)', 'info');
-              }}
-              className={`p-4 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${orderType === 'DINE_IN'
-                ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
-                : 'border-slate-200 hover:border-slate-300'
-                }`}
-            >
-              <div className="flex items-start gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 font-bold text-xl">
-                  🍽️
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-[15px] font-bold text-slate-900">Ăn tại bàn (Căng tin)</p>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                      Miễn phí 0đ
-                    </span>
-                  </div>
-                  <p className="text-[13px] font-bold text-slate-800 mt-1">
-                    Phục vụ ngay tại bàn căng tin
-                  </p>
-                  <p className="text-[12px] text-slate-500 mt-1 leading-snug">
-                    Ngồi tại bàn, nhân viên bếp sẽ chuẩn bị và mang món nóng hổi ra bàn phục vụ bạn.
-                  </p>
-                </div>
-              </div>
-              {orderType === 'DINE_IN' && (
-                <div className="w-6 h-6 rounded-full bg-[#22c3d3] text-white flex items-center justify-center shrink-0 mt-1">
-                  <Check className="w-4 h-4 stroke-[3]" />
-                </div>
-              )}
-            </div>
-
-            {/* 3. Nhận tại quầy */}
-            <div
-              onClick={() => {
-                setOrderType('PICKUP');
-                showToast('Đã chọn hình thức Nhận tại quầy (Tự lấy mang về)', 'info');
-              }}
-              className={`p-4 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${orderType === 'PICKUP'
-                ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
-                : 'border-slate-200 hover:border-slate-300'
-                }`}
-            >
-              <div className="flex items-start gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 font-bold text-xl">
-                  🏃
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-[15px] font-bold text-slate-900">Nhận tại quầy (Tự lấy)</p>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                      Miễn phí 0đ
-                    </span>
-                  </div>
-                  <p className="text-[13px] font-bold text-slate-800 mt-1">
-                    Tiết kiệm thời gian, lấy đồ nhanh
-                  </p>
-                  <p className="text-[12px] text-slate-500 mt-1 leading-snug">
-                    Bếp đóng gói sẵn, bạn chỉ việc tới quầy đọc mã đơn hàng và nhận món mang đi.
-                  </p>
-                </div>
-              </div>
-              {orderType === 'PICKUP' && (
-                <div className="w-6 h-6 rounded-full bg-[#22c3d3] text-white flex items-center justify-center shrink-0 mt-1">
-                  <Check className="w-4 h-4 stroke-[3]" />
-                </div>
-              )}
-            </div>
-          </div>
-        </main>
-
-        {/* Bottom Button */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-          <div className="max-w-md sm:max-w-lg mx-auto">
-            <button
-              onClick={() => {
-                setActivePage('main');
-                showToast(`Đã chọn: ${getDeliveryMethodDisplay()}`, 'success');
-              }}
-              className="w-full py-3.5 rounded-2xl bg-[#22c3d3] hover:bg-[#1db3c1] text-white font-bold text-[15px] transition-all cursor-pointer shadow-md shadow-[#22c3d3]/20"
-            >
-              Xác nhận hình thức
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // ==========================================
   // SUB-PAGE 5: XUẤT HÓA ĐƠN & DỊCH VỤ BỔ SUNG (FULL PAGE)
@@ -1382,40 +1423,49 @@ export const CheckoutView: React.FC = () => {
 
       {/* Main Content Sections */}
       <main className="px-4 py-4 space-y-4">
-        {/* 1. Location / Address Card - clicking opens 'address' page */}
-        <div className="flex items-start justify-between gap-3 pt-1">
-          <div
-            onClick={() => setActivePage('address')}
-            className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer hover:opacity-85 transition-opacity"
-          >
-            <div className="mt-0.5 text-slate-500 shrink-0">
-              <MapPin className="w-5 h-5 fill-slate-500 text-white" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-bold text-slate-900 leading-snug line-clamp-2">
-                {addressData.street}
-              </p>
-              <p className="text-[12px] text-slate-500 font-normal mt-1 flex items-center gap-1.5 flex-wrap">
-                <span>{addressData.customerName}</span>
-                <span>•</span>
-                <span>{addressData.phone}</span>
-                <span>•</span>
-                <span>{addressData.distance}</span>
-              </p>
-            </div>
+        {/* 1. Địa chỉ của khách hàng lấy từ CSDL (bỏ mặc định fix cứng) */}
+        <div className="p-3.5 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-[#0d9488] bg-[#e6f8fa] px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <MapPin className="w-3 h-3 text-[#0d9488]" /> Địa chỉ khách hàng qua CSDL
+            </span>
+            <button
+              onClick={() => setActivePage('address')}
+              className="text-[12px] font-bold text-[#22c3d3] hover:underline cursor-pointer flex items-center gap-1"
+            >
+              <Pencil className="w-3.5 h-3.5" /> Đổi địa chỉ
+            </button>
           </div>
 
-          <button
+          <div
             onClick={() => setActivePage('address')}
-            className="w-8 h-8 rounded-xl bg-[#e6f8fa] border border-[#22c3d3]/30 flex items-center justify-center text-[#22c3d3] hover:bg-[#d8f4f7] transition-all cursor-pointer shrink-0 mt-0.5"
-            title="Chỉnh sửa địa chỉ nhận hàng"
+            className="flex items-start gap-3 cursor-pointer hover:opacity-85 transition-opacity"
           >
-            <Pencil className="w-4 h-4" />
-          </button>
+            <div className="w-9 h-9 rounded-xl bg-[#e6f8fa] text-[#22c3d3] flex items-center justify-center shrink-0 mt-0.5">
+              <Building2 className="w-4.5 h-4.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-bold text-slate-900 leading-snug">
+                {addressData.street || 'Chưa thiết lập địa chỉ trong CSDL'}
+              </p>
+              <p className="text-[12px] text-slate-500 font-normal mt-1 flex items-center gap-1.5 flex-wrap">
+                <span className="font-semibold text-slate-700">{addressData.customerName}</span>
+                <span>•</span>
+                <span>{addressData.phone}</span>
+                {addressData.driverNote && (
+                  <>
+                    <span>•</span>
+                    <span className="text-slate-400 truncate max-w-[140px]">Ghi chú: {addressData.driverNote}</span>
+                  </>
+                )}
+              </p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400 shrink-0 mt-2.5" />
+          </div>
         </div>
 
-        {/* 2. Options Rows (Tiền mặt/QR, Ưu đãi, Hình thức giao hàng) - clicking opens page */}
-        <div className="space-y-3.5 pt-2">
+        {/* 2. Options Rows (Phương thức thanh toán & Mã ưu đãi) */}
+        <div className="space-y-3 pt-1">
           {/* Row: Payment Method -> opens 'payment' page */}
           <div
             onClick={() => setActivePage('payment')}
@@ -1453,26 +1503,97 @@ export const CheckoutView: React.FC = () => {
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
           </div>
+        </div>
 
-          {/* Row: Hình thức giao hàng -> opens 'delivery' page */}
-          <div
-            onClick={() => setActivePage('delivery')}
-            className="flex items-center justify-between py-1.5 cursor-pointer hover:opacity-80 transition-opacity"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-lg bg-slate-500 flex items-center justify-center text-white shrink-0 mt-0.5">
-                <Package className="w-3.5 h-3.5" />
+        {/* 3. ĐẶT ĐỒ ĂN ĐẾN LẤY & KHUNG GIỜ NHẬN MÓN TỪ CSDL (BỎ HÌNH THỨC NHẬN HÀNG) */}
+        <div className="p-4 bg-gradient-to-br from-[#f0fdf4] to-[#e6f8fa] border border-[#22c3d3]/30 rounded-2xl space-y-3.5 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#22c3d3] text-white flex items-center justify-center shadow-xs shrink-0">
+                <Clock className="w-5 h-5 stroke-[2.5]" />
               </div>
               <div>
-                <p className="text-[15px] font-medium text-slate-900 leading-tight">
-                  Hình thức nhận hàng
-                </p>
-                <p className="text-[13px] text-slate-600 mt-0.5">
-                  {getDeliveryMethodDisplay()}
+                <h3 className="text-[15px] font-bold text-slate-900 flex items-center gap-2">
+                  Đặt đồ ăn đến lấy
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    Miễn phí 0đ
+                  </span>
+                </h3>
+                <p className="text-[12px] text-slate-600 mt-0.5">
+                  Khung giờ đến lấy: <strong className="text-[#0f766e] font-bold text-[13px]">{selectedSlotTime}</strong>
                 </p>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 shrink-0 mt-1" />
+            <span className="text-[11px] font-bold text-slate-600 bg-white/90 px-2.5 py-1 rounded-lg border border-slate-200 shrink-0">
+              Tại quầy căng tin
+            </span>
+          </div>
+
+          {/* Chọn khung giờ đến lấy được thiết lập từ DB */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[12.5px] font-bold text-slate-800">
+                Chọn giờ đến lấy món (Khung giờ CSDL):
+              </p>
+              {loadingSlots && (
+                <span className="text-[11px] text-slate-400 font-normal">Đang nạp từ DB...</span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {(pickupSlots.length > 0
+                ? pickupSlots
+                : [
+                    { id: 'ps-1', timeRange: '11:00 - 11:15', status: 'AVAILABLE' },
+                    { id: 'ps-2', timeRange: '11:15 - 11:30', status: 'AVAILABLE' },
+                    { id: 'ps-3', timeRange: '11:30 - 11:45', status: 'AVAILABLE' },
+                    { id: 'ps-4', timeRange: '11:45 - 12:00', status: 'AVAILABLE' },
+                    { id: 'ps-5', timeRange: '12:00 - 12:15', status: 'AVAILABLE' },
+                    { id: 'ps-6', timeRange: '12:15 - 12:30', status: 'AVAILABLE' },
+                    { id: 'ps-7', timeRange: '12:30 - 12:45', status: 'AVAILABLE' },
+                    { id: 'ps-8', timeRange: '12:45 - 13:00', status: 'AVAILABLE' },
+                  ]
+              ).map((slot: any) => {
+                const isSelected = selectedSlotTime === slot.timeRange;
+                const isAvailable = slot.status === 'AVAILABLE';
+
+                return (
+                  <button
+                    key={slot.id || slot.timeRange}
+                    type="button"
+                    disabled={!isAvailable}
+                    onClick={() => {
+                      setSelectedSlotTime(slot.timeRange);
+                      setPickupTimeSlot(slot.timeRange);
+                      showToast(`Đã chọn khung giờ đến lấy: ${slot.timeRange}`, 'success');
+                    }}
+                    className={`p-2 rounded-xl border text-center transition-all cursor-pointer relative ${
+                      isSelected
+                        ? 'border-[#22c3d3] bg-white ring-2 ring-[#22c3d3]/35 text-[#0f766e] font-bold shadow-xs'
+                        : isAvailable
+                          ? 'border-slate-200 bg-white/90 hover:border-[#22c3d3]/60 hover:bg-white text-slate-700'
+                          : 'border-slate-200 bg-slate-100/60 text-slate-400 cursor-not-allowed opacity-60'
+                    }`}
+                  >
+                    <span className="text-[12px] font-bold block">{slot.timeRange}</span>
+                    <span
+                      className={`text-[10px] font-semibold mt-0.5 block ${
+                        isSelected
+                          ? 'text-[#0d9488] font-bold'
+                          : isAvailable
+                            ? 'text-emerald-600'
+                            : 'text-slate-400'
+                      }`}
+                    >
+                      {isSelected ? '✓ Đã chọn' : isAvailable ? 'Còn chỗ' : 'Hết chỗ'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-2 italic">
+              * Quán sẽ chuẩn bị sẵn sàng và giữ nóng món ăn theo đúng khung giờ bạn chọn. Vui lòng đến quầy đúng giờ.
+            </p>
           </div>
         </div>
 
@@ -1669,9 +1790,9 @@ export const CheckoutView: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between text-slate-600">
-              <span>Phí giao hàng</span>
-              <span className="font-semibold text-slate-900">
-                {shippingFee.toLocaleString('vi-VN')}đ
+              <span>Phí nhận hàng (Đến lấy tại quầy)</span>
+              <span className="font-bold text-emerald-600">
+                0đ (Miễn phí)
               </span>
             </div>
 

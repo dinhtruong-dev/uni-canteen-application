@@ -27,13 +27,12 @@ export class UserController {
     }
   }
 
-  public getAddresses(req: AuthenticatedRequest, res: Response) {
+  public async getAddresses(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id || 'user-stu-1';
-      const addresses = userService
-        .getAddressesByUserId(userId)
-        .map((a: any) => (typeof a?.toJSON === 'function' ? a.toJSON() : a));
-      res.json({ success: true, data: addresses });
+      const userId = req.user?.id || (req.headers['x-user-id'] as string) || 'user-stu-1';
+      const addresses = await userService.getAddressesByUserId(userId);
+      const data = addresses.map((a: any) => (typeof a?.toJSON === 'function' ? a.toJSON() : a));
+      res.json({ success: true, data });
     } catch (err: any) {
       res.status(500).json({ success: false, message: 'Lỗi tải danh sách địa chỉ', error: err.message });
     }

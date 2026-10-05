@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   ArrowLeft,
@@ -23,10 +23,11 @@ import {
   ShoppingBag,
   RotateCcw,
   MessageSquare,
+  Utensils,
 } from 'lucide-react';
 import { Order, OrderStatus } from '../../types';
 import { OrderChatModal } from '../../components/OrderChatModal';
-import { adminService } from '../../services/api';
+import { adminService, apiClient } from '../../services/api';
 
 interface OrderTrackingViewProps {
   orderId?: string;
@@ -67,6 +68,27 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
   const [reviewComment, setReviewComment] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [existingOrderReview, setExistingOrderReview] = useState<any>(null);
+
+  // Load existing review for this order from MySQL DB
+  useEffect(() => {
+    const fetchExistingReview = async () => {
+      if (!order?.id) return;
+      try {
+        const res: any = await apiClient.get('/reviews', { orderId: order.id });
+        if (res && res.data && res.data.length > 0) {
+          const rev = res.data[0];
+          setExistingOrderReview(rev);
+          setReviewSubmitted(true);
+          setRating(Number(rev.rating) || 5);
+          if (rev.comment) setReviewComment(rev.comment);
+        }
+      } catch (err) {
+        console.warn('Could not load order review:', err);
+      }
+    };
+    fetchExistingReview();
+  }, [order?.id]);
 
   if (!order) {
     return (
@@ -160,6 +182,10 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
   // Review submission
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (reviewSubmitted) {
+      showToast('Đơn hàng này đã được đánh giá rồi!', 'info');
+      return;
+    }
     setIsSubmittingReview(true);
     try {
       const primaryItem = order.items?.[0];
@@ -167,20 +193,32 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
       const targetId = primaryItem?.food ? primaryItem.food.id : (order.canteenId || 'can-1');
       const finalComment = reviewComment.trim() || `Đánh giá ${rating} sao cho đơn hàng #${order.orderNumber}`;
 
-      await adminService.submitStudentReview({
+      const res = await adminService.submitStudentReview({
         targetType,
         targetId,
         rating,
         comment: finalComment,
         orderId: order.id,
+        userId: currentUser?.id,
+        userName: currentUser?.name,
       });
 
+      setExistingOrderReview(res?.data || {
+        rating,
+        comment: finalComment,
+        orderId: order.id,
+        userName: currentUser?.name || 'Bạn',
+      });
       setReviewSubmitted(true);
       showToast('Cảm ơn bạn đã gửi đánh giá! Ý kiến của bạn đã được ghi nhận vào hệ thống.', 'success');
     } catch (err: any) {
-      console.warn('Review submission error:', err);
-      setReviewSubmitted(true);
-      showToast('Cảm ơn bạn đã gửi đánh giá bữa ăn!', 'success');
+      const msg = err?.message || 'Có lỗi khi gửi đánh giá';
+      if (msg.includes('đã được đánh giá')) {
+        setReviewSubmitted(true);
+        showToast('Đơn hàng này đã được bạn đánh giá rồi!', 'info');
+      } else {
+        showToast(msg, 'error');
+      }
     } finally {
       setIsSubmittingReview(false);
     }
@@ -730,25 +768,85 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
             </div>
           </div>
 
-          {/* Review form if order is completed */}
-          {order.status === 'COMPLETED' && (
+          {/* Review form if order is completed / served */}
+          {['COMPLETED', 'SERVED'].includes(order.status) && (
             <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-xs space-y-3">
-              <h3 className="font-bold text-[14px] text-slate-900">⭐ Đánh giá bữa ăn</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-[14px] text-slate-900 flex items-center gap-1.5">
+                  <span>⭐ Đánh giá bữa ăn</span>
+                </h3>
+                {reviewSubmitted && (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    Đã đánh giá (1 lần)
+                  </span>
+                )}
+              </div>
+
               {reviewSubmitted ? (
-                <div className="p-3 bg-emerald-50 text-emerald-800 text-xs rounded-xl flex items-center gap-2 font-bold">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  Cảm ơn bạn đã gửi đánh giá!
+                <div className="space-y-3">
+                  <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs rounded-xl flex items-center justify-between font-bold">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Cảm ơn bạn đã gửi đánh giá cho đơn hàng này!</span>
+                    </div>
+                    <div className="flex items-center gap-0.5 text-amber-500">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`w-3.5 h-3.5 ${
+                            s <= (existingOrderReview?.rating || rating)
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-slate-200 fill-slate-100'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {(existingOrderReview?.comment || reviewComment) && (
+                    <div className="px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-700 font-medium">
+                      "{existingOrderReview?.comment || reviewComment}"
+                    </div>
+                  )}
+
+                  {/* PHẢN HỒI TỪ NHÀ HÀNG / CĂNG TIN */}
+                  {(existingOrderReview?.replyText || existingOrderReview?.reply) ? (
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 rounded-2xl p-3.5 space-y-1.5 shadow-2xs">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-extrabold text-amber-900 flex items-center gap-1.5">
+                          <Utensils className="w-3.5 h-3.5 text-amber-600" />
+                          Phản hồi từ Nhà hàng / Căng tin:
+                        </span>
+                        {existingOrderReview?.repliedAt && (
+                          <span className="text-[10px] text-amber-700/80 font-medium">
+                            {new Date(existingOrderReview.repliedAt).toLocaleDateString('vi-VN')}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-amber-900 leading-relaxed font-medium pl-4 border-l-2 border-amber-400">
+                        {existingOrderReview.replyText || existingOrderReview.reply}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-2.5 bg-amber-50/50 border border-amber-200/60 rounded-xl text-[11px] text-amber-800 flex items-center gap-1.5">
+                      <span>💬 Căng tin đã nhận được đánh giá và sẽ sớm gửi phản hồi đến bạn.</span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <form onSubmit={handleReviewSubmit} className="space-y-3">
+                  <p className="text-[11px] text-slate-500">
+                    Đơn hàng đã hoàn thành. Hãy chia sẻ cảm nhận chất lượng món ăn (chỉ đánh giá 1 lần duy nhất):
+                  </p>
                   <div className="flex items-center justify-center gap-2 py-2">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
                         key={star}
                         type="button"
                         onClick={() => setRating(star)}
-                        className={`p-1 cursor-pointer transition-transform active:scale-90 ${star <= rating ? 'text-amber-500' : 'text-slate-300'
-                          }`}
+                        className={`p-1 cursor-pointer transition-transform hover:scale-115 active:scale-90 ${
+                          star <= rating ? 'text-amber-500' : 'text-slate-300'
+                        }`}
                       >
                         <Star className="w-6 h-6 fill-current" />
                       </button>
@@ -767,7 +865,7 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
                       disabled={isSubmittingReview}
                       className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer"
                     >
-                      {isSubmittingReview ? 'Đang gửi đánh giá...' : 'Gửi đánh giá lên CSDL'}
+                      {isSubmittingReview ? 'Đang gửi đánh giá...' : 'Gửi đánh giá bữa ăn'}
                     </button>
                   </div>
                 </form>

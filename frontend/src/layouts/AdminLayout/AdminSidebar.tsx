@@ -185,9 +185,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
   return (
     <aside
-      className={`h-screen bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 select-none z-30 transition-all duration-300 ${
-        isCollapsed ? 'w-20' : 'w-64'
-      }`}
+      className={`h-screen bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 select-none z-30 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'
+        }`}
     >
       {/* Brand Header */}
       <div className="h-16 px-4 border-b border-slate-800/80 flex items-center justify-between">
@@ -202,9 +201,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   Uni Canteen
                 </span>
               </div>
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                <ShieldCheck className="w-2.5 h-2.5" /> ROLE ADMIN
-              </span>
             </div>
           )}
         </div>
@@ -221,7 +217,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       </div>
 
       {/* Navigation Scrollable Area */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4 scrollbar-thin scrollbar-thumb-slate-800">
+      <nav className="flex-1 overflow-y-auto px-3 pt-3 pb-8 space-y-4 scrollbar-thin scrollbar-thumb-slate-800">
         {menuSections.map((section, sIdx) => (
           <div key={sIdx} className="space-y-1">
             {!isCollapsed && (
@@ -237,28 +233,25 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   key={item.id}
                   onClick={() => onSelectTab(item.id)}
                   title={isCollapsed ? item.label : undefined}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group cursor-pointer ${
-                    isActive
-                      ? 'bg-purple-600 text-white font-bold shadow-md shadow-purple-600/30'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
-                  } ${isCollapsed ? 'justify-center px-2' : ''}`}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group cursor-pointer ${isActive
+                    ? 'bg-purple-600 text-white font-bold shadow-md shadow-purple-600/30'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                    } ${isCollapsed ? 'justify-center px-2' : ''}`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <Icon
-                      className={`w-4 h-4 shrink-0 transition-colors ${
-                        isActive ? 'text-white' : 'text-slate-400 group-hover:text-purple-400'
-                      }`}
+                      className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-purple-400'
+                        }`}
                     />
                     {!isCollapsed && <span className="truncate">{item.label}</span>}
                   </div>
 
                   {!isCollapsed && item.badge !== null && item.badge !== undefined && (
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold ml-1.5 shrink-0 ${
-                        isActive
-                          ? 'bg-slate-950 text-purple-300'
-                          : item.badgeColor || 'bg-slate-800 text-slate-200'
-                      }`}
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold ml-1.5 shrink-0 ${isActive
+                        ? 'bg-slate-950 text-purple-300'
+                        : item.badgeColor || 'bg-slate-800 text-slate-200'
+                        }`}
                     >
                       {item.badge}
                     </span>
@@ -269,63 +262,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           </div>
         ))}
 
-        {/* Quick KDS & Staff Link */}
-        <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
-          <button
-            onClick={() => navigateTo('kitchen-kds')}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all cursor-pointer ${
-              isCollapsed ? 'justify-center px-2' : ''
-            }`}
-            title="Màn hình KDS Bếp"
-          >
-            <Tv2 className="w-4 h-4 text-amber-400 shrink-0" />
-            {!isCollapsed && <span className="truncate">Màn hình KDS Bếp</span>}
-          </button>
-        </div>
+        {/* Khoảng đệm bên dưới phần Cấu hình hệ thống */}
+        <div className="h-6 shrink-0" aria-hidden="true" />
       </nav>
-
-      {/* Admin User Footer & Logout */}
-      <div className="p-3 border-t border-slate-800/80 bg-slate-900/95">
-        <div
-          className={`flex items-center gap-2.5 p-2 rounded-xl bg-slate-800/50 border border-slate-700/60 ${
-            isCollapsed ? 'justify-center' : ''
-          }`}
-        >
-          <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-inner">
-            {currentUser?.name ? currentUser.name.charAt(0) : 'A'}
-          </div>
-          {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-slate-100 truncate">
-                {currentUser?.name || 'Administrator'}
-              </p>
-              <p className="text-[10px] text-purple-300 truncate">Quản trị toàn trường</p>
-            </div>
-          )}
-        </div>
-
-        <div className={`mt-2 flex items-center gap-1.5 ${isCollapsed ? 'flex-col' : ''}`}>
-          {!isCollapsed && (
-            <button
-              onClick={() => navigateTo('home')}
-              className="flex-1 py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold transition-colors text-center truncate cursor-pointer"
-              title="Xem giao diện Sinh viên"
-            >
-              Về Khách hàng
-            </button>
-          )}
-
-          <button
-            onClick={() => {
-              logout();
-            }}
-            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors cursor-pointer"
-            title="Đăng xuất khỏi hệ thống"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
     </aside>
   );
 };

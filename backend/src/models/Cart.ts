@@ -142,4 +142,38 @@ export class Cart {
       updatedAt: this.updatedAt.toISOString(),
     };
   }
+
+  public static fromJSON(raw: any): Cart {
+    if (!raw) return new Cart(`cart-${Date.now()}`, '');
+    const items = Array.isArray(raw.items)
+      ? raw.items.map((it: any) => new CartItem(
+          it.id || `ci-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          raw.id || `cart-${raw.userId}`,
+          it.productId || it.food?.id,
+          it.productName || it.food?.name || it.name,
+          it.productImage || it.food?.image || it.image || '',
+          Number(it.basePrice || it.unitPrice || it.food?.price || 0),
+          Math.max(1, Number(it.quantity || 1)),
+          Array.isArray(it.selectedOptions)
+            ? it.selectedOptions
+            : Array.isArray(it.selectedToppings)
+              ? it.selectedToppings.map((t: any) => ({
+                  groupId: t.groupId || 'topping',
+                  groupName: 'Topping',
+                  optionId: t.id,
+                  optionName: t.name,
+                  price: t.price || 0,
+                }))
+              : [],
+          it.notes,
+          it.createdAt ? new Date(it.createdAt) : new Date()
+        ))
+      : [];
+    const cart = new Cart(raw.id || `cart-${raw.userId}`, raw.userId || '', raw.canteenId, items);
+    if (raw.updatedAt) {
+      cart.updatedAt = new Date(raw.updatedAt);
+    }
+    return cart;
+  }
 }
+

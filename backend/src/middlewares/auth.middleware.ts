@@ -133,7 +133,7 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
 
   // Fallback to active demo student user if no token provided
   const customUserId = req.headers['x-user-id'] as string;
-  const user = db.users.get(customUserId || 'user-stu-1');
+  const user = customUserId ? db.users.get(customUserId) : db.users.get('user-stu-1');
 
   if (user) {
     req.user = {
@@ -144,12 +144,19 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
       studentId: user.studentId,
       faculty: user.faculty,
     };
+  } else if (customUserId) {
+    req.user = {
+      id: customUserId,
+      name: 'Sinh viên',
+      email: '',
+      role: 'STUDENT' as UserRole,
+    };
   } else {
     req.user = {
       id: 'user-stu-1',
       name: 'Đặng Hoàng Minh',
       email: 'minh.dh22@university.edu.vn',
-      role: 'STUDENT',
+      role: 'STUDENT' as UserRole,
       studentId: 'SV20220192',
     };
   }

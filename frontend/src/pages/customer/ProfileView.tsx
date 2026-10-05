@@ -369,55 +369,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenWalletModal }) =
         </div>
       </div>
 
-      {/* 6. Lối tắt trang quản lý theo Role thực tế */}
-      {(currentUser.role === 'STAFF' || currentUser.role === 'ADMIN') && (
-        <div className="space-y-2 pt-1">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-orange-500" />
-              <span>Giao Diện Làm Việc ({currentUser.role})</span>
-            </h2>
-          </div>
-
-          <div className="bg-slate-900 text-white rounded-2xl p-4 border border-slate-800 shadow-sm space-y-2.5">
-            {currentUser.role === 'ADMIN' && (
-              <button
-                type="button"
-                onClick={() => navigateTo('admin-dashboard')}
-                className="w-full p-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs flex items-center justify-between shadow-md transition-all cursor-pointer"
-              >
-                <span>Vào Trang Quản Trị Hệ Thống (Admin Dashboard)</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            )}
-
-            {currentUser.role === 'STAFF' && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => navigateTo('staff-dashboard')}
-                  className="w-full p-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-between shadow-md transition-all cursor-pointer"
-                >
-                  <span>Vào Bàn Làm Việc Căng Tin (Staff Dashboard)</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigateTo('kitchen-kds')}
-                  className="w-full p-3 rounded-xl bg-linear-to-r from-rose-600 via-amber-600 to-emerald-600 text-white font-black text-xs flex items-center justify-between shadow-md hover:opacity-95 transition-all cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <Flame className="w-4 h-4 fill-white text-white" />
-                    <span>Mở Màn Hình Bếp KDS (Ngang / Cảm ứng)</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* 6. Logout Button */}
       <div className="pt-3">

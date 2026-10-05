@@ -2,11 +2,11 @@ export type NotificationType = 'ORDER_STATUS' | 'SYSTEM' | 'PROMOTION' | 'WALLET
 
 export class Notification {
   public id: string;
-  public userId: string; // 'ALL' for system broadcast or specific userId
+  public userId: string;
   public title: string;
   public message: string;
   public type: NotificationType;
-  public referenceId?: string; // e.g. orderId, voucherCode
+  public referenceId?: string;
   public isRead: boolean;
   public createdAt: Date;
 

@@ -78,6 +78,8 @@ export class AdminService {
     rating: number;
     comment: string;
     orderId?: string;
+    userId?: string;
+    userName?: string;
   }): Promise<{ success: boolean; message: string; data?: any }> {
     return apiClient.post('/reviews', data);
   }

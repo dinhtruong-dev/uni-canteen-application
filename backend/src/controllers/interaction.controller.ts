@@ -7,8 +7,13 @@ export class InteractionController {
   // Reviews
   public async getReviews(req: Request, res: Response) {
     try {
-      const { targetType, targetId } = req.query;
-      const reviews = await interactionService.getReviews(targetType as any, targetId as string);
+      const { targetType, targetId, orderId, userId } = req.query;
+      const reviews = await interactionService.getReviews(
+        targetType as any,
+        targetId as string,
+        orderId as string,
+        userId as string
+      );
       const data = reviews.map((r: any) => (typeof r?.toJSON === 'function' ? r.toJSON() : r));
       res.json({ success: true, total: data.length, data });
     } catch (err: any) {
@@ -17,8 +22,8 @@ export class InteractionController {
   }
 
   public async createReview(req: AuthenticatedRequest, res: Response) {
-    const userId = req.user?.id || 'user-stu-1';
-    const userName = req.user?.name || 'Sinh viên';
+    const userId = req.body?.userId || (req.headers['x-user-id'] as string) || req.user?.id || 'user-stu-1';
+    const userName = req.body?.userName || req.user?.name || 'Sinh viên';
     try {
       const review = await interactionService.createReview({
         ...req.body,

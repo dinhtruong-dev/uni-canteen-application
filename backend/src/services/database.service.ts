@@ -230,6 +230,15 @@ export class DatabaseService {
         `);
 
         try {
+          await executeQuery('ALTER TABLE reviews ADD COLUMN order_id VARCHAR(50) NULL');
+        } catch {}
+        try {
+          await executeQuery('ALTER TABLE reviews ADD COLUMN user_avatar VARCHAR(255) NULL');
+        } catch {}
+        try {
+          await executeQuery('ALTER TABLE reviews ADD COLUMN user_role VARCHAR(100) NULL');
+        } catch {}
+        try {
           await executeQuery('ALTER TABLE reviews ADD COLUMN reply_text TEXT NULL');
         } catch {}
         try {
@@ -254,6 +263,86 @@ export class DatabaseService {
         }
       } catch (revErr: any) {
         console.warn('[Database Schema reviews notice]:', revErr.message);
+      }
+
+      // Đảm bảo bảng delivery_addresses tồn tại trong MySQL
+      try {
+        await executeQuery(`
+          CREATE TABLE IF NOT EXISTS delivery_addresses (
+            id VARCHAR(50) NOT NULL PRIMARY KEY,
+            user_id VARCHAR(50) NOT NULL,
+            recipient_name VARCHAR(100) NOT NULL,
+            recipient_phone VARCHAR(20) NOT NULL,
+            dorm_block VARCHAR(100) NOT NULL,
+            room_number VARCHAR(50) NOT NULL,
+            full_address VARCHAR(255) NOT NULL,
+            notes VARCHAR(255) NULL,
+            is_default BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_addr_user (user_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        const addrCount = await executeQuery('SELECT COUNT(*) as count FROM delivery_addresses');
+        if (Array.isArray(addrCount) && Number(addrCount[0]?.count) === 0) {
+          const sampleAddresses = [
+            { id: 'addr-1', userId: 'user-stu-1', name: 'Đặng Hoàng Minh', phone: '0912 345 678', block: 'KTX Khu B', room: 'Phòng B204', full: 'Phòng B204, Tòa B3, KTX Đại học Quốc Gia', notes: 'Gọi trước khi đến cổng KTX, giao tận phòng', isDefault: true },
+            { id: 'addr-2', userId: 'user-stu-1', name: 'Đặng Hoàng Minh', phone: '0912 345 678', block: 'Giảng Đường A2', room: 'Phòng 301', full: 'Phòng Hội Thảo 301, Tòa A2 - Giảng Đường', notes: 'Giao trong giờ giải lao', isDefault: false },
+          ];
+          for (const a of sampleAddresses) {
+            await executeQuery(
+              `INSERT INTO delivery_addresses (id, user_id, recipient_name, recipient_phone, dorm_block, room_number, full_address, notes, is_default)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON DUPLICATE KEY UPDATE recipient_name = VALUES(recipient_name)`,
+              [a.id, a.userId, a.name, a.phone, a.block, a.room, a.full, a.notes, a.isDefault ? 1 : 0]
+            );
+          }
+        }
+      } catch (addrErr: any) {
+        console.warn('[Database Schema delivery_addresses notice]:', addrErr.message);
+      }
+
+      // Đảm bảo bảng pickup_slots tồn tại trong MySQL
+      try {
+        await executeQuery(`
+          CREATE TABLE IF NOT EXISTS pickup_slots (
+            id VARCHAR(50) NOT NULL PRIMARY KEY,
+            canteen_id VARCHAR(50) NOT NULL,
+            time_range VARCHAR(50) NOT NULL,
+            max_orders INT NOT NULL DEFAULT 30,
+            current_orders INT NOT NULL DEFAULT 0,
+            status ENUM('AVAILABLE', 'FULL', 'DISABLED') NOT NULL DEFAULT 'AVAILABLE',
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_slot_canteen (canteen_id),
+            INDEX idx_slot_status (status)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        const slotCount = await executeQuery('SELECT COUNT(*) as count FROM pickup_slots');
+        if (Array.isArray(slotCount) && Number(slotCount[0]?.count) === 0) {
+          const defaultSlots = [
+            { id: 'slot-1', canteenId: 'cant-a', time: '11:00 - 11:15', max: 30, cur: 8, status: 'AVAILABLE' },
+            { id: 'slot-2', canteenId: 'cant-a', time: '11:15 - 11:30', max: 30, cur: 15, status: 'AVAILABLE' },
+            { id: 'slot-3', canteenId: 'cant-a', time: '11:30 - 11:45', max: 30, cur: 28, status: 'AVAILABLE' },
+            { id: 'slot-4', canteenId: 'cant-a', time: '11:45 - 12:00', max: 30, cur: 20, status: 'AVAILABLE' },
+            { id: 'slot-5', canteenId: 'cant-a', time: '12:00 - 12:15', max: 30, cur: 14, status: 'AVAILABLE' },
+            { id: 'slot-6', canteenId: 'cant-a', time: '12:15 - 12:30', max: 25, cur: 10, status: 'AVAILABLE' },
+            { id: 'slot-7', canteenId: 'cant-a', time: '12:30 - 12:45', max: 20, cur: 5, status: 'AVAILABLE' },
+            { id: 'slot-8', canteenId: 'cant-a', time: '12:45 - 13:00', max: 20, cur: 2, status: 'AVAILABLE' },
+          ];
+          for (const s of defaultSlots) {
+            await executeQuery(
+              `INSERT INTO pickup_slots (id, canteen_id, time_range, max_orders, current_orders, status)
+               VALUES (?, ?, ?, ?, ?, ?)
+               ON DUPLICATE KEY UPDATE time_range = VALUES(time_range)`,
+              [s.id, s.canteenId, s.time, s.max, s.cur, s.status]
+            );
+          }
+        }
+      } catch (slotErr: any) {
+        console.warn('[Database Schema pickup_slots notice]:', slotErr.message);
       }
 
       // Mật khẩu mặc định: 123456

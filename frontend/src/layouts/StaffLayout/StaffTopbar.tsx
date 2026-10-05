@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Volume2,
   VolumeX,
@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertCircle,
   ExternalLink,
+  LogOut,
 } from 'lucide-react';
 import { useApp } from '../../store/AppContext';
 
@@ -35,11 +36,23 @@ export const StaffTopbar: React.FC<StaffTopbarProps> = ({
 }) => {
   const { currentUser, navigateTo, logout } = useApp();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [currentTime, setCurrentTime] = React.useState(new Date());
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
@@ -80,7 +93,7 @@ export const StaffTopbar: React.FC<StaffTopbarProps> = ({
         {/* Quick Pickup Code Verification Button */}
         <button
           onClick={onOpenPickupModal}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 transition-all hover:scale-102 active:scale-98"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 transition-all hover:scale-102 active:scale-98 cursor-pointer"
           title="Nhập mã đơn hoặc quét QR để khách lấy món mang về"
         >
           <QrCode className="w-4 h-4 text-slate-950" />
@@ -91,7 +104,7 @@ export const StaffTopbar: React.FC<StaffTopbarProps> = ({
         {/* Sound Alarm Toggle */}
         <button
           onClick={onToggleSound}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
             isSoundEnabled
               ? 'bg-slate-800 border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/10'
               : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
@@ -114,7 +127,7 @@ export const StaffTopbar: React.FC<StaffTopbarProps> = ({
         {/* Notifications Button */}
         <button
           onClick={() => onSelectTab('notifications')}
-          className="relative p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 text-slate-300 hover:text-white transition-colors"
+          className="relative p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 text-slate-300 hover:text-white transition-colors cursor-pointer"
           title="Xem thông báo vận hành"
         >
           <Bell className="w-4 h-4" />
@@ -126,10 +139,10 @@ export const StaffTopbar: React.FC<StaffTopbarProps> = ({
         </button>
 
         {/* User Dropdown */}
-        <div className="relative">
+        <div className="relative" ref={userMenuRef}>
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2.5 p-1.5 pr-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 transition-colors"
+            className="flex items-center gap-2.5 p-1.5 pr-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 transition-colors cursor-pointer"
           >
             <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold text-xs flex items-center justify-center">
               {currentUser?.name ? currentUser.name.charAt(0) : 'S'}
@@ -158,21 +171,10 @@ export const StaffTopbar: React.FC<StaffTopbarProps> = ({
                   setShowUserMenu(false);
                   navigateTo('kitchen-kds');
                 }}
-                className="w-full text-left px-3 py-2 text-xs text-amber-300 hover:bg-slate-800 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-xs text-amber-300 hover:bg-slate-800 flex items-center gap-2 cursor-pointer"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
                 Mở Màn hình Bếp KDS
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowUserMenu(false);
-                  navigateTo('home');
-                }}
-                className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 flex items-center gap-2"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Xem Giao diện Khách hàng (Mobile)
               </button>
 
               <div className="border-t border-slate-800 my-1" />
@@ -182,8 +184,9 @@ export const StaffTopbar: React.FC<StaffTopbarProps> = ({
                   setShowUserMenu(false);
                   logout();
                 }}
-                className="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer"
               >
+                <LogOut className="w-3.5 h-3.5" />
                 Đăng xuất tài khoản
               </button>
             </div>

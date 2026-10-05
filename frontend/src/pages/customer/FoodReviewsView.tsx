@@ -19,9 +19,11 @@ interface FoodReviewsViewProps {
 
 interface ReviewComment {
   id: string;
+  userId?: string;
   userName: string;
   userRole: string;
   userAvatar?: string;
+  orderId?: string;
   rating: number;
   date: string;
   comment: string;
@@ -30,6 +32,7 @@ interface ReviewComment {
   images?: string[];
   canteenName?: string;
   replyText?: string;
+  reply?: string;
   repliedAt?: string;
 }
 
@@ -46,11 +49,11 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
   const targetRating = isCanteenReview ? (canteen?.rating || 4.8) : (food?.rating || 4.8);
   const targetReviewCount = isCanteenReview ? (canteen?.reviewCount || 120) : (food?.reviewCount || 120);
 
-  // Kiểm tra điều kiện: Khách hàng PHẢI có đơn hàng hoàn thành (COMPLETED) mới được đánh giá
-  const completedOrders = orders.filter((o) => o.status === 'COMPLETED');
-  const eligibleOrder = isCanteenReview
-    ? completedOrders.find((o) => o.canteenId === canteen?.id)
-    : completedOrders.find((o) => o.items.some((it) => it.food.id === food?.id));
+  // Kiểm tra điều kiện: Khách hàng PHẢI có đơn hàng hoàn thành (COMPLETED hoặc SERVED) mới được đánh giá
+  const completedOrders = orders.filter((o) => ['COMPLETED', 'SERVED'].includes(o.status));
+  const eligibleOrders = isCanteenReview
+    ? completedOrders.filter((o) => o.canteenId === canteen?.id)
+    : completedOrders.filter((o) => o.items.some((it) => it.food?.id === food?.id));
 
   const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
   const [customComment, setCustomComment] = useState('');
@@ -107,6 +110,19 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
       ]
   );
 
+  // Kiểm tra đơn hàng nào chưa được đánh giá
+  const reviewedOrderIds = new Set(reviews.filter((r) => r.orderId).map((r) => r.orderId));
+  const unreviewedOrder = eligibleOrders.find((o) => !reviewedOrderIds.has(o.id));
+  const eligibleOrder = unreviewedOrder || eligibleOrders[0];
+
+  const userExistingReview = reviews.find(
+    (r) =>
+      (currentUser && r.userId === currentUser.id) ||
+      (r.orderId && eligibleOrders.some((o) => o.id === r.orderId))
+  );
+
+  const isAlreadyReviewed = hasSubmittedReview || (Boolean(userExistingReview) && !unreviewedOrder);
+
   // Load live reviews from MySQL database
   useEffect(() => {
     const fetchDbReviews = async () => {
@@ -117,15 +133,19 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
         if (res && res.data && res.data.length > 0) {
           const mapped: ReviewComment[] = res.data.map((r: any) => ({
             id: r.id,
+            userId: r.userId,
             userName: r.userName || 'Sinh viên',
             userRole: r.userRole || 'Đã mua hàng',
+            userAvatar: r.userAvatar,
+            orderId: r.orderId,
             rating: Number(r.rating) || 5,
             date: r.createdAt ? new Date(r.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
             comment: r.comment || '',
             verifiedPurchase: Boolean(r.verifiedPurchase),
             helpfulCount: Number(r.helpfulCount) || 0,
             images: r.images,
-            replyText: r.replyText,
+            replyText: r.replyText || r.reply,
+            reply: r.replyText || r.reply,
             repliedAt: r.repliedAt,
           }));
           setReviews(mapped);
@@ -178,7 +198,12 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
     e.preventDefault();
 
     if (!eligibleOrder) {
-      showToast('Bạn chỉ có thể đánh giá sau khi đã hoàn thành đơn hàng!', 'error');
+      showToast('Bạn chỉ có thể đánh giá sau khi đã mua hàng và hoàn thành đơn hàng!', 'error');
+      return;
+    }
+
+    if (isAlreadyReviewed) {
+      showToast('Bạn đã đánh giá cho đơn hàng này rồi! Mỗi lần mua chỉ được đánh giá một lần.', 'info');
       return;
     }
 
@@ -196,18 +221,23 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
 
     setIsSubmitting(true);
     try {
-      await adminService.submitStudentReview({
+      const res = await adminService.submitStudentReview({
         targetType,
         targetId,
         rating: newRating,
         comment,
         orderId: eligibleOrder.id,
+        userId: currentUser?.id,
+        userName: currentUser?.name,
       });
 
       const createdReview: ReviewComment = {
-        id: `rev-new-${Date.now()}`,
-        userName: currentUser?.name || 'Bạn (Sinh viên)',
+        id: res?.data?.id || `rev-new-${Date.now()}`,
+        userId: currentUser?.id,
+        userName: currentUser?.name || 'Bạn',
         userRole: `Đơn #${eligibleOrder.orderNumber} • Đã mua hàng`,
+        userAvatar: currentUser?.avatar,
+        orderId: eligibleOrder.id,
         rating: newRating,
         date: 'Vừa xong',
         comment,
@@ -219,9 +249,13 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
       setHasSubmittedReview(true);
       showToast(isCanteenReview ? 'Cảm ơn bạn đã gửi đánh giá cho căng tin vào hệ thống!' : 'Cảm ơn bạn đã gửi đánh giá cho món ăn vào hệ thống!', 'success');
     } catch (err: any) {
-      console.warn('Error submitting review:', err);
-      setHasSubmittedReview(true);
-      showToast('Đã gửi đánh giá thành công!', 'success');
+      const msg = err?.message || 'Có lỗi xảy ra khi gửi đánh giá';
+      if (msg.includes('đã được đánh giá')) {
+        setHasSubmittedReview(true);
+        showToast('Đơn hàng này đã được bạn đánh giá rồi!', 'info');
+      } else {
+        showToast(msg, 'error');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -325,7 +359,156 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
         </div>
       </div>
 
-      {/* ĐÁNH GIÁ: Bắt buộc hoàn thành đơn hàng mới được đánh giá, và BỎ phần viết nhận xét */}
+      {/* ĐIỀU KIỆN ĐÁNH GIÁ: Chỉ được đánh giá 1 lần sau khi hoàn thành đơn hàng */}
+      {isAlreadyReviewed ? (
+        <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-3xl p-5 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <div>
+                <h3 className="font-extrabold text-sm text-emerald-950">Đánh giá của bạn</h3>
+                <p className="text-[11px] text-emerald-700 font-medium">
+                  {eligibleOrder ? `Đơn hàng #${eligibleOrder.orderNumber} • Đã mua hàng` : 'Đã lưu trữ trên hệ thống'}
+                </p>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100/80 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+              Chỉ đánh giá 1 lần
+            </span>
+          </div>
+
+          {userExistingReview && (
+            <div className="bg-white rounded-2xl p-4 border border-emerald-100 space-y-2.5 text-xs">
+              <div className="flex items-center gap-1 text-amber-500">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    className={`w-4 h-4 ${s <= userExistingReview.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200 fill-slate-100'}`}
+                  />
+                ))}
+                <span className="font-bold text-slate-800 ml-1.5">{userExistingReview.rating}/5</span>
+              </div>
+              {userExistingReview.comment && (
+                <p className="text-slate-700 font-medium">{userExistingReview.comment}</p>
+              )}
+
+              {/* Canteen Reply to customer's review */}
+              {(userExistingReview.replyText || userExistingReview.reply) ? (
+                <div className="mt-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3.5 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-extrabold text-amber-900 flex items-center gap-1.5">
+                      <Utensils className="w-3.5 h-3.5 text-amber-600" />
+                      Phản hồi từ Quản trị Căng tin:
+                    </span>
+                    {userExistingReview.repliedAt && (
+                      <span className="text-[10px] text-amber-700 font-medium">
+                        {new Date(userExistingReview.repliedAt).toLocaleDateString('vi-VN')}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-amber-900 leading-relaxed font-medium pl-4 border-l-2 border-amber-400">
+                    {userExistingReview.replyText || userExistingReview.reply}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-400 italic pt-1">
+                  ⏳ Căng tin đang tiếp nhận và sẽ sớm phản hồi đánh giá của bạn.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      ) : eligibleOrders.length > 0 ? (
+        /* Form for eligible completed order */
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-extrabold text-sm text-slate-900">
+                Viết đánh giá cho {isCanteenReview ? 'Căng tin' : 'Món ăn'}
+              </h3>
+              <p className="text-[11px] text-slate-500 font-medium">
+                Áp dụng cho đơn hàng đã hoàn thành: <strong className="text-slate-700">#{eligibleOrder?.orderNumber}</strong>
+              </p>
+            </div>
+            <span className="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
+              1 lần duy nhất
+            </span>
+          </div>
+
+          <form onSubmit={handleAddReview} className="space-y-3.5">
+            {/* Interactive Stars */}
+            <div className="flex flex-col items-center justify-center p-3 bg-slate-50/80 rounded-2xl border border-slate-100 gap-1.5">
+              <span className="text-xs font-semibold text-slate-600">Bạn thấy chất lượng thế nào?</span>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setNewRating(star)}
+                    className="p-1 cursor-pointer transition-transform hover:scale-115 active:scale-95"
+                    title={`${star} sao`}
+                  >
+                    <Star
+                      className={`w-7 h-7 transition-colors ${
+                        star <= newRating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              <span className="text-xs font-bold text-amber-600">
+                {newRating === 5 && 'Cực kỳ ngon & hài lòng ⭐⭐⭐⭐⭐'}
+                {newRating === 4 && 'Ngon miệng & phục vụ tốt ⭐⭐⭐⭐'}
+                {newRating === 3 && 'Bình thường ⭐⭐⭐'}
+                {newRating === 2 && 'Tạm được ⭐⭐'}
+                {newRating === 1 && 'Cần cải thiện ⭐'}
+              </span>
+            </div>
+
+            {/* Comment input */}
+            <div className="space-y-1">
+              <input
+                type="text"
+                value={customComment}
+                onChange={(e) => setCustomComment(e.target.value)}
+                placeholder="Nhập cảm nhận chi tiết của bạn về bữa ăn (tuỳ chọn)..."
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-2xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <Send className="w-4 h-4" />
+              <span>{isSubmitting ? 'Đang lưu vào hệ thống...' : 'Gửi Đánh Giá Vào Hệ Thống'}</span>
+            </button>
+          </form>
+        </div>
+      ) : (
+        /* Not eligible yet */
+        <div className="bg-slate-50 border border-slate-200/80 rounded-3xl p-4.5 text-center space-y-2">
+          <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mx-auto">
+            <Lock className="w-5 h-5 text-slate-400" />
+          </div>
+          <h3 className="font-extrabold text-xs text-slate-800">
+            Chưa có đơn hàng hoàn thành
+          </h3>
+          <p className="text-[11px] text-slate-500 max-w-sm mx-auto leading-relaxed">
+            Để đảm bảo tính khách quan và trung thực, chỉ khách hàng đã mua và hoàn thành đơn hàng mới có thể gửi đánh giá cho {isCanteenReview ? 'căng tin' : 'món ăn'} này.
+          </p>
+          {!isCanteenReview && food && (
+            <button
+              onClick={() => navigateTo('food-detail', { foodId: food.id })}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer mt-1"
+            >
+              <Utensils className="w-3.5 h-3.5" />
+              <span>Đặt món này ngay</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Danh sách Đánh giá thực tế từ khách hàng đã mua */}
       <div className="space-y-3">
@@ -402,12 +585,22 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
                   )}
 
                   {/* Canteen / Admin Reply if present */}
-                  {rev.replyText && (
-                    <div className="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-3 text-xs space-y-1">
-                      <span className="font-extrabold text-amber-900 flex items-center gap-1">
-                        💬 Phản hồi từ Ban Quản Trị Căng Tin:
-                      </span>
-                      <p className="text-amber-800 leading-relaxed font-medium">{rev.replyText}</p>
+                  {(rev.replyText || rev.reply) && (
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 rounded-2xl p-3.5 text-xs space-y-1.5 mt-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-amber-900 flex items-center gap-1.5">
+                          <Utensils className="w-3.5 h-3.5 text-amber-600" />
+                          Phản hồi từ Quản trị Căng tin:
+                        </span>
+                        {rev.repliedAt && (
+                          <span className="text-[10px] text-amber-700/80 font-medium">
+                            {new Date(rev.repliedAt).toLocaleDateString('vi-VN')}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-amber-900 leading-relaxed font-medium pl-4 border-l-2 border-amber-400">
+                        {rev.replyText || rev.reply}
+                      </p>
                     </div>
                   )}
 

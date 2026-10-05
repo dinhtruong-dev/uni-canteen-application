@@ -157,6 +157,64 @@ export class AuthService {
     const token = this.generateToken(user);
     return { user, token };
   }
+
+  public async findUserByEmailOrPhone(identifier: string): Promise<User | null> {
+    const clean = identifier.toLowerCase().trim();
+
+    // Check RAM
+    let user = Array.from(db.users.values()).find(
+      (u) => u.email.toLowerCase() === clean || u.phone.trim() === clean
+    );
+
+    // If not found in RAM, check MySQL
+    if (!user) {
+      try {
+        const rows = await executeQuery(
+          'SELECT * FROM users WHERE LOWER(email) = ? OR phone = ? LIMIT 1',
+          [clean, clean]
+        );
+        if (Array.isArray(rows) && rows.length > 0) {
+          const row = rows[0];
+          user = new User(
+            row.id,
+            row.name,
+            row.email,
+            row.phone,
+            row.role || 'STUDENT',
+            {
+              passwordHash: row.password_hash,
+              studentId: row.student_id,
+              faculty: row.faculty,
+              department: row.department,
+              walletBalance: Number(row.wallet_balance) || 0,
+              avatar: row.avatar,
+              status: row.status,
+            }
+          );
+          db.users.set(user.id, user);
+        }
+      } catch (err: any) {
+        console.warn('[MySQL Find User Notice]:', err.message);
+      }
+    }
+
+    return user || null;
+  }
+
+  public async loginWithOtp(recipient: string): Promise<{ user: User; token: string }> {
+    const user = await this.findUserByEmailOrPhone(recipient);
+    if (!user) {
+      throw new Error(`Không tìm thấy tài khoản tương ứng với thông tin: ${recipient}`);
+    }
+
+    if (user.status === 'BANNED' || user.isActive === false) {
+      throw new Error('Tài khoản này đã bị khóa hoặc tạm ngưng hoạt động');
+    }
+
+    const token = this.generateToken(user);
+    return { user, token };
+  }
 }
 
 export const authService = new AuthService();
+

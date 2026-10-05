@@ -1,7 +1,6 @@
 import React from 'react';
 import { useApp } from '../store/AppContext';
 import {
-  LandingView,
   HomeView,
   CategoryView,
   FoodDetailView,
@@ -42,42 +41,36 @@ export const AppRoutes: React.FC = () => {
     return <LoginView />;
   }
 
-  // 2. Khi đã đăng nhập: Nếu đang ở màn hình login/register/landing thì tự động vào giao diện theo Role
-  if (
-    currentView === 'login' ||
-    currentView === 'buyer/login' ||
-    currentView === 'register' ||
-    currentView === 'buyer/register' ||
-    currentView === 'landing'
-  ) {
-    if (currentUser.role === 'ADMIN') {
-      return <AdminPortalView />;
+  // 2. PHÂN QUYỀN ĐỘC LẬP THEO VAI TRÒ (STRICT ROLE ISOLATION)
+  // ADMIN: Chỉ được phép vào giao diện Quản trị (Admin Portal), cấm tuyệt đối mọi giao diện khách hàng
+  if (currentUser.role === 'ADMIN') {
+    if (currentView === 'kitchen-kds' || currentView === 'kds' || currentView === 'kitchen') {
+      return <KitchenKDSView />;
     }
-    if (currentUser.role === 'STAFF') {
-      return <StaffPortalView />;
-    }
-    return <HomeView />;
-  }
-
-  // 3. Phân quyền truy cập theo vai trò tài khoản
-  if (currentView.startsWith('admin') && currentUser.role !== 'ADMIN') {
-    return <HomeView />;
-  }
-  if (currentView.startsWith('staff') && currentUser.role !== 'STAFF' && currentUser.role !== 'ADMIN') {
-    return <HomeView />;
-  }
-  if (currentUser.role === 'ADMIN' && currentView === 'home') {
     return <AdminPortalView />;
   }
-  if (currentUser.role === 'STAFF' && currentView === 'home') {
+
+  // STAFF: Chỉ được phép vào giao diện Bếp & Quầy (Staff Portal & KDS), cấm tuyệt đối mọi giao diện khách hàng
+  if (currentUser.role === 'STAFF') {
+    if (currentView === 'kitchen-kds' || currentView === 'kds' || currentView === 'kitchen') {
+      return <KitchenKDSView />;
+    }
     return <StaffPortalView />;
+  }
+
+  // 3. KHÁCH HÀNG (STUDENT / BUYER): Chỉ được phép vào giao diện khách hàng, chặn tuyệt đối trang Admin & Staff
+  if (
+    currentView.startsWith('admin') ||
+    currentView.startsWith('staff') ||
+    currentView === 'kitchen-kds' ||
+    currentView === 'kds' ||
+    currentView === 'kitchen'
+  ) {
+    return <HomeView />;
   }
 
   switch (currentView) {
     case 'landing':
-      if (currentUser.role === 'ADMIN') return <AdminPortalView />;
-      if (currentUser.role === 'STAFF') return <StaffPortalView />;
-      return <HomeView />;
     case 'home':
       return <HomeView />;
     case 'select-delivery':
@@ -127,49 +120,14 @@ export const AppRoutes: React.FC = () => {
       return <FavoritesView />;
     case 'notifications':
       return <NotificationsView />;
-    case 'staff':
-    case 'staff-dashboard':
-    case 'staff-orders':
-    case 'staff-foods':
-    case 'staff-categories':
-    case 'staff-tables':
-    case 'staff-pickup-slots':
-    case 'staff-promotions':
-    case 'staff-reviews':
-    case 'staff-notifications':
-    case 'staff-statistics':
-      return <StaffPortalView />;
-    case 'kds':
-    case 'kitchen-kds':
-    case 'kitchen':
-      return <KitchenKDSView />;
-    case 'admin':
-    case 'admin-dashboard':
-    case 'admin-users':
-    case 'admin-students':
-    case 'admin-staff':
-    case 'admin-canteens':
-    case 'admin-foods':
-    case 'admin-categories':
-    case 'admin-orders':
-    case 'admin-tables':
-    case 'admin-pickup-slots':
-    case 'admin-dormitories':
-    case 'admin-promotions':
-    case 'admin-reviews':
-    case 'admin-notifications':
-    case 'admin-payments':
-    case 'admin-statistics':
-    case 'admin-settings':
-      return <AdminPortalView />;
     case 'login':
     case 'buyer/login':
-      return <LoginView />;
+      return <HomeView />;
     case 'register':
     case 'buyer/register':
-      return <RegisterView />;
+      return <HomeView />;
     case 'forgot-password':
-      return <ForgotPasswordView />;
+      return <HomeView />;
     default:
       return <HomeView />;
   }

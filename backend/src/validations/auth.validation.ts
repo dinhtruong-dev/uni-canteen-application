@@ -133,3 +133,88 @@ export function validateRegister(req: Request, res: Response, next: NextFunction
 
   next();
 }
+
+/**
+ * ==============================================================================
+ * VALIDATION GỬI MÃ OTP (SEND OTP VALIDATION)
+ * ==============================================================================
+ */
+export function validateSendOtp(req: Request, res: Response, next: NextFunction) {
+  const { recipient, channel, type } = req.body;
+
+  if (!recipient || typeof recipient !== 'string' || recipient.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Vui lòng cung cấp số điện thoại hoặc email nhận mã xác thực',
+      field: 'recipient',
+    });
+  }
+
+  const cleanRecipient = recipient.trim();
+  const validChannels = ['SMS', 'EMAIL'];
+  if (!channel || !validChannels.includes(channel)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Kênh gửi mã không hợp lệ (Chỉ hỗ trợ SMS hoặc EMAIL)',
+      field: 'channel',
+    });
+  }
+
+  if (channel === 'EMAIL' && !EMAIL_REGEX.test(cleanRecipient.toLowerCase())) {
+    return res.status(400).json({
+      success: false,
+      message: 'Địa chỉ email nhận mã OTP không đúng định dạng',
+      field: 'recipient',
+    });
+  }
+
+  if (channel === 'SMS' && !PHONE_REGEX.test(cleanRecipient)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Số điện thoại nhận mã SMS OTP không hợp lệ (từ 9-13 số)',
+      field: 'recipient',
+    });
+  }
+
+  const validTypes = ['REGISTER', 'LOGIN', 'FORGOT_PASSWORD', '2FA_LOGIN'];
+  if (type && !validTypes.includes(type)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Mục đích xác thực không hợp lệ',
+      field: 'type',
+    });
+  }
+
+  req.body.recipient = cleanRecipient;
+  next();
+}
+
+/**
+ * ==============================================================================
+ * VALIDATION XÁC THỰC MÃ OTP (VERIFY OTP VALIDATION)
+ * ==============================================================================
+ */
+export function validateVerifyOtp(req: Request, res: Response, next: NextFunction) {
+  const { recipient, code, type } = req.body;
+
+  if (!recipient || typeof recipient !== 'string' || recipient.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Vui lòng cung cấp số điện thoại hoặc email xác thực',
+      field: 'recipient',
+    });
+  }
+
+  if (!code || typeof code !== 'string' || code.trim().length !== 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'Mã OTP xác thực phải gồm đúng 6 chữ số',
+      field: 'code',
+    });
+  }
+
+  req.body.recipient = recipient.trim();
+  req.body.code = code.trim();
+  next();
+}
+

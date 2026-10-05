@@ -22,6 +22,7 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({
   const [internalTab, setInternalTab] = useState(propActiveTab || initialTab);
   const activeTab = propActiveTab || internalTab;
 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
   const [isPickupModalOpen, setIsPickupModalOpen] = useState(false);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
@@ -137,6 +138,8 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({
         onSelectTab={handleSelectTab}
         pendingOrdersCount={pendingOrdersCount}
         unreadNotifsCount={unreadNotifsCount}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
       {/* 2. Main Content Container */}

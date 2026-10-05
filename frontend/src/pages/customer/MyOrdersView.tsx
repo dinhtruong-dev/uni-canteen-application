@@ -347,6 +347,19 @@ export const MyOrdersView: React.FC = () => {
                       </span>
 
                       <div className="flex items-center gap-1.5">
+                        {['COMPLETED', 'SERVED'].includes(order.status) && (
+                          <button
+                            id={`review-btn-${order.id}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigateTo('order-detail', { orderId: order.id });
+                            }}
+                            className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-[11px] font-bold px-2.5 py-1 rounded-md transition-colors cursor-pointer shadow-2xs active:scale-95"
+                          >
+                            ⭐ Đánh giá
+                          </button>
+                        )}
+
                         {['COMPLETED', 'SERVED', 'CANCELLED'].includes(order.status) && (
                           <button
                             id={`reorder-btn-${order.id}`}

@@ -61,16 +61,6 @@ export const AdminTopbar: React.FC<AdminTopbarProps> = ({
       {/* Left: Active Tab Title & Campus Status */}
       <div className="flex items-center gap-4 min-w-0">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-purple-400 font-extrabold uppercase tracking-wider flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-purple-300" /> UNI CANTEEN ADMIN
-            </span>
-            <span className="text-slate-600">•</span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Toàn hệ thống hoạt động bình thường
-            </span>
-          </div>
           <h1 className="text-lg font-black text-slate-100 tracking-tight truncate">
             {activeTabTitle}
           </h1>

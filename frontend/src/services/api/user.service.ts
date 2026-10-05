@@ -45,16 +45,22 @@ export class UserService {
     return null;
   }
 
-  public async getAddresses(): Promise<DeliveryAddress[]> {
+  public async getAddresses(): Promise<any[]> {
     const res = await apiClient.get<{ success: boolean; data: any[] }>('/users/addresses');
     if (res?.success && Array.isArray(res.data)) {
       return res.data.map((a: any) => ({
         id: a.id,
-        label: a.dormBlock || 'KTX',
-        building: a.dormBlock || 'KTX',
-        room: a.roomNumber || 'Phòng',
+        recipientName: a.recipientName || a.recipient_name,
+        recipientPhone: a.recipientPhone || a.recipient_phone,
+        label: a.dormBlock || a.dorm_block || 'KTX',
+        building: a.dormBlock || a.dorm_block || 'KTX',
+        dormBlock: a.dormBlock || a.dorm_block || 'KTX',
+        room: a.roomNumber || a.room_number || '',
+        roomNumber: a.roomNumber || a.room_number || '',
+        fullAddress: a.fullAddress || a.full_address || `${a.roomNumber || a.room || ''}, ${a.dormBlock || a.building || ''}`,
         note: a.notes,
-        isDefault: Boolean(a.isDefault),
+        notes: a.notes,
+        isDefault: Boolean(a.isDefault || a.is_default),
       }));
     }
     return [];
@@ -65,19 +71,26 @@ export class UserService {
     recipientPhone: string;
     dormBlock: string;
     roomNumber: string;
+    fullAddress?: string;
     notes?: string;
     isDefault?: boolean;
-  }): Promise<DeliveryAddress | null> {
+  }): Promise<any | null> {
     const res = await apiClient.post<{ success: boolean; data: any }>('/users/addresses', data);
     if (res?.success && res.data) {
       const a = res.data;
       return {
         id: a.id,
-        label: a.dormBlock,
-        building: a.dormBlock,
-        room: a.roomNumber,
+        recipientName: a.recipientName || a.recipient_name,
+        recipientPhone: a.recipientPhone || a.recipient_phone,
+        label: a.dormBlock || a.dorm_block,
+        building: a.dormBlock || a.dorm_block,
+        dormBlock: a.dormBlock || a.dorm_block,
+        room: a.roomNumber || a.room_number,
+        roomNumber: a.roomNumber || a.room_number,
+        fullAddress: a.fullAddress || a.full_address,
         note: a.notes,
-        isDefault: Boolean(a.isDefault),
+        notes: a.notes,
+        isDefault: Boolean(a.isDefault || a.is_default),
       };
     }
     return null;

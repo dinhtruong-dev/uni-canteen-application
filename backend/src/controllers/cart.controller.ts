@@ -3,39 +3,66 @@ import { cartService } from '../services/cart.service';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export class CartController {
-  public getCart(req: AuthenticatedRequest, res: Response) {
-    const userId = req.user?.id || 'user-stu-1';
-    const cart = cartService.getOrCreateCart(userId);
-    res.json({ success: true, data: cart.toJSON() });
-  }
-
-  public addItem(req: AuthenticatedRequest, res: Response) {
-    const userId = req.user?.id || 'user-stu-1';
+  public async getCart(req: AuthenticatedRequest, res: Response) {
     try {
-      const cart = cartService.addItem(userId, req.body);
-      res.status(201).json({ success: true, message: 'Đã thêm vào giỏ hàng', data: cart.toJSON() });
+      const userId = req.user?.id || 'user-stu-1';
+      const cart = await cartService.getCart(userId);
+      return res.json({ success: true, data: cart.toJSON() });
     } catch (err: any) {
-      res.status(400).json({ success: false, message: err.message });
+      return res.status(500).json({ success: false, message: err.message });
     }
   }
 
-  public updateItem(req: AuthenticatedRequest, res: Response) {
-    const userId = req.user?.id || 'user-stu-1';
-    const { quantity } = req.body;
-    const cart = cartService.updateItemQuantity(userId, req.params.itemId, Number(quantity));
-    res.json({ success: true, message: 'Đã cập nhật giỏ hàng', data: cart.toJSON() });
+  public async addItem(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id || 'user-stu-1';
+      const cart = await cartService.addItem(userId, req.body);
+      return res.status(201).json({ success: true, message: 'Đã thêm vào giỏ hàng Redis', data: cart.toJSON() });
+    } catch (err: any) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
   }
 
-  public removeItem(req: AuthenticatedRequest, res: Response) {
-    const userId = req.user?.id || 'user-stu-1';
-    const cart = cartService.removeItem(userId, req.params.itemId);
-    res.json({ success: true, message: 'Đã xóa món khỏi giỏ hàng', data: cart.toJSON() });
+  public async updateItem(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id || 'user-stu-1';
+      const { quantity } = req.body;
+      const cart = await cartService.updateItemQuantity(userId, req.params.itemId, Number(quantity));
+      return res.json({ success: true, message: 'Đã cập nhật giỏ hàng', data: cart.toJSON() });
+    } catch (err: any) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
   }
 
-  public clearCart(req: AuthenticatedRequest, res: Response) {
-    const userId = req.user?.id || 'user-stu-1';
-    const cart = cartService.clearCart(userId);
-    res.json({ success: true, message: 'Đã làm trống giỏ hàng', data: cart.toJSON() });
+  public async removeItem(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id || 'user-stu-1';
+      const cart = await cartService.removeItem(userId, req.params.itemId);
+      return res.json({ success: true, message: 'Đã xóa món khỏi giỏ hàng', data: cart.toJSON() });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  public async syncCart(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id || 'user-stu-1';
+      const { items } = req.body;
+      const cart = await cartService.syncCart(userId, Array.isArray(items) ? items : []);
+      return res.json({ success: true, message: 'Đồng bộ giỏ hàng với Redis thành công', data: cart.toJSON() });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  public async clearCart(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id || 'user-stu-1';
+      const cart = await cartService.clearCart(userId);
+      return res.json({ success: true, message: 'Đã làm trống giỏ hàng Redis', data: cart.toJSON() });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, message: err.message });
+    }
   }
 }
 

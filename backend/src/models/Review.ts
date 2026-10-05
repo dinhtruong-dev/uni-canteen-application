@@ -82,6 +82,7 @@ export class Review {
       images: this.images,
       status: this.status,
       replyText: this.replyText,
+      reply: this.replyText,
       repliedAt: this.repliedAt,
       createdAt: this.createdAt.toISOString(),
     };

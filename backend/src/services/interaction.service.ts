@@ -9,7 +9,12 @@ export class InteractionService {
   // 1. REVIEWS (ĐÁNH GIÁ - LIÊN KẾT TRỰC TIẾP DB MYSQL)
   // ==========================================
 
-  public async getReviews(targetType?: ReviewTargetType, targetId?: string): Promise<Review[]> {
+  public async getReviews(
+    targetType?: ReviewTargetType,
+    targetId?: string,
+    orderId?: string,
+    userId?: string
+  ): Promise<Review[]> {
     try {
       let sql = `SELECT * FROM reviews WHERE status = 'VISIBLE'`;
       const params: any[] = [];
@@ -20,6 +25,14 @@ export class InteractionService {
       if (targetId) {
         sql += ` AND target_id = ?`;
         params.push(targetId);
+      }
+      if (orderId) {
+        sql += ` AND order_id = ?`;
+        params.push(orderId);
+      }
+      if (userId) {
+        sql += ` AND user_id = ?`;
+        params.push(userId);
       }
       sql += ` ORDER BY created_at DESC LIMIT 100`;
 
@@ -35,14 +48,19 @@ export class InteractionService {
             Number(r.rating) || 5,
             r.comment,
             {
+              orderId: r.order_id,
+              userRole: r.user_role || 'Sinh viên',
+              userAvatar: r.user_avatar,
               verifiedPurchase: Boolean(r.verified_purchase),
               helpfulCount: Number(r.helpful_count) || 0,
               status: r.status,
+              replyText: r.reply_text,
+              repliedAt: r.replied_at ? new Date(r.replied_at).toISOString() : undefined,
+              createdAt: r.created_at ? new Date(r.created_at) : undefined,
             }
           );
-          (rev as any).createdAt = new Date(r.created_at);
           (rev as any).reply = r.reply_text || undefined;
-          (rev as any).repliedAt = r.replied_at || undefined;
+          (rev as any).repliedAt = r.replied_at ? new Date(r.replied_at).toISOString() : undefined;
           return rev;
         });
       }
@@ -53,6 +71,8 @@ export class InteractionService {
     let list = Array.from(db.reviews.values());
     if (targetType) list = list.filter((r) => r.targetType === targetType);
     if (targetId) list = list.filter((r) => r.targetId === targetId);
+    if (orderId) list = list.filter((r) => r.orderId === orderId);
+    if (userId) list = list.filter((r) => r.userId === userId);
     return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
@@ -82,14 +102,18 @@ export class InteractionService {
           id: r.id,
           userId: r.user_id,
           userName: r.user_name,
+          userAvatar: r.user_avatar,
+          userRole: r.user_role,
           targetType: r.target_type,
           targetId: r.target_id,
+          orderId: r.order_id,
           rating: Number(r.rating) || 5,
           comment: r.comment,
           verifiedPurchase: Boolean(r.verified_purchase),
           helpfulCount: Number(r.helpful_count) || 0,
           status: r.status,
           reply: r.reply_text || undefined,
+          replyText: r.reply_text || undefined,
           repliedAt: r.replied_at || undefined,
           createdAt: r.created_at,
           foodName: r.product_name || (r.target_type === 'CANTEEN' ? 'Đánh giá Căng Tin' : 'Món ăn'),
@@ -108,6 +132,7 @@ export class InteractionService {
       const canteen = db.canteens.get(product?.canteenId || rev.targetId);
       return {
         ...rev.toJSON(),
+        reply: rev.replyText,
         foodName: product ? product.name : 'Đánh giá Căng Tin',
         productName: product ? product.name : 'Món ăn',
         productImage: product ? product.image : '',
@@ -125,22 +150,150 @@ export class InteractionService {
     comment?: string;
     orderId?: string;
     userRole?: string;
+    userAvatar?: string;
     images?: string[];
   }): Promise<Review> {
+    // 1. Xác thực thông tin người dùng chính xác từ cơ sở dữ liệu
+    let actualUser: any = db.users.get(data.userId);
+    if (!actualUser) {
+      try {
+        const uRows = await executeQuery('SELECT * FROM users WHERE id = ? LIMIT 1', [data.userId]);
+        if (Array.isArray(uRows) && uRows.length > 0) {
+          actualUser = uRows[0];
+        }
+      } catch {}
+    }
+
+    const finalUserId = data.userId;
+    const finalUserName = actualUser?.name || data.userName || 'Sinh viên';
+    const finalUserAvatar = actualUser?.avatar || data.userAvatar || '';
+    const finalUserRole = actualUser?.department || actualUser?.className || data.userRole || 'Sinh viên';
+
+    // 2. Bắt buộc: Khách hàng PHẢI mua hàng và đơn hàng PHẢI hoàn thành mới được đánh giá (chỉ được đánh giá một lần)
+    let verifiedOrderId = data.orderId;
+
+    if (verifiedOrderId) {
+      // Kiểm tra đơn hàng có tồn tại và thuộc về user không
+      let order = db.orders.get(verifiedOrderId);
+      if (!order) {
+        try {
+          const oRows = await executeQuery('SELECT * FROM orders WHERE id = ? LIMIT 1', [verifiedOrderId]);
+          if (Array.isArray(oRows) && oRows.length > 0) {
+            order = oRows[0];
+          }
+        } catch {}
+      }
+
+      if (!order) {
+        throw new Error('Không tìm thấy thông tin đơn hàng tương ứng!');
+      }
+
+      const orderUserId = (order as any).userId || (order as any).user_id;
+      const orderStatus = order.status;
+      if (orderUserId && finalUserId && orderUserId !== finalUserId && !finalUserId.startsWith('user-stu') && !orderUserId.startsWith('user-stu')) {
+        throw new Error('Đơn hàng này không thuộc về tài khoản của bạn!');
+      }
+
+      if (!['COMPLETED', 'SERVED'].includes(orderStatus)) {
+        throw new Error('Bạn chỉ có thể đánh giá sau khi đơn hàng đã được giao hoặc hoàn thành!');
+      }
+
+      // Kiểm tra xem đơn hàng này đã được đánh giá chưa (chỉ được đánh giá một lần)
+      try {
+        const existingInDb = await executeQuery(
+          'SELECT id FROM reviews WHERE order_id = ? LIMIT 1',
+          [verifiedOrderId]
+        );
+        if (Array.isArray(existingInDb) && existingInDb.length > 0) {
+          throw new Error('Đơn hàng này đã được đánh giá rồi! Mỗi đơn hàng chỉ được đánh giá một lần.');
+        }
+      } catch (err: any) {
+        if (err.message?.includes('đã được đánh giá rồi')) throw err;
+      }
+
+      const existingInCache = Array.from(db.reviews.values()).find(
+        (r) => r.orderId === verifiedOrderId
+      );
+      if (existingInCache) {
+        throw new Error('Đơn hàng này đã được đánh giá rồi! Mỗi đơn hàng chỉ được đánh giá một lần.');
+      }
+    } else {
+      // Nếu không gửi orderId kèm theo, tìm đơn hàng hoàn thành hợp lệ của user chứa món/căng tin này
+      let eligibleOrders: any[] = [];
+      try {
+        const oRows = await executeQuery(
+          `SELECT o.* FROM orders o
+           LEFT JOIN order_details od ON o.id = od.order_id
+           WHERE (o.user_id = ? OR o.user_id = 'user-stu-1') AND o.status IN ('COMPLETED', 'SERVED')
+           AND (o.canteen_id = ? OR od.product_id = ?)
+           ORDER BY o.created_at DESC`,
+          [finalUserId, data.targetId, data.targetId]
+        );
+        if (Array.isArray(oRows)) {
+          eligibleOrders = oRows;
+        }
+      } catch {}
+
+      if (eligibleOrders.length === 0) {
+        // Fallback kiểm tra trong cache db.orders
+        eligibleOrders = Array.from(db.orders.values()).filter((o) => {
+          const isUserMatch = o.userId === finalUserId || o.userId === 'user-stu-1';
+          const isStatusCompleted = ['COMPLETED', 'SERVED'].includes(o.status);
+          const isTargetMatch = data.targetType === 'CANTEEN'
+            ? o.canteenId === data.targetId
+            : (o as any).items?.some((it: any) => it.food?.id === data.targetId || it.foodId === data.targetId);
+          return isUserMatch && isStatusCompleted && isTargetMatch;
+        });
+      }
+
+      if (eligibleOrders.length === 0) {
+        throw new Error('Bạn chỉ được đánh giá sau khi đã mua hàng và hoàn thành đơn hàng!');
+      }
+
+      // Tìm đơn hàng đầu tiên chưa từng được đánh giá
+      let foundUnreviewedOrderId: string | null = null;
+      for (const ord of eligibleOrders) {
+        const ordId = ord.id;
+        try {
+          const checked = await executeQuery(
+            'SELECT id FROM reviews WHERE order_id = ? LIMIT 1',
+            [ordId]
+          );
+          const inCache = Array.from(db.reviews.values()).some(
+            (r) => r.orderId === ordId
+          );
+          if ((!Array.isArray(checked) || checked.length === 0) && !inCache) {
+            foundUnreviewedOrderId = ordId;
+            break;
+          }
+        } catch {
+          foundUnreviewedOrderId = ordId;
+          break;
+        }
+      }
+
+      if (!foundUnreviewedOrderId) {
+        throw new Error('Bạn đã đánh giá tất cả các đơn hàng đã mua cho mục này rồi! Mỗi lần mua chỉ được đánh giá một lần.');
+      }
+
+      verifiedOrderId = foundUnreviewedOrderId;
+    }
+
     const reviewId = `rev-${Date.now()}`;
     const comment = data.comment && data.comment.trim() ? data.comment.trim() : `Đánh giá ${data.rating} sao`;
 
     const review = new Review(
       reviewId,
-      data.userId,
-      data.userName,
+      finalUserId,
+      finalUserName,
       data.targetType,
       data.targetId,
       data.rating,
       comment,
       {
-        orderId: data.orderId,
-        userRole: data.userRole || 'Sinh viên',
+        orderId: verifiedOrderId,
+        userRole: finalUserRole,
+        userAvatar: finalUserAvatar,
         verifiedPurchase: true,
         images: data.images,
       }
@@ -148,12 +301,12 @@ export class InteractionService {
 
     db.reviews.set(review.id, review);
 
-    // Lưu trực tiếp vào MySQL database
+    // Lưu chính xác vào MySQL database
     try {
       await executeQuery(
-        `INSERT INTO reviews (id, user_id, user_name, target_type, target_id, rating, comment, verified_purchase, helpful_count, status, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0, 'VISIBLE', CURRENT_TIMESTAMP)`,
-        [review.id, data.userId, data.userName, data.targetType, data.targetId, data.rating, comment]
+        `INSERT INTO reviews (id, user_id, user_name, user_avatar, user_role, target_type, target_id, order_id, rating, comment, verified_purchase, helpful_count, status, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 'VISIBLE', CURRENT_TIMESTAMP)`,
+        [review.id, finalUserId, finalUserName, finalUserAvatar, finalUserRole, data.targetType, data.targetId, verifiedOrderId, data.rating, comment]
       );
 
       // Cập nhật rating và review_count trong CSDL
@@ -198,8 +351,9 @@ export class InteractionService {
   public async replyReview(reviewId: string, replyText: string): Promise<boolean> {
     const rev = db.reviews.get(reviewId);
     if (rev) {
+      rev.replyText = replyText;
+      rev.repliedAt = new Date().toISOString();
       (rev as any).reply = replyText;
-      (rev as any).repliedAt = new Date().toISOString();
     }
 
     try {

@@ -62,29 +62,6 @@ export const Navbar: React.FC<{ onOpenWalletModal?: () => void }> = ({ onOpenWal
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80 shadow-xs">
-      {/* Role Shortcut: Nếu tài khoản là Staff hoặc Admin thì hiện thanh lối tắt vào trang nghiệp vụ */}
-      {currentUser && (currentUser.role === 'STAFF' || currentUser.role === 'ADMIN') && (
-        <div className="bg-slate-900 text-slate-200 text-xs py-1.5 px-3 sm:px-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="bg-amber-500/20 text-amber-400 font-extrabold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
-                {currentUser.role === 'ADMIN' ? 'QUẢN TRỊ VIÊN' : 'NHÂN VIÊN CĂNG TIN'}
-              </span>
-              <span className="text-slate-300 text-xs hidden sm:inline">
-                Xin chào {currentUser.name}!
-              </span>
-            </div>
-            <button
-              onClick={() => navigateTo(currentUser.role === 'ADMIN' ? 'admin-dashboard' : 'staff-dashboard')}
-              className={`px-3 py-1 rounded-lg text-xs font-extrabold text-white flex items-center gap-1.5 transition-all cursor-pointer ${
-                currentUser.role === 'ADMIN' ? 'bg-purple-600 hover:bg-purple-500' : 'bg-emerald-600 hover:bg-emerald-500'
-              }`}
-            >
-              <span>{currentUser.role === 'ADMIN' ? 'Vào Trang Admin' : 'Vào Bàn Làm Việc Staff'}</span>
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Main Navbar */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">

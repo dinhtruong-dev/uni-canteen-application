@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authController } from '../controllers/auth.controller';
 import { loginRateLimiter, requireAuth } from '../middlewares/auth.middleware';
-import { validateLogin, validateRegister } from '../validations';
+import { validateLogin, validateRegister, validateSendOtp, validateVerifyOtp } from '../validations';
 
 const router = Router();
 
@@ -9,9 +9,6 @@ const router = Router();
  * ==============================================================================
  * ROUTE: ĐĂNG KÝ TÀI KHOẢN MỚI (/api/auth/register)
  * ==============================================================================
- * Kiến trúc 2 lớp bảo mật:
- * - [Lớp 1 - Validation Layer]: validateRegister kiểm tra họ tên, email, sđt, mật khẩu hợp lệ
- * - [Lớp 2 - Controller & Service]: Mã hóa mật khẩu Bcrypt, lưu trữ MySQL, cấp JWT token
  */
 router.post(
   '/register',
@@ -21,12 +18,19 @@ router.post(
 
 /**
  * ==============================================================================
- * ROUTE: ĐĂNG NHẬP HỆ THỐNG (/api/auth/login)
+ * ROUTE: ĐĂNG KÝ BẢO MẬT KÈM XÁC THỰC MÃ OTP SMS / EMAIL (/api/auth/register-with-otp)
  * ==============================================================================
- * Kiến trúc 2 lớp bảo mật:
- * - [Lớp 1 - Middleware Layer]: loginRateLimiter chống Brute-Force (tối đa 5 lần sai/5 phút)
- * - [Lớp 2 - Validation Layer]: validateLogin kiểm tra cấu trúc email RFC và độ dài mật khẩu >= 6
- * - [Lớp Controller & Service]: So khớp bcrypt, cấp phát JWT token có chữ ký số bí mật
+ */
+router.post(
+  '/register-with-otp',
+  validateRegister,
+  (req, res) => authController.registerWithOtp(req, res)
+);
+
+/**
+ * ==============================================================================
+ * ROUTE: ĐĂNG NHẬP HỆ THỐNG MẬT KHẨU (/api/auth/login)
+ * ==============================================================================
  */
 router.post(
   '/login',
@@ -37,9 +41,66 @@ router.post(
 
 /**
  * ==============================================================================
+ * ROUTE: KHỞI TẠO BƯỚC BẢO MẬT 2 LỚP CHO ĐĂNG NHẬP (/api/auth/login-2fa-init)
+ * ==============================================================================
+ */
+router.post(
+  '/login-2fa-init',
+  loginRateLimiter,
+  validateLogin,
+  (req, res) => authController.initiate2faLogin(req, res)
+);
+
+/**
+ * ==============================================================================
+ * ROUTE: XÁC THỰC MÃ 2FA ĐỂ HOÀN TẤT ĐĂNG NHẬP (/api/auth/login-2fa-verify)
+ * ==============================================================================
+ */
+router.post(
+  '/login-2fa-verify',
+  loginRateLimiter,
+  validateVerifyOtp,
+  (req, res) => authController.verify2faLogin(req, res)
+);
+
+/**
+ * ==============================================================================
+ * ROUTE: ĐĂNG NHẬP NHANH BẰNG MÃ OTP SMS / EMAIL (/api/auth/login-with-otp)
+ * ==============================================================================
+ */
+router.post(
+  '/login-with-otp',
+  loginRateLimiter,
+  validateVerifyOtp,
+  (req, res) => authController.loginWithOtp(req, res)
+);
+
+/**
+ * ==============================================================================
+ * ROUTE: GỬI MÃ OTP XÁC THỰC BẢO MẬT (/api/auth/otp/send)
+ * ==============================================================================
+ */
+router.post(
+  '/otp/send',
+  validateSendOtp,
+  (req, res) => authController.sendOtp(req, res)
+);
+
+/**
+ * ==============================================================================
+ * ROUTE: XÁC MINH MÃ OTP ĐỘC LẬP (/api/auth/otp/verify)
+ * ==============================================================================
+ */
+router.post(
+  '/otp/verify',
+  validateVerifyOtp,
+  (req, res) => authController.verifyOtp(req, res)
+);
+
+/**
+ * ==============================================================================
  * ROUTE: THÔNG TIN TÀI KHOẢN HIỆN TẠI (/api/auth/me)
  * ==============================================================================
- * - [Lớp Middleware JWT]: requireAuth bắt buộc kiểm tra JWT Bearer Token hợp lệ
  */
 router.get(
   '/me',

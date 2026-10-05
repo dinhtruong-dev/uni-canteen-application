@@ -12,6 +12,7 @@ import { realtimeService } from './realtime.service';
 import { socketService } from './socket.service';
 import { tableService } from './table.service';
 import { interactionService } from './interaction.service';
+import { cartService } from './cart.service';
 
 export interface CreateOrderItemDTO {
   productId: string;
@@ -467,6 +468,13 @@ export class OrderService {
             item.notes || null,
           ]
         );
+      }
+
+      // Giai đoạn Dọn dẹp: Lưu vào MySQL thành công, gọi lệnh redis.del('cart:' + userId) để xóa trắng giỏ hàng
+      try {
+        await cartService.clearCart(order.userId);
+      } catch (cleanErr: any) {
+        console.warn('[Redis Cart Cleanup Notice]:', cleanErr.message);
       }
     } catch (mysqlErr: any) {
       console.warn('[MySQL Order Persistence Notice]:', mysqlErr.message);
