@@ -1,129 +1,125 @@
-import { db } from './database.service';
-import { Payment, PaymentMethod, PaymentStatus } from '../models';
-
-export interface WalletTransactionItem {
-  id: string;
-  userId: string;
-  amount: number;
-  type: 'TOPUP' | 'PAYMENT' | 'REFUND';
-  description: string;
-  date: string;
-  status: 'SUCCESS' | 'PENDING' | 'FAILED';
-}
+import { Payment, PaymentStatus, User, WalletTransaction } from '../models';
+import type { PaymentMethod } from '../types';
+import type { WalletTransactionItem } from '../types/payment.types';
 
 export class PaymentService {
-  public walletTransactions: Map<string, WalletTransactionItem> = new Map();
-
-  constructor() {
-    this.seedInitialTransactions();
+  public async getPaymentByOrderId(orderId: string): Promise<Payment | undefined> {
+    try {
+      const p = await Payment.findOne({ where: { orderId } });
+      return p || undefined;
+    } catch (err: any) {
+      console.error('[PaymentService.getPaymentByOrderId Error]:', err.message);
+      throw err;
+    }
   }
 
-  private seedInitialTransactions() {
-    const tx1: WalletTransactionItem = {
-      id: 'tx-1',
-      userId: 'user-stu-1',
-      amount: 100000,
-      type: 'TOPUP',
-      description: 'Nạp tiền qua VNPay QR',
-      date: '2026-08-10 10:15',
-      status: 'SUCCESS',
-    };
-    const tx2: WalletTransactionItem = {
-      id: 'tx-2',
-      userId: 'user-stu-1',
-      amount: 90000,
-      type: 'PAYMENT',
-      description: 'Thanh toán đơn hàng #CT20260810001',
-      date: '2026-08-10 11:15',
-      status: 'SUCCESS',
-    };
-    const tx3: WalletTransactionItem = {
-      id: 'tx-3',
-      userId: 'user-stu-1',
-      amount: 45000,
-      type: 'PAYMENT',
-      description: 'Thanh toán đơn hàng #CT20260810003',
-      date: '2026-08-10 11:20',
-      status: 'SUCCESS',
-    };
-    this.walletTransactions.set(tx1.id, tx1);
-    this.walletTransactions.set(tx2.id, tx2);
-    this.walletTransactions.set(tx3.id, tx3);
+  public async getWalletTransactions(userId: string): Promise<WalletTransactionItem[]> {
+    try {
+      const rows = await WalletTransaction.findAll({
+        where: { userId },
+        order: [['createdAt', 'DESC']],
+      });
+      if (Array.isArray(rows) && rows.length > 0) {
+        return rows.map((r) => ({
+          id: r.id,
+          userId: r.userId,
+          amount: Number(r.amount) || 0,
+          type: r.type,
+          description: r.description || '',
+          date: (r as any).createdAt ? new Date((r as any).createdAt).toLocaleString('vi-VN') : new Date().toLocaleString('vi-VN'),
+          status: r.status,
+        }));
+      }
+      return [];
+    } catch (err: any) {
+      console.warn('[PaymentService.getWalletTransactions Warning]:', err.message);
+      return [];
+    }
   }
 
-  public getPaymentByOrderId(orderId: string): Payment | undefined {
-    return Array.from(db.payments.values()).find((p) => p.orderId === orderId);
-  }
-
-  public getWalletTransactions(userId: string): WalletTransactionItem[] {
-    return Array.from(this.walletTransactions.values())
-      .filter((t) => t.userId === userId)
-      .reverse();
-  }
-
-  public processPayment(
+  public async processPayment(
     orderId: string,
     userId: string,
     amount: number,
     method: PaymentMethod
-  ): Payment {
-    const paymentId = `pay-${Date.now()}`;
-    const user = db.users.get(userId);
+  ): Promise<Payment> {
+    try {
+      const paymentId = `pay-${Date.now()}`;
+      let status: PaymentStatus = 'SUCCESS';
 
-    let status: PaymentStatus = 'SUCCESS';
+      if (method === 'WALLET') {
+        const user = await User.findByPk(userId);
+        if (!user) {
+          throw new Error('Không tìm thấy tài khoản người dùng');
+        }
+        const walletBalance = Number(user.walletBalance) || 0;
 
-    if (method === 'CAMPUS_WALLET') {
-      if (!user) {
-        throw new Error('Không tìm thấy tài khoản người dùng');
+        if (walletBalance < amount) {
+          throw new Error(
+            `Số dư ví không đủ (${walletBalance.toLocaleString('vi-VN')}đ). Cần ${amount.toLocaleString('vi-VN')}đ.`
+          );
+        }
+
+        user.walletBalance = walletBalance - amount;
+        await user.save();
+
+        const txId = `tx-${Date.now()}`;
+        await WalletTransaction.create({
+          id: txId,
+          userId,
+          amount,
+          type: 'PAYMENT',
+          description: `Thanh toán đơn hàng ${orderId}`,
+          status: 'SUCCESS',
+        });
+      } else if (method === 'CASH') {
+        status = 'PENDING';
       }
-      if (user.walletBalance < amount) {
-        throw new Error(
-          `Số dư ví không đủ (${user.walletBalance.toLocaleString('vi-VN')}đ). Cần ${amount.toLocaleString('vi-VN')}đ.`
-        );
-      }
-      user.deductFunds(amount);
 
-      const tx: WalletTransactionItem = {
-        id: `tx-${Date.now()}`,
+      const payment = await Payment.create({
+        id: paymentId,
+        orderId,
         userId,
         amount,
-        type: 'PAYMENT',
-        description: `Thanh toán đơn hàng ${orderId}`,
-        date: new Date().toLocaleString('vi-VN'),
-        status: 'SUCCESS',
-      };
-      this.walletTransactions.set(tx.id, tx);
-    } else if (method === 'CASH') {
-      status = 'PENDING'; // Sẽ thanh toán khi nhận đồ
+        method,
+        status,
+        transactionCode: `PAY-${Math.floor(100000 + Math.random() * 900000)}`,
+        paidAt: status === 'SUCCESS' ? new Date() : undefined,
+      });
+
+      return payment;
+    } catch (err: any) {
+      console.error('[PaymentService.processPayment Error]:', err.message);
+      throw err;
     }
-
-    const payment = new Payment(paymentId, orderId, userId, amount, method, status, undefined, {
-      paidAt: status === 'SUCCESS' ? new Date() : undefined,
-    });
-
-    db.payments.set(payment.id, payment);
-    return payment;
   }
 
-  public topUpWallet(userId: string, amount: number, method: string = 'MoMo'): { newBalance: number } {
-    const user = db.users.get(userId);
-    if (!user) {
-      throw new Error('Người dùng không tồn tại');
+  public async topUpWallet(userId: string, amount: number, method: string = 'MoMo'): Promise<{ newBalance: number }> {
+    try {
+      const user = await User.findByPk(userId);
+      if (!user) {
+        throw new Error('Người dùng không tồn tại');
+      }
+
+      const currentBalance = Number(user.walletBalance) || 0;
+      user.walletBalance = currentBalance + amount;
+      await user.save();
+
+      const txId = `tx-${Date.now()}`;
+      await WalletTransaction.create({
+        id: txId,
+        userId,
+        amount,
+        type: 'TOPUP',
+        description: `Nạp tiền ví sinh viên qua ${method}`,
+        status: 'SUCCESS',
+      });
+
+      return { newBalance: Number(user.walletBalance) || 0 };
+    } catch (err: any) {
+      console.error('[PaymentService.topUpWallet Error]:', err.message);
+      throw err;
     }
-    user.addFunds(amount);
-
-    const tx: WalletTransactionItem = {
-      id: `tx-${Date.now()}`,
-      userId,
-      amount,
-      type: 'TOPUP',
-      description: `Nạp tiền ví sinh viên qua ${method}`,
-      date: new Date().toLocaleString('vi-VN'),
-      status: 'SUCCESS',
-    };
-    this.walletTransactions.set(tx.id, tx);
-
-    return { newBalance: user.walletBalance };
   }
 }
 

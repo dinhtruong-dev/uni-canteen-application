@@ -1,143 +1,184 @@
-/**
- * ==============================================================================
- * DỊCH VỤ GIỎ HÀNG REDIS (REDIS-BACKED SHOPPING CART SERVICE)
- * ==============================================================================
- * Kỹ thuật chuẩn công nghiệp:
- * 1. Chống "rác" Database: Giỏ hàng chưa thanh toán không lưu vào MySQL mà lưu
- *    vào Redis với TTL 7 ngày (tự động giải phóng bộ nhớ khi quá hạn).
- * 2. Tốc độ bàn thờ: Đọc/ghi siêu tốc (~0.1ms) trên RAM Redis khi người dùng
- *    tăng/giảm số lượng hoặc chọn món.
- * 3. Hỗ trợ cấu trúc lồng nhau phức tạp (Món ăn -> Topping -> Ghi chú) dưới dạng JSON.
- * 4. Quy trình chuyển sinh: Khi bấm "Đặt hàng", Backend lấy dữ liệu giỏ hàng từ
- *    Redis lưu vào MySQL `orders` và `order_details`, sau đó gọi `redis.del('cart:' + userId)`!
- * ==============================================================================
- */
-
-import { db } from './database.service';
 import { redisService } from './redis.service';
-import { Cart, CartItem, SelectedOptionSnapshot } from '../models';
+import { Cart, CartItem, Product } from '../models';
+import type { SelectedOptionSnapshot } from '../types/cart.types';
 
-const CART_TTL_SECONDS = 7 * 24 * 3600; // 7 ngày theo chuẩn nghiệp vụ
+const CART_TTL_SECONDS = 7 * 24 * 3600;
+const CART_KEY = (userId: string) => `cart:${userId}`;
 
 export class CartService {
-  private getRedisKey(userId: string): string {
-    return `cart:${userId}`;
+  private optionsKey(opts: SelectedOptionSnapshot[] = []): string {
+    return opts
+      .map(o => `${o.groupId}:${o.optionId ?? o.itemId}`)
+      .sort()
+      .join('|');
   }
 
-  /**
-   * Lấy giỏ hàng của người dùng từ Redis (với fallback in-memory)
-   */
-  public async getCart(userId: string): Promise<Cart> {
-    const key = this.getRedisKey(userId);
-
-    try {
-      const cached = await redisService.get<any>(key);
-      if (cached) {
-        const cart = Cart.fromJSON(cached);
-        db.carts.set(userId, cart);
-        return cart;
-      }
-    } catch (err: any) {
-      console.warn(`[CartService] Redis get notice for user ${userId}:`, err.message);
-    }
-
-    // Fallback: Lấy từ in-memory nếu có
-    let cart = db.carts.get(userId);
-    if (!cart) {
-      cart = new Cart(`cart-${userId}`, userId);
-      db.carts.set(userId, cart);
-    }
+  private parseCartFromJSON(raw: any, userId: string): Cart {
+    const cart = new Cart();
+    cart.id = raw?.id || `cart-${userId}`;
+    cart.userId = raw?.userId || userId;
+    cart.canteenId = raw?.canteenId;
+    cart.updatedAt = raw?.updatedAt ? new Date(raw.updatedAt) : new Date();
+    cart.items = Array.isArray(raw?.items)
+      ? raw.items.map((it: any) => this.toCartItem(it, cart.id))
+      : [];
     return cart;
   }
 
-  /**
-   * Alias tương thích getOrCreateCart
-   */
-  public async getOrCreateCart(userId: string): Promise<Cart> {
+  private toCartItem(it: any, cartId: string): CartItem {
+    const item = new CartItem();
+    item.id = it.id || `ci-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    item.cartId = cartId;
+    item.productId = it.productId || it.food?.id;
+    item.productName = it.productName || it.food?.name || it.name || 'Món ăn';
+    item.productImage = it.productImage || it.food?.image || it.image || '';
+    item.basePrice = Number(it.basePrice || it.unitPrice || it.food?.price || 0);
+    item.quantity = Math.max(1, Number(it.quantity || 1));
+    item.notes = it.notes;
+    item.createdAt = it.createdAt ? new Date(it.createdAt) : new Date();
+
+    if (Array.isArray(it.selectedOptions)) {
+      item.selectedOptions = it.selectedOptions;
+    } else if (Array.isArray(it.selectedToppings)) {
+      item.selectedOptions = it.selectedToppings.map((t: any) => ({
+        groupId: t.groupId || 'topping',
+        groupName: 'Topping',
+        optionId: t.id,
+        optionName: t.name,
+        extraPrice: Number(t.price || 0),
+      }));
+    } else {
+      item.selectedOptions = [];
+    }
+    return item;
+  }
+
+  public async getCart(userId: string): Promise<Cart> {
+    try {
+      const cached = await redisService.get<any>(CART_KEY(userId));
+      if (cached && typeof cached === 'object' && Array.isArray(cached.items)) {
+        return this.parseCartFromJSON(cached, userId);
+      }
+    } catch (err: any) {
+      console.warn(`[CartService] Redis get error for ${userId}:`, err.message);
+    }
+
+    const cart = new Cart();
+    cart.id = `cart-${userId}`;
+    cart.userId = userId;
+    cart.items = [];
+    cart.updatedAt = new Date();
+    await this.persistCart(userId, cart);
+    return cart;
+  }
+
+  public async clearCart(userId: string): Promise<Cart> {
+    const key = CART_KEY(userId);
+    try {
+      await redisService.del(key);
+      console.log(`[Redis Cart] 🧹 Đã xóa giỏ hàng của user [${userId}]`);
+    } catch (err: any) {
+      console.warn(`[CartService] Redis del notice for key ${key}:`, err.message);
+    }
+
+    const cart = new Cart();
+    cart.id = `cart-${userId}`;
+    cart.userId = userId;
+    cart.items = [];
+    cart.updatedAt = new Date();
+    return cart;
+  }
+
+  public getOrCreateCart(userId: string) {
     return this.getCart(userId);
   }
 
-  /**
-   * Lưu giỏ hàng vào Redis với TTL 7 ngày
-   */
-  private async persistCart(userId: string, cart: Cart): Promise<void> {
-    db.carts.set(userId, cart);
-    const key = this.getRedisKey(userId);
+  public async persistCart(userId: string, cart: Cart): Promise<void> {
     try {
-      await redisService.set(key, cart.toJSON(), CART_TTL_SECONDS);
+      await redisService.set(CART_KEY(userId), cart.toJSON(), CART_TTL_SECONDS);
     } catch (err: any) {
-      console.warn(`[CartService] Redis set notice for key ${key}:`, err.message);
+      console.warn(`[CartService] Redis set error for ${userId}:`, err.message);
     }
   }
 
-  /**
-   * Thêm món ăn vào giỏ hàng và lưu ngay vào Redis
-   */
   public async addItem(
     userId: string,
-    data: {
-      productId: string;
-      quantity?: number;
-      selectedOptions?: SelectedOptionSnapshot[];
-      notes?: string;
-    }
+    data: { productId: string; quantity?: number; selectedOptions?: SelectedOptionSnapshot[]; notes?: string }
   ): Promise<Cart> {
     const cart = await this.getCart(userId);
-    const product = db.products.get(data.productId);
-    if (!product) {
-      throw new Error('Món ăn không tồn tại hoặc đã ngừng phục vụ');
+
+    const product = await Product.findByPk(data.productId)
+    if (!product) throw new Error('Món ăn không tồn tại hoặc đã ngừng phục vụ');
+
+    if (cart.canteenId && cart.canteenId !== product.canteenId) {
+      throw new Error('Giỏ hàng chỉ được chứa món từ một quầy. Vui lòng xóa giỏ trước.');
     }
 
-    const item = new CartItem(
-      `ci-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      cart.id,
-      product.id,
-      product.name,
-      product.image,
-      product.price,
-      data.quantity || 1,
-      data.selectedOptions || [],
-      data.notes
+    const newItem = new CartItem();
+    newItem.id = `ci-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    newItem.cartId = cart.id;
+    newItem.productId = product.id;
+    newItem.productName = product.name;
+    newItem.productImage = product.image || '';
+    newItem.basePrice = Number(product.price) || 0;
+    newItem.quantity = Math.max(1, data.quantity || 1);
+    newItem.selectedOptions = data.selectedOptions || [];
+    newItem.notes = data.notes;
+    newItem.createdAt = new Date();
+
+    const keyNew = this.optionsKey(newItem.selectedOptions);
+    const idx = cart.items.findIndex(
+      it => it.productId === newItem.productId &&
+        this.optionsKey(it.selectedOptions) === keyNew &&
+        (it.notes ?? '') === (newItem.notes ?? '')
     );
 
-    cart.addItem(item);
+    if (idx > -1) cart.items[idx].quantity += newItem.quantity;
+    else cart.items.push(newItem);
+
     cart.canteenId = product.canteenId;
+    cart.updatedAt = new Date();
     await this.persistCart(userId, cart);
     return cart;
   }
-
   /**
-   * Cập nhật số lượng món trong giỏ hàng và lưu vào Redis
-   */
-  public async updateItemQuantity(userId: string, itemId: string, quantity: number): Promise<Cart> {
-    const cart = await this.getCart(userId);
-    cart.updateItemQuantity(itemId, quantity);
-    await this.persistCart(userId, cart);
-    return cart;
-  }
-
-  /**
-   * Xóa một món khỏi giỏ hàng trong Redis
-   */
+ * Xóa 1 item khỏi giỏ hàng theo itemId
+ */
   public async removeItem(userId: string, itemId: string): Promise<Cart> {
     const cart = await this.getCart(userId);
-    cart.removeItem(itemId);
+
+    const before = cart.items.length;
+    cart.items = cart.items.filter((it) => it.id !== itemId);
+
+    if (cart.items.length === before) {
+      console.warn(
+        `[CartService] removeItem: không tìm thấy item ${itemId} trong giỏ của ${userId}`
+      );
+    }
+
+    cart.updatedAt = new Date();
     await this.persistCart(userId, cart);
     return cart;
   }
 
-  /**
-   * Đồng bộ toàn bộ danh sách món từ frontend lên Redis (Sync Cart)
-   */
   public async syncCart(userId: string, rawItems: any[]): Promise<Cart> {
-    const cart = new Cart(`cart-${userId}`, userId);
+    const cart = new Cart();
+    cart.id = `cart-${userId}`;
+    cart.userId = userId;
+    cart.items = [];
+    cart.updatedAt = new Date();
+
     if (Array.isArray(rawItems)) {
       for (const it of rawItems) {
         const food = it.food || {};
         const productId = it.productId || food.id || it.id;
-        const productName = it.productName || food.name || it.name || 'Món ăn';
-        const productImage = it.productImage || food.image || it.image || '';
-        const basePrice = Number(it.basePrice || it.unitPrice || food.price || it.price || 0);
+        const productName =
+          it.productName || food.name || it.name || 'Món ăn';
+        const productImage =
+          it.productImage || food.image || it.image || '';
+        const basePrice = Number(
+          it.basePrice || it.unitPrice || food.price || it.price || 0
+        );
         const quantity = Math.max(1, Number(it.quantity || 1));
 
         let selectedOptions: SelectedOptionSnapshot[] = [];
@@ -147,49 +188,69 @@ export class CartService {
           selectedOptions = it.selectedToppings.map((t: any) => ({
             groupId: t.groupId || 'topping',
             groupName: 'Topping',
-            optionId: t.id,
-            optionName: t.name,
-            price: Number(t.price || 0),
+            optionId: t.id || t.optionId,
+            optionName: t.name || t.optionName,
+            extraPrice: Number(t.price || t.extraPrice || 0),
           }));
         }
 
-        const item = new CartItem(
-          it.id || `ci-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          cart.id,
-          productId,
-          productName,
-          productImage,
-          basePrice,
-          quantity,
-          selectedOptions,
-          it.notes
+        const item = new CartItem();
+        item.id =
+          it.id ||
+          `ci-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        item.cartId = cart.id;
+        item.productId = productId;
+        item.productName = productName;
+        item.productImage = productImage;
+        item.basePrice = basePrice;
+        item.quantity = quantity;
+        item.selectedOptions = selectedOptions;
+        item.notes = it.notes;
+        item.createdAt = it.createdAt ? new Date(it.createdAt) : new Date();
+
+        const keyNew = this.optionsKey(selectedOptions);
+        const existingIndex = cart.items.findIndex(
+          (i) =>
+            i.productId === item.productId &&
+            this.optionsKey(i.selectedOptions) === keyNew &&
+            (i.notes ?? '') === (item.notes ?? '')
         );
-        cart.addItem(item);
+
+        if (existingIndex > -1) {
+          cart.items[existingIndex].quantity += item.quantity;
+        } else {
+          cart.items.push(item);
+        }
+
+        if (!cart.canteenId && (it.canteenId || food.canteenId)) {
+          cart.canteenId = it.canteenId || food.canteenId;
+        }
       }
     }
 
     await this.persistCart(userId, cart);
     return cart;
   }
-
-  /**
-   * Giai đoạn Dọn dẹp: Xóa trắng giỏ hàng trong Redis (sau khi lưu MySQL thành công)
-   */
-  public async clearCart(userId: string): Promise<Cart> {
+  public async updateItemQuantity(
+    userId: string,
+    itemId: string,
+    quantity: number
+  ): Promise<Cart> {
     const cart = await this.getCart(userId);
-    cart.clear();
-    db.carts.delete(userId);
 
-    const key = this.getRedisKey(userId);
-    try {
-      await redisService.del(key);
-      console.log(`[Redis Cart] 🧹 Đã dọn dẹp khóa Redis "${key}" sau khi đơn hàng được lưu MySQL.`);
-    } catch (err: any) {
-      console.warn(`[CartService] Redis del notice for key ${key}:`, err.message);
+    if (quantity <= 0) {
+      cart.items = cart.items.filter((it) => it.id !== itemId);
+    } else {
+      const item = cart.items.find((it) => it.id === itemId);
+      if (!item) {
+        throw new Error('Không tìm thấy món trong giỏ hàng');
+      }
+      item.quantity = quantity;
     }
 
+    cart.updatedAt = new Date();
+    await this.persistCart(userId, cart);
     return cart;
   }
 }
-
 export const cartService = new CartService();

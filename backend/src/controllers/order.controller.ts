@@ -16,13 +16,13 @@ export class OrderController {
     }
   }
 
-  public getOrderById(req: AuthenticatedRequest, res: Response) {
+  public async getOrderById(req: AuthenticatedRequest, res: Response) {
     try {
-      const order = orderService.getOrderById(req.params.id);
+      const order = await orderService.getOrderById(req.params.id);
       if (!order) {
         return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
       }
-      const payment = paymentService.getPaymentByOrderId(order.id);
+      const payment = await paymentService.getPaymentByOrderId(order.id);
       const orderData = typeof (order as any)?.toJSON === 'function' ? (order as any).toJSON() : order;
       const paymentData = payment ? (typeof (payment as any)?.toJSON === 'function' ? (payment as any).toJSON() : payment) : null;
       res.json({
@@ -39,7 +39,7 @@ export class OrderController {
 
   public async createOrder(req: AuthenticatedRequest, res: Response) {
     const userId = req.user?.id || 'user-stu-1';
-    const userCart = cartService.getOrCreateCart(userId);
+    const userCart = await cartService.getOrCreateCart(userId);
 
     // If items not provided in body, use user's Cart items
     let orderItems = req.body.items;
@@ -68,7 +68,7 @@ export class OrderController {
       });
 
       // 2. Process Payment
-      const payment = paymentService.processPayment(
+      const payment = await paymentService.processPayment(
         order.id,
         userId,
         order.finalAmount,
@@ -81,7 +81,7 @@ export class OrderController {
       }
 
       // 3. Clear cart if order placed from cart
-      cartService.clearCart(userId);
+      await cartService.clearCart(userId);
 
       const orderData = typeof (order as any)?.toJSON === 'function' ? (order as any).toJSON() : order;
       const paymentData = typeof (payment as any)?.toJSON === 'function' ? (payment as any).toJSON() : payment;
@@ -116,7 +116,7 @@ export class OrderController {
         message: 'Không thể hủy đơn hàng (đơn đã chuẩn bị hoặc đã hoàn thành)',
       });
     }
-    const order = orderService.getOrderById(req.params.id);
+    const order = await orderService.getOrderById(req.params.id);
     const data = typeof (order as any)?.toJSON === 'function' ? (order as any).toJSON() : order;
     res.json({ success: true, message: 'Đã hủy đơn hàng thành công', data });
   }
@@ -205,10 +205,10 @@ export class OrderController {
   /**
    * KDS / Staff: Call customer to pickup dish / notify customer
    */
-  public callCustomer(req: any, res: Response) {
+  public async callCustomer(req: any, res: Response) {
     try {
       const orderId = req.params.id;
-      const order = orderService.getOrderById(orderId);
+      const order = await orderService.getOrderById(orderId);
       if (!order) {
         return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
       }

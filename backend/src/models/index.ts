@@ -1,34 +1,84 @@
-// Group 1: Nhóm Người dùng & Hồ sơ cá nhân
+import sequelize from '../db/sequelize';
+
+import { User } from './User';
+import { Canteen } from './Canteen';
+import { Category } from './Category';
+import { Product } from './Product';
+import { ProductOption } from './ProductOption';
+import { OptionGroup } from './OptionGroup';
+import { OptionItem } from './OptionItem';
+import { Order } from './Order';
+import { OrderDetail } from './OrderDetail';
+import { Cart } from './Cart';
+import { CartItem } from './CartItem';
+import { DiningTable } from './DiningTable';
+import { PickupSlot } from './PickupSlot';
+import { Payment } from './Payment';
+import { Banner } from './Banner';
+import { FlashSale } from './FlashSale';
+import { Voucher } from './Voucher';
+import { UserVoucher } from './UserVoucher';
+import { Review } from './Review';
+import { Notification } from './Notification';
+import { DeliveryAddress } from './DeliveryAddress';
+import { Favorite } from './Favorite';
+import { WalletTransaction } from './WalletTransaction';
+import { SearchHistoryItem } from './SearchHistory';
+
 export * from './User';
-export * from './DeliveryAddress';
-export * from './Favorite';
-
-// Group 2: Nhóm Vận hành & Cơ sở vật chất
 export * from './Canteen';
-export * from './DiningTable';
-export * from './PickupSlot';
-
-// Group 3: Nhóm Thực đơn (Menu)
 export * from './Category';
 export * from './Product';
 export * from './ProductOption';
 export * from './OptionGroup';
-
-// Group 4: Nhóm Giỏ hàng (Mua sắm)
-export * from './Cart';
-
-// Group 5: Nhóm Giao dịch & Đơn hàng
+export * from './OptionItem';
 export * from './Order';
 export * from './OrderDetail';
+export * from './Cart';
+export * from './CartItem';
+export * from './DiningTable';
+export * from './PickupSlot';
 export * from './Payment';
-
-// Group 6: Nhóm Marketing (Quản trị bởi Admin)
 export * from './Banner';
 export * from './FlashSale';
 export * from './Voucher';
 export * from './UserVoucher';
-
-// Group 7: Nhóm Tương tác & Trải nghiệm khách hàng
 export * from './Review';
 export * from './Notification';
-export * from './SearchHistory';
+export * from './DeliveryAddress';
+export * from './Favorite';
+export * from './WalletTransaction';
+
+export const SearchHistory = SearchHistoryItem;
+
+export * from '../types/search.types';
+export * from '../types/cart.types';
+export * from '../types/order.types';
+
+export {
+    sequelize,
+    User,
+    Canteen,
+    Category,
+    Product,
+    ProductOption,
+    Order,
+    OrderDetail,
+    OptionGroup,
+    OptionItem,
+    Cart,
+    CartItem,
+    DiningTable,
+    PickupSlot,
+    Payment,
+    Banner,
+    FlashSale,
+    Voucher,
+    UserVoucher,
+    Review,
+    Notification,
+    DeliveryAddress,
+    Favorite,
+    WalletTransaction,
+    SearchHistoryItem,
+};

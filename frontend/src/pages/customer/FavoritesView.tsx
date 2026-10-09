@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { FoodCard } from '../../components/FoodCard';
+import { HeaderNav } from '../../components/HeaderNav';
 import { Heart } from 'lucide-react';
 
 export const FavoritesView: React.FC = () => {
@@ -10,15 +11,16 @@ export const FavoritesView: React.FC = () => {
 
   return (
     <div className="-mt-1 sm:-mt-2 space-y-4 pb-20 max-w-4xl mx-auto px-1 sm:px-0">
-      {/* Sticky Header Container */}
-      <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md py-2 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-slate-200/60 transition-all flex items-center justify-between">
-        <h1 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
-          Món Ăn Yêu Thích
-        </h1>
-        <span className="text-xs font-semibold text-slate-500 bg-slate-200/60 px-2.5 py-0.5 rounded-full">
-          {favoriteFoods.length} món
-        </span>
-      </div>
+      {/* Header Navigation Component */}
+      <HeaderNav
+        title="Món Ăn Yêu Thích"
+        onBack={() => navigateTo('home')}
+        rightAction={
+          <span className="text-xs font-semibold text-slate-500 bg-slate-200/60 px-2.5 py-0.5 rounded-full">
+            {favoriteFoods.length} món
+          </span>
+        }
+      />
 
       {favoriteFoods.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 space-y-3 max-w-md mx-auto my-6">

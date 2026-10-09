@@ -96,6 +96,7 @@ type CheckoutSubPage =
   | 'address'
   | 'payment'
   | 'voucher'
+  | 'pickup'
   | 'invoice'
   | 'insurance'
   | 'note';
@@ -481,11 +482,10 @@ export const CheckoutView: React.FC = () => {
                         });
                         showToast(`Đã chọn địa chỉ: ${full}`, 'success');
                       }}
-                      className={`p-3.5 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${
-                        isSelected
+                      className={`p-3.5 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${isSelected
                           ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
                           : 'border-slate-200 hover:border-slate-300'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
@@ -1103,9 +1103,195 @@ export const CheckoutView: React.FC = () => {
     );
   }
 
-
-
   // ==========================================
+  // SUB-PAGE 4: CHỌN KHUNG GIỜ ĐẾN LẤY MÓN (FULL PAGE - ĐẶT ĐỒ ĂN ĐẾN LẤY)
+  // ==========================================
+  if (activePage === 'pickup') {
+    const availableSlotsList =
+      pickupSlots.length > 0
+        ? pickupSlots
+        : [
+          { id: 'ps-1', timeRange: '11:00 - 11:15', status: 'AVAILABLE', label: 'Khung giờ trưa sớm' },
+          { id: 'ps-2', timeRange: '11:15 - 11:30', status: 'AVAILABLE', label: 'Khung giờ trưa' },
+          { id: 'ps-3', timeRange: '11:30 - 11:45', status: 'AVAILABLE', label: 'Giờ cao điểm' },
+          { id: 'ps-4', timeRange: '11:45 - 12:00', status: 'AVAILABLE', label: 'Giờ cao điểm' },
+          { id: 'ps-5', timeRange: '12:00 - 12:15', status: 'AVAILABLE', label: 'Giờ cao điểm' },
+          { id: 'ps-6', timeRange: '12:15 - 12:30', status: 'AVAILABLE', label: 'Khung giờ trưa' },
+          { id: 'ps-7', timeRange: '12:30 - 12:45', status: 'AVAILABLE', label: 'Khung giờ vắng' },
+          { id: 'ps-8', timeRange: '12:45 - 13:00', status: 'AVAILABLE', label: 'Khung giờ vắng' },
+        ];
+
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 pb-28 max-w-md sm:max-w-lg mx-auto relative font-sans">
+        {/* Page Header */}
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-100 px-4 py-3.5 flex items-center justify-between shadow-xs">
+          <button
+            onClick={() => setActivePage('main')}
+            className="p-1 -ml-1 text-slate-800 hover:text-black hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+            aria-label="Đóng"
+          >
+            <X className="w-6 h-6 stroke-[2]" />
+          </button>
+          <h1 className="text-[17px] font-bold text-slate-900">Khung giờ đến lấy</h1>
+          <div className="w-6" />
+        </header>
+
+        <main className="p-4 space-y-4">
+          {/* Thông tin nhận tại quầy */}
+          <div className="p-4 bg-gradient-to-br from-[#f0fdf4] to-[#e6f8fa] border border-[#22c3d3]/30 rounded-2xl space-y-3 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-[#22c3d3] text-white flex items-center justify-center shadow-xs shrink-0">
+                  <Clock className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h2 className="text-[15px] font-bold text-slate-900 flex items-center gap-2">
+                    Đặt đồ ăn đến lấy
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                      Miễn phí 0đ
+                    </span>
+                  </h2>
+                  <p className="text-[12px] text-slate-600 mt-0.5">
+                    Quầy phục vụ: <strong className="text-slate-800 font-semibold">{selectedCanteen?.name || 'Căng tin trường'}</strong>
+                  </p>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-slate-600 bg-white/90 px-2.5 py-1 rounded-lg border border-slate-200 shrink-0">
+                Tại quầy
+              </span>
+            </div>
+
+            <div className="p-3 bg-white/90 rounded-xl border border-[#22c3d3]/20 flex items-center justify-between text-[12.5px]">
+              <span className="text-slate-600 font-medium">Khung giờ đang chọn:</span>
+              <strong className="text-[#0f766e] font-bold text-[14px] bg-[#22c3d3]/15 px-2.5 py-1 rounded-lg">
+                {selectedSlotTime}
+              </strong>
+            </div>
+
+            <p className="text-[11.5px] text-slate-500 leading-relaxed italic">
+              * Quán sẽ chuẩn bị sẵn sàng và giữ nóng món ăn theo đúng khung giờ bạn chọn. Vui lòng đến quầy đúng giờ để thưởng thức món ăn nóng hổi trọn vị nhất.
+            </p>
+          </div>
+
+          {/* Danh sách khung giờ từ CSDL */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-[14.5px] font-bold text-slate-900">
+                  Chọn khung giờ nhận món:
+                </h3>
+                <p className="text-[12px] text-slate-500">
+                  Khung giờ sẵn có được cấu hình từ quầy căng tin
+                </p>
+              </div>
+              {loadingSlots && (
+                <span className="text-[11px] text-[#0d9488] font-medium bg-[#e6f8fa] px-2 py-0.5 rounded-full">
+                  Đang tải CSDL...
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              {availableSlotsList.map((slot: any) => {
+                const isSelected = selectedSlotTime === slot.timeRange;
+                const isAvailable = slot.status === 'AVAILABLE';
+
+                return (
+                  <button
+                    key={slot.id || slot.timeRange}
+                    type="button"
+                    disabled={!isAvailable}
+                    onClick={() => {
+                      setSelectedSlotTime(slot.timeRange);
+                      setPickupTimeSlot(slot.timeRange);
+                    }}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative flex flex-col justify-between min-h-[76px] ${isSelected
+                        ? 'border-[#22c3d3] bg-[#f0fdfa] ring-2 ring-[#22c3d3]/35 text-[#0f766e] shadow-xs'
+                        : isAvailable
+                          ? 'border-slate-200/90 bg-white hover:border-[#22c3d3]/50 hover:bg-slate-50/60 text-slate-800'
+                          : 'border-slate-200 bg-slate-100/70 text-slate-400 cursor-not-allowed opacity-60'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] font-bold block">{slot.timeRange}</span>
+                      <div
+                        className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center shrink-0 transition-all ${isSelected
+                            ? 'border-[#22c3d3] bg-[#22c3d3] text-white shadow-2xs'
+                            : 'border-slate-300 bg-white'
+                          }`}
+                      >
+                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-100">
+                      <span
+                        className={`text-[11px] font-semibold ${isSelected
+                            ? 'text-[#0d9488] font-bold'
+                            : isAvailable
+                              ? 'text-emerald-600'
+                              : 'text-slate-400'
+                          }`}
+                      >
+                        {isSelected ? '✓ Đã chọn' : isAvailable ? 'Còn chỗ' : 'Hết chỗ'}
+                      </span>
+                      {slot.label && (
+                        <span className="text-[9.5px] text-slate-400 hidden sm:inline truncate max-w-[80px]">
+                          {slot.label}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Hướng dẫn nhận món 3 bước */}
+          <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
+            <h4 className="text-[13.5px] font-bold text-slate-900 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-[#22c3d3]" /> Quy trình nhận món tại quầy
+            </h4>
+            <div className="space-y-2 text-[12px] text-slate-600">
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-700 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">
+                  1
+                </span>
+                <p>Sau khi thanh toán, hệ thống sẽ cấp mã đơn hàng 6 số và mã QR riêng.</p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-700 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">
+                  2
+                </span>
+                <p>Căng tin chuẩn bị món sẵn sàng và đóng gói cẩn thận đúng theo khung giờ bạn đã chọn.</p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-700 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">
+                  3
+                </span>
+                <p>Đến quầy nhận món, xuất trình mã đơn trên ứng dụng để nhận đồ ăn ngay không cần xếp hàng.</p>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        {/* Nút Xác nhận khung giờ cố định dưới đáy */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+          <div className="max-w-md sm:max-w-lg mx-auto">
+            <button
+              onClick={() => {
+                setActivePage('main');
+                showToast(`Đã chọn khung giờ đến lấy: ${selectedSlotTime}`, 'success');
+              }}
+              className="w-full py-3.5 rounded-full bg-[#22c3d3] hover:bg-[#1eb0bf] text-white font-bold text-[15px] transition-all cursor-pointer shadow-md shadow-[#22c3d3]/20 active:scale-98 flex items-center justify-center gap-2"
+            >
+              <Check className="w-5 h-5 stroke-[2.5]" />
+              <span>Xác nhận khung giờ ({selectedSlotTime})</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   // SUB-PAGE 5: XUẤT HÓA ĐƠN & DỊCH VỤ BỔ SUNG (FULL PAGE)
   // ==========================================
   if (activePage === 'invoice') {
@@ -1503,104 +1689,65 @@ export const CheckoutView: React.FC = () => {
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
           </div>
+
+          {/* Row: Khung giờ đến lấy -> opens 'pickup' page (tương tự như Ưu đãi) */}
+          <div
+            onClick={() => setActivePage('pickup')}
+            className="flex items-center justify-between py-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-lg bg-[#22c3d3] flex items-center justify-center text-white shrink-0 shadow-xs">
+                <Clock className="w-3.5 h-3.5" />
+              </div>
+              <span className="text-[15px] font-medium text-slate-900">
+                {selectedSlotTime ? (
+                  <>
+                    Khung giờ đến lấy:{' '}
+                    <span className="text-[#0f766e] font-bold">{selectedSlotTime}</span>
+                  </>
+                ) : (
+                  'Khung giờ đến lấy'
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                Tại quầy 0đ
+              </span>
+              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+            </div>
+          </div>
         </div>
 
-        {/* 3. ĐẶT ĐỒ ĂN ĐẾN LẤY & KHUNG GIỜ NHẬN MÓN TỪ CSDL (BỎ HÌNH THỨC NHẬN HÀNG) */}
-        <div className="p-4 bg-gradient-to-br from-[#f0fdf4] to-[#e6f8fa] border border-[#22c3d3]/30 rounded-2xl space-y-3.5 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#22c3d3] text-white flex items-center justify-center shadow-xs shrink-0">
-                <Clock className="w-5 h-5 stroke-[2.5]" />
-              </div>
-              <div>
-                <h3 className="text-[15px] font-bold text-slate-900 flex items-center gap-2">
+        {/* 3. ĐẶT ĐỒ ĂN ĐẾN LẤY & KHUNG GIỜ NHẬN MÓN TỪ CSDL (Click mở trang chọn giờ) */}
+        <div
+          onClick={() => setActivePage('pickup')}
+          className="p-3.5 bg-gradient-to-br from-[#f0fdf4] to-[#e6f8fa] border border-[#22c3d3]/30 hover:border-[#22c3d3] rounded-2xl cursor-pointer transition-all hover:shadow-xs group flex items-center justify-between gap-3"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-[#22c3d3] text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+              <Clock className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-[14.5px] font-bold text-slate-900">
                   Đặt đồ ăn đến lấy
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                    Miễn phí 0đ
-                  </span>
                 </h3>
-                <p className="text-[12px] text-slate-600 mt-0.5">
-                  Khung giờ đến lấy: <strong className="text-[#0f766e] font-bold text-[13px]">{selectedSlotTime}</strong>
-                </p>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                  Miễn phí 0đ
+                </span>
               </div>
-            </div>
-            <span className="text-[11px] font-bold text-slate-600 bg-white/90 px-2.5 py-1 rounded-lg border border-slate-200 shrink-0">
-              Tại quầy căng tin
-            </span>
-          </div>
-
-          {/* Chọn khung giờ đến lấy được thiết lập từ DB */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[12.5px] font-bold text-slate-800">
-                Chọn giờ đến lấy món (Khung giờ CSDL):
+              <p className="text-[12px] text-slate-600 mt-0.5 truncate">
+                Khung giờ: <strong className="text-[#0f766e] font-bold text-[13px]">{selectedSlotTime}</strong> • Tại quầy căng tin
               </p>
-              {loadingSlots && (
-                <span className="text-[11px] text-slate-400 font-normal">Đang nạp từ DB...</span>
-              )}
             </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {(pickupSlots.length > 0
-                ? pickupSlots
-                : [
-                    { id: 'ps-1', timeRange: '11:00 - 11:15', status: 'AVAILABLE' },
-                    { id: 'ps-2', timeRange: '11:15 - 11:30', status: 'AVAILABLE' },
-                    { id: 'ps-3', timeRange: '11:30 - 11:45', status: 'AVAILABLE' },
-                    { id: 'ps-4', timeRange: '11:45 - 12:00', status: 'AVAILABLE' },
-                    { id: 'ps-5', timeRange: '12:00 - 12:15', status: 'AVAILABLE' },
-                    { id: 'ps-6', timeRange: '12:15 - 12:30', status: 'AVAILABLE' },
-                    { id: 'ps-7', timeRange: '12:30 - 12:45', status: 'AVAILABLE' },
-                    { id: 'ps-8', timeRange: '12:45 - 13:00', status: 'AVAILABLE' },
-                  ]
-              ).map((slot: any) => {
-                const isSelected = selectedSlotTime === slot.timeRange;
-                const isAvailable = slot.status === 'AVAILABLE';
-
-                return (
-                  <button
-                    key={slot.id || slot.timeRange}
-                    type="button"
-                    disabled={!isAvailable}
-                    onClick={() => {
-                      setSelectedSlotTime(slot.timeRange);
-                      setPickupTimeSlot(slot.timeRange);
-                      showToast(`Đã chọn khung giờ đến lấy: ${slot.timeRange}`, 'success');
-                    }}
-                    className={`p-2 rounded-xl border text-center transition-all cursor-pointer relative ${
-                      isSelected
-                        ? 'border-[#22c3d3] bg-white ring-2 ring-[#22c3d3]/35 text-[#0f766e] font-bold shadow-xs'
-                        : isAvailable
-                          ? 'border-slate-200 bg-white/90 hover:border-[#22c3d3]/60 hover:bg-white text-slate-700'
-                          : 'border-slate-200 bg-slate-100/60 text-slate-400 cursor-not-allowed opacity-60'
-                    }`}
-                  >
-                    <span className="text-[12px] font-bold block">{slot.timeRange}</span>
-                    <span
-                      className={`text-[10px] font-semibold mt-0.5 block ${
-                        isSelected
-                          ? 'text-[#0d9488] font-bold'
-                          : isAvailable
-                            ? 'text-emerald-600'
-                            : 'text-slate-400'
-                      }`}
-                    >
-                      {isSelected ? '✓ Đã chọn' : isAvailable ? 'Còn chỗ' : 'Hết chỗ'}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[11px] text-slate-500 mt-2 italic">
-              * Quán sẽ chuẩn bị sẵn sàng và giữ nóng món ăn theo đúng khung giờ bạn chọn. Vui lòng đến quầy đúng giờ.
-            </p>
+          </div>
+          <div className="flex items-center gap-1 text-[#0d9488] font-bold text-[12px] bg-white/90 px-2.5 py-1 rounded-xl border border-slate-200/80 shadow-2xs group-hover:bg-[#22c3d3] group-hover:text-white group-hover:border-[#22c3d3] transition-all shrink-0">
+            <span>Đổi giờ</span>
+            <ChevronRight className="w-3.5 h-3.5" />
           </div>
         </div>
 
-        {/* Section Divider */}
-        <div className="border-t border-slate-100 pt-3" />
-
-        {/* 3. Tóm tắt đơn */}
         <div>
           <div className="flex items-center justify-between">
             <div>

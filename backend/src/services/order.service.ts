@@ -1,208 +1,81 @@
-import { db } from './database.service';
-import { executeQuery } from '../config/db.config';
+// src/services/order.service.ts
+import { Op } from 'sequelize';
+import sequelize from '../db/sequelize';
 import {
   Order,
   OrderDetail,
+  Product,
+  Voucher,
+  UserVoucher,
+  OptionItem,
+  OptionGroup,
+  DiningTable,
+} from '../models';
+
+import type {
+  CreateOrderDTO,
+  CreateOrderItemDTO,
   OrderStatus,
   OrderType,
-  PaymentMethod,
-  SelectedOptionSnapshot,
-} from '../models';
+} from '../types/order.types';
+
+import type { SelectedOptionSnapshot } from '../types/cart.types';
+
 import { realtimeService } from './realtime.service';
 import { socketService } from './socket.service';
 import { tableService } from './table.service';
 import { interactionService } from './interaction.service';
 import { cartService } from './cart.service';
 
-export interface CreateOrderItemDTO {
-  productId: string;
-  quantity: number;
-  /** Mảng chứa các ID của lựa chọn chi tiết (VD: ['opt-size-l', 'opt-tranchau']) */
-  selectedOptionIds?: string[];
-  /** Ghi chú cho món ăn này (VD: "Ít đường, không hành") */
-  notes?: string;
-  /** Các trường tương thích hoặc gợi ý từ client - Backend TUYỆT ĐỐI không dùng giá từ client */
-  productName?: string;
-  productImage?: string;
-  unitPrice?: number;
-  selectedOptions?: SelectedOptionSnapshot[];
-}
-
-export interface CreateOrderDTO {
-  id?: string;
-  orderCode?: string;
-  userId: string;
-  userName?: string;
-  userPhone?: string;
-  canteenId?: string;
-  canteenName?: string;
-  items: CreateOrderItemDTO[];
-  orderType: OrderType;
-  paymentMethod: PaymentMethod;
-  voucherCode?: string;
-  voucherId?: string;
-  tableId?: string;
-  tableNumber?: string;
-  pickupSlot?: string;
-  deliveryAddressId?: string;
-  deliveryAddressText?: string;
-  notes?: string;
-}
+/**
+ * State machine: chỉ cho phép chuyển trạng thái theo bảng này.
+ */
+const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  PENDING: ['CONFIRMED', 'CANCELLED'],
+  CONFIRMED: ['PREPARING', 'CANCELLED'],
+  PREPARING: ['READY', 'CANCELLED'],
+  READY: ['SERVED', 'WAITING_PICKUP', 'DELIVERING', 'CANCELLED'],
+  SERVED: ['COMPLETED'],
+  WAITING_PICKUP: ['COMPLETED', 'CANCELLED'],
+  DELIVERING: ['COMPLETED', 'CANCELLED'],
+  COMPLETED: [],
+  CANCELLED: [],
+};
 
 export class OrderService {
+  // ---------------------------------------------------------------------------
+  // QUERY
+  // ---------------------------------------------------------------------------
+
   public async getAllOrders(userId?: string, canteenId?: string): Promise<Order[]> {
-    try {
-      let sql = 'SELECT * FROM orders';
-      const params: any[] = [];
-      const where: string[] = [];
-      if (userId) {
-        where.push('user_id = ?');
-        params.push(userId);
-      }
-      if (canteenId && canteenId !== 'ALL') {
-        where.push('canteen_id = ?');
-        params.push(canteenId);
-      }
-      if (where.length > 0) {
-        sql += ' WHERE ' + where.join(' AND ');
-      }
-      sql += ' ORDER BY created_at DESC';
+    const whereClause: any = {};
+    if (userId) whereClause.userId = userId;
+    if (canteenId && canteenId !== 'ALL') whereClause.canteenId = canteenId;
 
-      const rows = await executeQuery(sql, params);
-      if (Array.isArray(rows) && rows.length > 0) {
-        const orderIds = rows.map((r: any) => r.id);
-        const detailRows = await executeQuery(
-          `SELECT * FROM order_details WHERE order_id IN (${orderIds.map(() => '?').join(',')})`,
-          orderIds
-        );
-
-        const detailsMap = new Map<string, OrderDetail[]>();
-        if (Array.isArray(detailRows)) {
-          for (const d of detailRows) {
-            let selectedOptions: any[] = [];
-            try {
-              selectedOptions = JSON.parse(d.selected_options_json || '[]');
-            } catch {}
-            const item = new OrderDetail(
-              d.id,
-              d.order_id,
-              d.product_id,
-              d.product_name,
-              d.product_image,
-              Number(d.unit_price) || 0,
-              Number(d.quantity) || 1,
-              selectedOptions,
-              d.notes
-            );
-            if (!detailsMap.has(d.order_id)) detailsMap.set(d.order_id, []);
-            detailsMap.get(d.order_id)!.push(item);
-          }
-        }
-
-        const orders: Order[] = [];
-        for (const r of rows) {
-          const items = detailsMap.get(r.id) || [];
-          const order = new Order(
-            r.id,
-            r.order_code,
-            r.user_id,
-            r.user_name,
-            r.user_phone,
-            r.canteen_id,
-            r.canteen_name,
-            items,
-            r.order_type,
-            r.payment_method,
-            {
-              voucherId: r.voucher_id || undefined,
-              discountAmount: Number(r.discount_amount) || 0,
-              tableId: r.table_id || undefined,
-              tableNumber: r.table_number || undefined,
-              pickupSlot: r.pickup_slot || undefined,
-              deliveryAddressId: r.delivery_address_id || undefined,
-              deliveryAddressText: r.delivery_address_text || undefined,
-              notes: r.notes || undefined,
-              status: r.status,
-              isPaid: Boolean(r.is_paid),
-            }
-          );
-          db.orders.set(order.id, order);
-          orders.push(order);
-        }
-        return orders;
-      }
-    } catch (err: any) {
-      console.warn('[OrderService] MySQL fetch orders notice:', err.message);
-    }
-
-    let list = Array.from(db.orders.values());
-    if (canteenId && canteenId !== 'ALL') {
-      list = list.filter((o) => o.canteenId === canteenId);
-    }
-    if (userId) {
-      list = list.filter((o) => o.userId === userId);
-    }
-    return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return Order.findAll({
+      where: whereClause,
+      include: [OrderDetail],
+      order: [['createdAt', 'DESC']],
+    });
   }
 
-  public getOrderById(orderId: string): Order | undefined {
-    return (
-      db.orders.get(orderId) ||
-      Array.from(db.orders.values()).find((o) => o.orderCode === orderId)
-    );
+  public async getOrderById(orderId: string): Promise<Order | undefined> {
+    return this.findOrderByIdOrCode(orderId);
   }
 
   public async findOrderByIdOrCode(orderId: string): Promise<Order | undefined> {
-    const memory = this.getOrderById(orderId);
-    if (memory) return memory;
-    try {
-      const rows = await executeQuery('SELECT * FROM orders WHERE id = ? OR order_code = ? LIMIT 1', [orderId, orderId]);
-      if (Array.isArray(rows) && rows.length > 0) {
-        const r = rows[0];
-        const detailRows = await executeQuery('SELECT * FROM order_details WHERE order_id = ?', [r.id]);
-        const items: OrderDetail[] = [];
-        if (Array.isArray(detailRows)) {
-          for (const d of detailRows) {
-            let selectedOptions: any[] = [];
-            try { selectedOptions = JSON.parse(d.selected_options_json || '[]'); } catch {}
-            items.push(new OrderDetail(
-              d.id, d.order_id, d.product_id, d.product_name, d.product_image,
-              Number(d.unit_price) || 0, Number(d.quantity) || 1, selectedOptions, d.notes
-            ));
-          }
-        }
-        const order = new Order(
-          r.id, r.order_code, r.user_id, r.user_name, r.user_phone,
-          r.canteen_id, r.canteen_name, items, r.order_type, r.payment_method,
-          {
-            voucherId: r.voucher_id || undefined,
-            discountAmount: Number(r.discount_amount) || 0,
-            tableId: r.table_id || undefined,
-            tableNumber: r.table_number || undefined,
-            pickupSlot: r.pickup_slot || undefined,
-            deliveryAddressId: r.delivery_address_id || undefined,
-            deliveryAddressText: r.delivery_address_text || undefined,
-            notes: r.notes || undefined,
-            status: r.status,
-            isPaid: Boolean(r.is_paid),
-          }
-        );
-        db.orders.set(order.id, order);
-        return order;
-      }
-    } catch (err: any) {
-      console.warn('[OrderService] findOrderByIdOrCode MySQL notice:', err.message);
-    }
-    return undefined;
+    const cleanCode = orderId.replace('#', '').trim();
+    const order = await Order.findOne({
+      where: { [Op.or]: [{ id: orderId }, { orderCode: cleanCode }] },
+      include: [OrderDetail],
+    });
+    return order || undefined;
   }
 
-  /**
-   * Tạo đơn hàng mới với mô hình Snapshot Tùy chọn sản phẩm (Option Group + Option Item)
-   * - Bảo mật: Tuyệt đối không nhận giá tiền từ Front-end gửi lên.
-   * - Lấy giá gốc từ db.products
-   * - Lấy tùy chọn chi tiết từ db.optionItems và nhóm từ db.optionGroups
-   * - Tính finalUnitPrice = Giá gốc món ăn (+) Tổng tiền các topping
-   */
+  // ---------------------------------------------------------------------------
+  // CREATE ORDER
+  // ---------------------------------------------------------------------------
+
   public async createOrder(dto: CreateOrderDTO): Promise<Order> {
     if (!dto.items || dto.items.length === 0) {
       throw new Error('Đơn hàng phải có ít nhất 1 món ăn!');
@@ -211,437 +84,419 @@ export class OrderService {
     const orderId = dto.id || `ord-${Date.now()}`;
     const orderCode = dto.orderCode || `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const details: OrderDetail[] = dto.items.map((it, idx) => {
-      // 1. Truy vấn thông tin sản phẩm và giá gốc từ Database
-      let prod = db.products.get(it.productId);
-      if (!prod) {
-        prod = Array.from(db.products.values()).find(
-          (p) => p.name.toLowerCase() === (it.productName || '').toLowerCase()
+    // 1. Load tất cả product 1 lần -> tránh N+1
+    const productIds = dto.items.map((i) => i.productId).filter(Boolean);
+    const products = await Product.findAll({ where: { id: productIds } });
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    // 2. Build details (chưa ghi DB)
+    const detailsToCreate = await this.buildOrderDetails(dto.items, productMap, orderId);
+
+    // 3. Tính subtotal
+    const subtotal = detailsToCreate.reduce((s, d) => s + d.itemSubtotal, 0);
+
+    // 4. Xác định orderType hiệu lực
+    const effectiveOrderType: OrderType =
+      (dto.orderType as string) === 'PICKUP' ? 'TAKEAWAY' : dto.orderType;
+
+    // 5. Xử lý voucher (đọc trước, trừ sau trong transaction)
+    const voucherResult = await this.resolveVoucher(dto, subtotal);
+
+    const discountAmount = voucherResult.discountAmount;
+    const appliedVoucherId = voucherResult.voucherId;
+    const totalAmount = Math.max(0, subtotal - discountAmount);
+
+    // 6. Transaction: tạo Order + OrderDetail + trừ voucher + set bàn
+    const created = await sequelize.transaction(async (t) => {
+      // 6a. Nếu DINE_IN, khoá bàn atomic
+      let assignedTableId = dto.tableId;
+      let assignedTableNumber = dto.tableNumber;
+
+      if (effectiveOrderType === 'DINE_IN' || dto.tableId || dto.tableNumber) {
+        const table = await this.resolveTable(dto.tableId, dto.tableNumber);
+        if (!table) throw new Error('Không tìm thấy bàn');
+
+        const [affected] = await DiningTable.update(
+          { status: 'OCCUPIED', currentOrderId: orderId } as any,
+          { where: { id: table.id, status: 'AVAILABLE' }, transaction: t }
         );
+        if (affected === 0) throw new Error('Bàn đã được sử dụng');
+
+        assignedTableId = table.id;
+        assignedTableNumber = table.tableNumber;
       }
-      if (!prod) {
-        // Tự động khởi tạo món vào db để tránh reject đơn hợp lệ
-        const basePrice = it.unitPrice || 35000;
-        const name = it.productName || 'Món ăn Căn Tin';
-        const image = it.productImage || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400';
-        prod = {
-          id: it.productId,
-          name,
-          categoryId: 'cat-1',
+
+      // 6b. Tạo Order
+      const order = await Order.create(
+        {
+          id: orderId,
+          orderCode,
+          userId: dto.userId,
+          userName: dto.userName || 'Sinh viên UniEat',
+          userPhone: dto.userPhone || '0987654321',
           canteenId: dto.canteenId || 'cant-a',
-          price: basePrice,
-          image,
-          isAvailable: true,
-          rating: 4.8,
-          reviewCount: 50,
-          description: '',
-          ingredients: [],
-          preparationTime: 10,
-          toJSON: () => ({ id: it.productId, name, price: basePrice, image, isAvailable: true }),
-        } as any;
-        db.products.set(prod.id, prod);
-      }
-
-      // Giá gốc món ăn lấy từ DB
-      const basePrice = prod.price || it.unitPrice || 35000;
-      const name = prod.name;
-      const image = prod.image || it.productImage;
-      const quantity = Math.max(1, Math.floor(it.quantity || 1));
-
-      // 2. Thu thập danh sách ID tùy chọn từ Front-end
-      let optionIds: string[] = [];
-      if (Array.isArray(it.selectedOptionIds)) {
-        optionIds = it.selectedOptionIds;
-      } else if (Array.isArray(it.selectedOptions)) {
-        // Tương thích nếu client gửi snapshot cũ
-        optionIds = it.selectedOptions
-          .map((opt) => opt.optionId || (opt as any).itemId)
-          .filter(Boolean);
-      }
-
-      // 3. Xử lý nghiệp vụ Tùy chọn theo mô hình Snapshot
-      const selectedOptionSnapshots: SelectedOptionSnapshot[] = [];
-      let totalOptionsPrice = 0;
-      const groupChoiceCounts = new Map<string, number>();
-
-      for (const optId of optionIds) {
-        // Truy vấn vào db.optionItems để lấy thông tin lựa chọn và giá tiền
-        const optItem = db.optionItems.get(optId);
-        if (!optItem) {
-          throw new Error(`Tùy chọn với mã "${optId}" không tồn tại hoặc không hợp lệ!`);
-        }
-
-        // Kiểm tra tình trạng còn hàng của lựa chọn
-        if (!optItem.isAvailable) {
-          throw new Error(`Tùy chọn "${optItem.name}" hiện đang tạm hết hàng!`);
-        }
-
-        // Từ item đó, truy vấn tiếp vào db.optionGroups (thông qua groupId) để lấy tên Nhóm tùy chọn
-        const optGroup = db.optionGroups.get(optItem.groupId);
-        const groupName = optGroup ? optGroup.name : 'Tùy chọn';
-
-        // Kiểm tra luật nhóm: maxChoices
-        if (optGroup && optGroup.maxChoices > 0) {
-          const currentCount = (groupChoiceCounts.get(optGroup.id) || 0) + 1;
-          if (currentCount > optGroup.maxChoices) {
-            throw new Error(
-              `Nhóm "${optGroup.name}" chỉ cho phép chọn tối đa ${optGroup.maxChoices} lựa chọn!`
-            );
-          }
-          groupChoiceCounts.set(optGroup.id, currentCount);
-        }
-
-        // Cộng dồn giá tiền topping từ DB
-        totalOptionsPrice += optItem.price;
-
-        // Gộp tất cả dữ liệu lấy được từ DB (tên nhóm, tên lựa chọn, giá) thành Snapshot
-        const snapshot: SelectedOptionSnapshot = {
-          groupId: optItem.groupId,
-          groupName: groupName,
-          optionId: optItem.id,
-          optionName: optItem.name,
-          price: optItem.price,
-          // Thuộc tính tương thích mở rộng
-          itemId: optItem.id,
-          itemName: optItem.name,
-          extraPrice: optItem.price,
-        };
-
-        selectedOptionSnapshots.push(snapshot);
-      }
-
-      // 4. Tính toán giá finalUnitPrice bằng Giá gốc món ăn (+) Tổng tiền các topping
-      // Tuyệt đối không nhận giá tiền từ Front-end gửi lên
-      const finalUnitPrice = basePrice + totalOptionsPrice;
-
-      // 5. Khởi tạo OrderDetail chứa đầy đủ Snapshot và đơn giá chuẩn xác
-      return new OrderDetail(
-        `od-${Date.now()}-${idx}`,
-        orderId,
-        it.productId,
-        name,
-        image,
-        finalUnitPrice,
-        quantity,
-        selectedOptionSnapshots,
-        it.notes
+          canteenName: dto.canteenName || 'Căng tin A2',
+          orderType: effectiveOrderType,
+          paymentMethod: dto.paymentMethod,
+          voucherId: appliedVoucherId,
+          discountAmount,
+          totalAmount,
+          tableId: assignedTableId,
+          tableNumber: assignedTableNumber,
+          pickupSlot: dto.pickupSlot,
+          deliveryAddressId: dto.deliveryAddressId,
+          deliveryAddressText: dto.deliveryAddressText,
+          notes: dto.notes,
+          status: 'PENDING',
+          // Chỉ CASH mới coi như chưa paid; online -> chờ callback
+          isPaid: false,
+          paidAt: undefined,
+          pickupCode:
+            effectiveOrderType === 'TAKEAWAY'
+              ? `P${Math.floor(1000 + Math.random() * 9000)}`
+              : undefined,
+        },
+        { transaction: t }
       );
+
+      // 6c. bulkCreate details
+      const details = await OrderDetail.bulkCreate(
+        detailsToCreate.map((d) => ({ ...d, orderId: order.id })),
+        { transaction: t }
+      );
+
+      // 6d. Trừ voucher
+      if (appliedVoucherId) {
+        const [affected] = await UserVoucher.update(
+          { isUsed: true, usedAt: new Date() },
+          {
+            where: { userId: dto.userId, voucherId: appliedVoucherId, isUsed: false },
+            transaction: t,
+          }
+        );
+        if (affected === 0) {
+          throw new Error('Voucher không tồn tại hoặc đã được sử dụng');
+        }
+      }
+
+      order.orderDetails = details;
+      return order;
     });
 
-    // Calculate discount if voucher provided
-    let discountAmount = 0;
-    let appliedVoucherId: string | undefined = dto.voucherId;
-    if (dto.voucherCode || dto.voucherId) {
-      const voucher = dto.voucherId
-        ? db.vouchers.get(dto.voucherId)
-        : Array.from(db.vouchers.values()).find(
-            (v) => v.code === dto.voucherCode!.toUpperCase().trim()
-          );
-      if (voucher) {
-        const subtotal = details.reduce((sum, d) => sum + d.itemSubtotal, 0);
-        if (voucher.isValid(subtotal).valid) {
-          discountAmount = voucher.calculateDiscount(subtotal);
-          appliedVoucherId = voucher.id;
-          voucher.claim();
-
-          // Cập nhật trạng thái đã dùng trong kho voucher của sinh viên
-          const userVoucher = Array.from(db.userVouchers.values()).find(
-            (uv) => uv.userId === dto.userId && uv.voucherId === voucher.id && !uv.isUsed
-          );
-          if (userVoucher) {
-            userVoucher.markAsUsed();
-            executeQuery(
-              'UPDATE user_vouchers SET is_used = 1, used_at = CURRENT_TIMESTAMP WHERE id = ?',
-              [userVoucher.id]
-            ).catch(() => {});
-          }
-        }
-      }
-    }
-
-    const effectiveOrderType: OrderType = (dto.orderType as string) === 'PICKUP' ? 'TAKEAWAY' : dto.orderType;
-    const order = new Order(
-      orderId,
-      orderCode,
-      dto.userId,
-      dto.userName || 'Sinh viên UniEat',
-      dto.userPhone || '0987654321',
-      dto.canteenId || 'cant-a',
-      dto.canteenName || 'Căng tin A2',
-      details,
-      effectiveOrderType,
-      dto.paymentMethod,
-      {
-        voucherId: appliedVoucherId,
-        discountAmount,
-        tableId: dto.tableId,
-        tableNumber: dto.tableNumber,
-        pickupSlot: dto.pickupSlot,
-        deliveryAddressId: dto.deliveryAddressId,
-        deliveryAddressText: dto.deliveryAddressText,
-        notes: dto.notes,
-        status: 'PENDING',
-        isPaid: dto.paymentMethod !== 'CASH',
-      }
-    );
-
-    // If dining table, mark table occupied in DB and memory
-    if (order.orderType === 'DINE_IN' || dto.tableId || dto.tableNumber) {
-      const targetTableKey = dto.tableId || dto.tableNumber;
-      if (targetTableKey) {
-        const table =
-          (await tableService.getTableById(targetTableKey)) ||
-          (await tableService.findTableByQr(targetTableKey));
-        if (table) {
-          order.tableId = table.id;
-          order.tableNumber = table.tableNumber;
-          await tableService.updateTableStatus(table.id, 'OCCUPIED', order.id);
-        }
-      }
-    }
-
-    // Save to In-Memory DB
-    db.orders.set(order.id, order);
-
-    // Persist to MySQL database (database.sql)
+    // 7. Side-effects NGOÀI transaction
     try {
-      const orderTypeDb = (effectiveOrderType as string) === 'PICKUP' ? 'TAKEAWAY' : effectiveOrderType;
-      const validSqlPaymentMethods = ['CAMPUS_WALLET', 'MOMO', 'ZALOPAY', 'VNPAY', 'BANK_TRANSFER', 'CASH'];
-      const paymentMethodDb = validSqlPaymentMethods.includes(order.paymentMethod)
-        ? order.paymentMethod
-        : (order.paymentMethod as string) === 'STUDENT_WALLET'
-          ? 'CAMPUS_WALLET'
-          : (order.paymentMethod as string) === 'VNPAY_QR'
-            ? 'VNPAY'
-            : 'CASH';
-
-      await executeQuery(
-        `INSERT INTO orders (
-          id, order_code, user_id, user_name, user_phone, canteen_id, canteen_name, voucher_id,
-          total_amount, discount_amount, final_amount, status, order_type,
-          table_id, table_number, pickup_slot, delivery_address_id, delivery_address_text,
-          payment_method, is_paid, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE status = VALUES(status), is_paid = VALUES(is_paid), updated_at = CURRENT_TIMESTAMP`,
-        [
-          order.id,
-          order.orderCode,
-          order.userId,
-          order.userName,
-          order.userPhone,
-          order.canteenId,
-          order.canteenName,
-          order.voucherId || null,
-          order.totalAmount,
-          order.discountAmount,
-          order.finalAmount,
-          order.status,
-          orderTypeDb,
-          order.tableId || null,
-          order.tableNumber || null,
-          order.pickupSlot || null,
-          order.deliveryAddressId || null,
-          order.deliveryAddressText || null,
-          paymentMethodDb,
-          order.isPaid ? 1 : 0,
-          order.notes || null,
-        ]
-      );
-
-      for (const item of details) {
-        await executeQuery(
-          `INSERT INTO order_details (
-            id, order_id, product_id, product_name, product_image,
-            unit_price, quantity, selected_options_json, item_subtotal, notes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE quantity = VALUES(quantity)`,
-          [
-            item.id,
-            item.orderId,
-            item.productId,
-            item.productName,
-            item.productImage || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c',
-            item.unitPrice,
-            item.quantity,
-            JSON.stringify(item.selectedOptions || []),
-            item.itemSubtotal,
-            item.notes || null,
-          ]
-        );
-      }
-
-      // Giai đoạn Dọn dẹp: Lưu vào MySQL thành công, gọi lệnh redis.del('cart:' + userId) để xóa trắng giỏ hàng
-      try {
-        await cartService.clearCart(order.userId);
-      } catch (cleanErr: any) {
-        console.warn('[Redis Cart Cleanup Notice]:', cleanErr.message);
-      }
-    } catch (mysqlErr: any) {
-      console.warn('[MySQL Order Persistence Notice]:', mysqlErr.message);
+      await cartService.clearCart(created.userId);
+    } catch (e: any) {
+      console.warn('[Redis Cart Cleanup Notice]:', e.message);
     }
 
-    // Broadcast real-time order update via SSE and Socket.IO
-    const orderJson = typeof (order as any)?.toJSON === 'function' ? (order as any).toJSON() : order;
-    realtimeService.sendToUser(order.userId, 'order:created', orderJson);
-    realtimeService.broadcast('canteen:new_order', { orderId: order.id, code: order.orderCode });
-
-    // Socket.IO emission to Staff and Student
+    const orderJson =
+      typeof (created as any)?.toJSON === 'function' ? (created as any).toJSON() : created;
+    realtimeService.sendToUser(created.userId, 'order:created', orderJson);
+    realtimeService.broadcast('canteen:new_order', {
+      orderId: created.id,
+      code: created.orderCode,
+    });
     socketService.emitNewOrder(orderJson);
-    socketService.emitOrderStatus(order.userId, orderJson);
+    socketService.emitOrderStatus(created.userId, orderJson);
 
-    return order;
+    return created;
   }
 
-  public async updateStatus(orderId: string, status: OrderStatus, reason?: string): Promise<Order | null> {
-    const order = (await this.findOrderByIdOrCode(orderId)) || this.getOrderById(orderId);
+  // ---------------------------------------------------------------------------
+  // UPDATE STATUS
+  // ---------------------------------------------------------------------------
+
+  public async updateStatus(
+    orderId: string,
+    status: OrderStatus,
+    reason?: string
+  ): Promise<Order | null> {
+    const order = await this.findOrderByIdOrCode(orderId);
     if (!order) return null;
 
-    order.updateStatus(status);
-    if (reason) {
-      order.notes = order.notes ? `${order.notes} [Lý do: ${reason}]` : `Lý do: ${reason}`;
+    // Validate state transition
+    const allowed = VALID_TRANSITIONS[order.status] || [];
+    if (!allowed.includes(status)) {
+      throw new Error(`Không thể chuyển từ ${order.status} sang ${status}`);
     }
 
-    // If order was cancelled, release table back to AVAILABLE
-    if (status === 'CANCELLED' && (order.tableId || order.tableNumber)) {
-      const tableKey = order.tableId || order.tableNumber;
-      if (tableKey) {
-        await tableService.updateTableStatus(tableKey, 'AVAILABLE');
-      }
-    } else if (
-      (status === 'CONFIRMED' || status === 'PREPARING' || status === 'READY' || status === 'SERVED' || status === 'COMPLETED') &&
-      (order.tableId || order.tableNumber)
-    ) {
-      // Table stays OCCUPIED even after COMPLETED until staff explicitly presses "Làm sạch" in Table Management!
-      const tableKey = order.tableId || order.tableNumber;
-      if (tableKey) {
-        await tableService.updateTableStatus(tableKey, 'OCCUPIED', order.id);
-      }
-    }
+    const newNotes = reason
+      ? order.notes
+        ? `${order.notes} [Lý do: ${reason}]`
+        : `Lý do: ${reason}`
+      : order.notes;
 
-    // Persist status change to MySQL
-    try {
-      await executeQuery(
-        'UPDATE orders SET status = ?, is_paid = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? OR order_code = ?',
-        [status, order.isPaid ? 1 : 0, order.notes || null, order.id, order.orderCode]
+    await sequelize.transaction(async (t) => {
+      await Order.update(
+        { status, notes: newNotes },
+        { where: { id: order.id }, transaction: t }
       );
-    } catch (err: any) {
-      console.warn('[OrderService] MySQL update status notice:', err.message);
-    }
 
-    // Tự động tạo và gửi thông báo cho khách hàng
-    let notifTitle = `Cập nhật đơn hàng #${order.orderCode}`;
-    let notifMsg = `Đơn hàng #${order.orderCode} của bạn đã chuyển sang trạng thái: ${status}`;
+      // Cập nhật trạng thái bàn
+      if (order.tableId || order.tableNumber) {
+        const tableKey = order.tableId || order.tableNumber!;
+        const targetTableStatus =
+          status === 'CANCELLED' || status === 'COMPLETED' ? 'AVAILABLE' : 'OCCUPIED';
+        await tableService.updateTableStatus(tableKey, targetTableStatus, order.id, t);
+      }
+    });
 
-    if (status === 'CONFIRMED') {
-      notifTitle = `Đơn #${order.orderCode} đã được nhận`;
-      notifMsg = `Căn tin đã tiếp nhận đơn #${order.orderCode} và đang chuẩn bị đưa vào bếp chế biến.`;
-    } else if (status === 'PREPARING') {
-      notifTitle = `Bếp đang nấu đơn #${order.orderCode}`;
-      notifMsg = `Đầu bếp đang thực hiện các món ăn cho đơn hàng #${order.orderCode} của bạn.`;
-    } else if (status === 'READY') {
-      notifTitle = `Món ăn đơn #${order.orderCode} đã nấu xong!`;
-      notifMsg = order.orderType === 'DINE_IN'
-        ? `Món ăn đơn #${order.orderCode} đã sẵn sàng, nhân viên đang mang ra bàn ${order.tableNumber || ''}.`
-        : order.orderType === 'TAKEAWAY'
-        ? `Món ăn đơn #${order.orderCode} đã nấu xong, mời bạn đến quầy nhận món!`
-        : `Món ăn đơn #${order.orderCode} đã chuẩn bị xong, tài xế đang lấy đơn để đi giao.`;
-    } else if (status === 'SERVED') {
-      notifTitle = `Món ăn đã giao ra bàn ${order.tableNumber || ''}`;
-      notifMsg = `Nhân viên đã phục vụ đầy đủ món ăn ra bàn ${order.tableNumber || ''}. Chúc bạn có bữa ăn ngon miệng!`;
-    } else if (status === 'WAITING_PICKUP') {
-      notifTitle = `Mời nhận món #${order.orderCode}`;
-      notifMsg = `Đơn hàng mang về #${order.orderCode} đã sẵn sàng tại quầy. Mã nhận món: ${order.pickupCode || order.orderCode}.`;
-    } else if (status === 'DELIVERING') {
-      notifTitle = `Đơn hàng #${order.orderCode} đang được giao`;
-      notifMsg = `Shipper đang giao đơn #${order.orderCode} đến ${order.deliveryAddressText || 'KTX'}. Vui lòng chú ý điện thoại.`;
-    } else if (status === 'COMPLETED') {
-      notifTitle = `Đơn hàng #${order.orderCode} đã hoàn tất`;
-      notifMsg = order.orderType === 'DINE_IN'
-        ? `Bữa ăn tại bàn ${order.tableNumber || ''} đã hoàn tất. Bàn đã được dọn dẹp làm sạch. Cảm ơn bạn!`
-        : `Đơn hàng #${order.orderCode} đã hoàn tất thành công. Chúc bạn ngon miệng!`;
-    } else if (status === 'CANCELLED') {
-      notifTitle = `Đơn hàng #${order.orderCode} đã bị hủy`;
-      notifMsg = reason ? `Đơn hàng #${order.orderCode} đã bị hủy. Lý do: ${reason}` : `Đơn hàng #${order.orderCode} đã bị hủy.`;
-    }
+    order.status = status;
+    if (newNotes) order.notes = newNotes;
 
+    // Notification
+    const { title, message } = this.buildStatusNotification(order, status, reason);
     try {
-      interactionService.createNotification({
+      await interactionService.createNotification({
         userId: order.userId,
-        title: notifTitle,
-        message: notifMsg,
+        title,
+        message,
         type: 'ORDER_STATUS',
         referenceId: order.id,
       });
-    } catch (notifErr: any) {
-      console.warn('[OrderService] Error creating notification:', notifErr.message);
+    } catch (e: any) {
+      console.warn('[OrderService] createNotification error:', e.message);
     }
 
-    // Real-time notify user via SSE and Socket.IO
+    // Realtime
+    const updatedJson =
+      typeof (order as any)?.toJSON === 'function' ? (order as any).toJSON() : order;
     realtimeService.sendToUser(order.userId, 'order:status_changed', {
       orderId: order.id,
       orderCode: order.orderCode,
       status: order.status,
     });
-    const updatedOrderJson = typeof (order as any)?.toJSON === 'function' ? (order as any).toJSON() : order;
-    socketService.emitOrderStatus(order.userId, updatedOrderJson);
-
-    // If order confirmed or preparing, notify POS / Kitchen Screen
+    socketService.emitOrderStatus(order.userId, updatedJson);
     if (status === 'CONFIRMED' || status === 'PREPARING') {
-      socketService.emitNewOrder(updatedOrderJson);
+      socketService.emitNewOrder(updatedJson);
     }
 
     return order;
   }
 
+  // ---------------------------------------------------------------------------
+  // CANCEL ORDER
+  // ---------------------------------------------------------------------------
+
   public async cancelOrder(orderId: string, reason?: string): Promise<boolean> {
-    const order = this.getOrderById(orderId);
+    const order = await this.getOrderById(orderId);
     if (!order) return false;
-    const ok = order.cancel();
-    if (ok) {
-      if (reason) {
-        order.notes = order.notes ? `${order.notes} [Lý do hủy: ${reason}]` : `Lý do hủy: ${reason}`;
-      }
-      if (order.tableId || order.tableNumber) {
-        const tableKey = order.tableId || order.tableNumber;
-        if (tableKey) {
-          await tableService.updateTableStatus(tableKey, 'AVAILABLE');
-        }
-      }
-      try {
-        await executeQuery(
-          'UPDATE orders SET status = "CANCELLED", notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? OR order_code = ?',
-          [order.notes || null, order.id, order.orderCode]
-        );
-      } catch (err: any) {
-        console.warn('[OrderService] MySQL cancel notice:', err.message);
+    if (order.status === 'COMPLETED' || order.status === 'CANCELLED') return false;
+
+    await this.updateStatus(order.id, 'CANCELLED', reason);
+    realtimeService.broadcast('order:cancelled', {
+      orderId: order.id,
+      orderCode: order.orderCode,
+      userId: order.userId,
+      userName: order.userName,
+    });
+    return true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // HELPERS
+  // ---------------------------------------------------------------------------
+
+  private async buildOrderDetails(
+    items: CreateOrderItemDTO[],
+    productMap: Map<string, Product>,
+    orderId: string
+  ) {
+    const result: Array<{
+      id: string;
+      orderId: string;
+      productId: string;
+      productName: string;
+      productImage: string;
+      unitPrice: number;
+      quantity: number;
+      itemSubtotal: number;
+      selectedOptionsJson: SelectedOptionSnapshot[];
+      notes?: string;
+    }> = [];
+
+    // Gom toàn bộ optionIds của mọi item rồi query 1 lần
+    const allOptionIds = new Set<string>();
+    for (const it of items) {
+      const ids = this.extractOptionIds(it);
+      ids.forEach((id) => allOptionIds.add(id));
+    }
+
+    const optionItems = allOptionIds.size
+      ? await OptionItem.findAll({
+        where: { id: Array.from(allOptionIds) },
+        include: [OptionGroup],
+      })
+      : [];
+    const optionMap = new Map(optionItems.map((o) => [o.id, o]));
+
+    for (let idx = 0; idx < items.length; idx++) {
+      const it = items[idx];
+      const prod = productMap.get(it.productId);
+      if (!prod) {
+        throw new Error(`Món ${it.productId} không tồn tại hoặc đã ngừng phục vụ`);
       }
 
-      try {
-        interactionService.createNotification({
-          userId: order.userId,
-          title: `Đơn hàng #${order.orderCode} đã bị hủy`,
-          message: reason ? `Đơn hàng #${order.orderCode} đã bị hủy. Lý do: ${reason}` : `Đơn hàng #${order.orderCode} đã bị hủy.`,
-          type: 'ORDER_STATUS',
-          referenceId: order.id,
+      const basePrice = Number(prod.price) || 0;
+      const quantity = Math.max(1, Math.floor(it.quantity || 1));
+
+      const selectedOptionSnapshots: SelectedOptionSnapshot[] = [];
+      let totalOptionsPrice = 0;
+
+      for (const optId of this.extractOptionIds(it)) {
+        const optItem = optionMap.get(optId);
+        if (!optItem) continue;
+        const price = Number(optItem.price) || 0;
+        totalOptionsPrice += price;
+        selectedOptionSnapshots.push({
+          groupId: (optItem as any).groupId || 'topping',
+          groupName: (optItem as any).group?.name || 'Tùy chọn',
+          optionId: optItem.id,
+          optionName: optItem.name,
+          extraPrice: price,
         });
-      } catch {}
+      }
 
-      // Real-time broadcast cancellation to customer, staff, and admin!
-      const updatedOrderJson = typeof (order as any)?.toJSON === 'function' ? (order as any).toJSON() : order;
-      socketService.emitOrderStatus(order.userId, updatedOrderJson);
-      realtimeService.sendToUser(order.userId, 'order:status_changed', {
-        orderId: order.id,
-        orderCode: order.orderCode,
-        status: 'CANCELLED',
-      });
-      realtimeService.broadcast('order:cancelled', {
-        orderId: order.id,
-        orderCode: order.orderCode,
-        userId: order.userId,
-        userName: order.userName,
+      const finalUnitPrice = basePrice + totalOptionsPrice;
+      const itemSubtotal = finalUnitPrice * quantity;
+
+      result.push({
+        id: `od-${Date.now()}-${idx}`,
+        orderId,
+        productId: prod.id,
+        productName: prod.name,
+        productImage: prod.image || '',
+        unitPrice: finalUnitPrice,
+        quantity,
+        itemSubtotal,
+        selectedOptionsJson: selectedOptionSnapshots,
+        notes: it.notes,
       });
     }
-    return ok;
+
+    return result;
+  }
+
+  private extractOptionIds(it: CreateOrderItemDTO): string[] {
+    if (Array.isArray(it.selectedOptionIds) && it.selectedOptionIds.length) {
+      return it.selectedOptionIds;
+    }
+    if (Array.isArray(it.selectedOptions) && it.selectedOptions.length) {
+      return it.selectedOptions.map((o) => o.optionId).filter(Boolean);
+    }
+    return [];
+  }
+
+  private async resolveVoucher(dto: CreateOrderDTO, subtotal: number) {
+    if (!dto.voucherCode && !dto.voucherId) {
+      return { discountAmount: 0, voucherId: undefined as string | undefined };
+    }
+
+    const voucher = await Voucher.findOne({
+      where: {
+        isActive: true,
+        [Op.or]: [
+          dto.voucherId ? { id: dto.voucherId } : undefined,
+          dto.voucherCode ? { code: dto.voucherCode.toUpperCase().trim() } : undefined,
+        ].filter(Boolean) as any,
+      },
+    });
+    if (!voucher) throw new Error('Voucher không hợp lệ hoặc đã hết hiệu lực');
+
+    // BẮT BUỘC: user phải sở hữu voucher
+    const owned = await UserVoucher.findOne({
+      where: { userId: dto.userId, voucherId: voucher.id, isUsed: false },
+    });
+    if (!owned) throw new Error('Bạn chưa sở hữu voucher này hoặc đã dùng rồi');
+
+    const minOrder = Number(voucher.minOrderAmount) || 0;
+    if (subtotal < minOrder) {
+      throw new Error(`Đơn tối thiểu ${minOrder}đ để dùng voucher này`);
+    }
+
+    const discountVal = Number(voucher.discountValue) || 0;
+    let discountAmount = 0;
+    if (voucher.discountType === 'FIXED') {
+      discountAmount = discountVal;
+    } else {
+      discountAmount = Math.round((subtotal * discountVal) / 100);
+      if (voucher.maxDiscount) {
+        discountAmount = Math.min(discountAmount, Number(voucher.maxDiscount));
+      }
+    }
+    // Không cho giảm quá subtotal
+    discountAmount = Math.min(discountAmount, subtotal);
+
+    return { discountAmount, voucherId: voucher.id };
+  }
+
+  private async resolveTable(tableId?: string, tableNumber?: string) {
+    const key = tableId || tableNumber;
+    if (!key) return null;
+    return (
+      (await tableService.getTableById(key)) ||
+      (await tableService.findTableByQr(key))
+    );
+  }
+
+  private buildStatusNotification(
+    order: Order,
+    status: OrderStatus,
+    reason?: string
+  ): { title: string; message: string } {
+    switch (status) {
+      case 'CONFIRMED':
+        return {
+          title: `Đơn #${order.orderCode} đã được nhận`,
+          message: `Căn tin đã tiếp nhận đơn #${order.orderCode} và đang chuẩn bị đưa vào bếp.`,
+        };
+      case 'PREPARING':
+        return {
+          title: `Bếp đang nấu đơn #${order.orderCode}`,
+          message: `Đầu bếp đang thực hiện các món cho đơn #${order.orderCode}.`,
+        };
+      case 'READY':
+        return {
+          title: `Món ăn đơn #${order.orderCode} đã nấu xong!`,
+          message:
+            order.orderType === 'DINE_IN'
+              ? `Món đã sẵn sàng, nhân viên đang mang ra bàn ${order.tableNumber || ''}.`
+              : order.orderType === 'TAKEAWAY'
+                ? `Món đã nấu xong, mời bạn đến quầy nhận!`
+                : `Món đã chuẩn bị xong, tài xế đang lấy đơn để giao.`,
+        };
+      case 'SERVED':
+        return {
+          title: `Món ăn đã giao ra bàn ${order.tableNumber || ''}`,
+          message: `Chúc bạn ngon miệng!`,
+        };
+      case 'WAITING_PICKUP':
+        return {
+          title: `Mời nhận món #${order.orderCode}`,
+          message: `Đơn mang về đã sẵn sàng. Mã nhận món: ${order.pickupCode || order.orderCode}.`,
+        };
+      case 'DELIVERING':
+        return {
+          title: `Đơn #${order.orderCode} đang được giao`,
+          message: `Shipper đang giao đến ${order.deliveryAddressText || 'KTX'}.`,
+        };
+      case 'COMPLETED':
+        return {
+          title: `Đơn #${order.orderCode} đã hoàn tất`,
+          message: `Cảm ơn bạn đã đặt hàng!`,
+        };
+      case 'CANCELLED':
+        return {
+          title: `Đơn #${order.orderCode} đã bị hủy`,
+          message: reason ? `Lý do: ${reason}` : `Đơn hàng đã bị hủy.`,
+        };
+      default:
+        return {
+          title: `Cập nhật đơn #${order.orderCode}`,
+          message: `Trạng thái mới: ${status}`,
+        };
+    }
   }
 }
 

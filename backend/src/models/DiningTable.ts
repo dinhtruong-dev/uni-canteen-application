@@ -1,65 +1,63 @@
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany } from 'sequelize-typescript';
+import { Canteen } from './Canteen';
+import { Order } from './Order';
+
 export type TableStatus = 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'MAINTENANCE';
 
-export class DiningTable {
-  public id: string;
-  public tableNumber: string; // e.g. 'Bàn 01', 'Bàn 12'
-  public canteenId: string;
-  public canteenName: string;
-  public qrCode: string; // URL or QR string for table ordering
-  public capacity: number; // số ghế
-  public area: string; // e.g. 'Tầng 1 - Sân trước', 'Tầng 2 - Máy lạnh'
-  public status: TableStatus;
-  public currentOrderId?: string;
-  public updatedAt: Date;
+@Table({ tableName: 'dining_tables', timestamps: true, createdAt: false, underscored: true })
+export class DiningTable extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  declare id: string;
 
-  constructor(
-    id: string,
-    tableNumber: string,
-    canteenId: string,
-    canteenName: string,
-    qrCode: string,
-    capacity: number = 4,
-    area: string = 'Khu vực chính',
-    status: TableStatus = 'AVAILABLE',
-    currentOrderId?: string,
-    updatedAt: Date = new Date()
-  ) {
-    this.id = id;
-    this.tableNumber = tableNumber;
-    this.canteenId = canteenId;
-    this.canteenName = canteenName;
-    this.qrCode = qrCode;
-    this.capacity = capacity;
-    this.area = area;
-    this.status = status;
-    this.currentOrderId = currentOrderId;
-    this.updatedAt = updatedAt;
-  }
+  @Column({ type: DataType.STRING(30), allowNull: false, field: 'table_number' })
+  declare tableNumber: string;
 
-  public occupy(orderId: string): void {
-    this.status = 'OCCUPIED';
-    this.currentOrderId = orderId;
-    this.updatedAt = new Date();
-  }
+  @ForeignKey(() => Canteen)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'canteen_id' })
+  declare canteenId: string;
 
-  public release(): void {
-    this.status = 'AVAILABLE';
-    this.currentOrderId = undefined;
-    this.updatedAt = new Date();
-  }
+  @Column({ type: DataType.STRING(100), allowNull: false, field: 'canteen_name' })
+  declare canteenName: string;
+
+  @Column({ type: DataType.STRING(500), allowNull: false, field: 'qr_code' })
+  declare qrCode: string;
+
+  @Column({ type: DataType.INTEGER, defaultValue: 4 })
+  declare capacity: number;
+
+  @Column({ type: DataType.STRING(100), defaultValue: 'Khu vực chính' })
+  declare area: string;
+
+  @Column({
+    type: DataType.ENUM('AVAILABLE', 'OCCUPIED', 'RESERVED', 'MAINTENANCE'),
+    defaultValue: 'AVAILABLE',
+  })
+  declare status: TableStatus;
+
+  @ForeignKey(() => Order)
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'current_order_id' })
+  declare currentOrderId?: string;
+
+  // Associations
+  @BelongsTo(() => Canteen)
+  declare canteen: Canteen;
+
+  @HasMany(() => Order)
+  declare orders: Order[];
 
   public toJSON() {
+    const values = { ...this.get() };
     return {
-      id: this.id,
-      tableNumber: this.tableNumber,
-      canteenId: this.canteenId,
-      canteenName: this.canteenName,
-      qrCode: this.qrCode,
-      capacity: this.capacity,
-      area: this.area,
-      status: this.status,
-      currentOrderId: this.currentOrderId,
-      updatedAt: this.updatedAt.toISOString(),
+      id: values.id,
+      tableNumber: values.tableNumber,
+      canteenId: values.canteenId,
+      canteenName: values.canteenName,
+      qrCode: values.qrCode,
+      capacity: Number(values.capacity) || 4,
+      area: values.area,
+      status: values.status,
+      currentOrderId: values.currentOrderId,
+      updatedAt: values.updatedAt ? new Date(values.updatedAt).toISOString() : new Date().toISOString(),
     };
   }
 }

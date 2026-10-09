@@ -29,7 +29,7 @@ class SocketManager {
   private static instance: SocketManager;
   private io: SocketIOServer | null = null;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): SocketManager {
     if (!SocketManager.instance) {
@@ -58,7 +58,6 @@ class SocketManager {
       // 1. Tự động đưa sinh viên vào phòng riêng cá nhân
       socket.join(`${socketConfig.rooms.USER_PREFIX}${userId}`);
 
-      // 2. Nếu là nhân viên hoặc quản trị viên, tự động vào phòng nhận đơn căng tin
       if (role === 'STAFF' || role === 'ADMIN') {
         socket.join(socketConfig.rooms.STAFF_CANTEEN);
         socket.join(socketConfig.rooms.ADMIN_CHANNEL);

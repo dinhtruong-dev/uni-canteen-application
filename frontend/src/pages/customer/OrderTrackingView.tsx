@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { HeaderNav } from '../../components/HeaderNav';
 import {
   ArrowLeft,
   ChevronRight,
@@ -260,16 +261,10 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
     return (
       <div className="min-h-screen bg-[#f8fafc] pb-28">
         {/* Top Header */}
-        <div className="sticky top-0 z-30 bg-white border-b border-slate-100 px-4 py-3.5 flex items-center justify-between shadow-2xs">
-          <button
-            onClick={() => setActivePage('TRACKING')}
-            className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-[17px] font-bold text-slate-900">Lý do huỷ đơn</h1>
-          <div className="w-9" />
-        </div>
+        <HeaderNav
+          title="Lý do huỷ đơn"
+          onBack={() => setActivePage('TRACKING')}
+        />
 
         <main className="max-w-md mx-auto px-4 py-4 space-y-4">
           {/* Status Alert */}
@@ -379,16 +374,11 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
   /* ========================================================================= */
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-24">
-      <div className="relative px-4 pt-3 pb-2 flex items-center justify-between z-20">
-        <button
-          onClick={() => navigateTo('orders')}
-          className="w-10 h-10 rounded-full bg-white border border-slate-200/80 shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <span className="text-[16px] font-bold text-slate-800">Chi tiết đơn hàng</span>
-        <div className="w-10" />
-      </div>
+      {/* Top Header Navigation */}
+      <HeaderNav
+        title="Chi tiết đơn hàng"
+        onBack={() => navigateTo('orders')}
+      />
 
       <main className="max-w-md mx-auto px-4 space-y-3.5">
         {/* =============================================================== */}

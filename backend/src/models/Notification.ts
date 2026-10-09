@@ -1,49 +1,54 @@
-export type NotificationType = 'ORDER_STATUS' | 'SYSTEM' | 'PROMOTION' | 'WALLET';
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { User } from './User';
 
-export class Notification {
-  public id: string;
-  public userId: string;
-  public title: string;
-  public message: string;
-  public type: NotificationType;
-  public referenceId?: string;
-  public isRead: boolean;
-  public createdAt: Date;
+export type NotificationType = 'ORDER_STATUS' | 'SYSTEM' | 'PROMOTION' | 'WALLET' | 'ORDER';
 
-  constructor(
-    id: string,
-    userId: string,
-    title: string,
-    message: string,
-    type: NotificationType = 'SYSTEM',
-    referenceId?: string,
-    isRead: boolean = false,
-    createdAt: Date = new Date()
-  ) {
-    this.id = id;
-    this.userId = userId;
-    this.title = title;
-    this.message = message;
-    this.type = type;
-    this.referenceId = referenceId;
-    this.isRead = isRead;
-    this.createdAt = createdAt;
-  }
+@Table({ tableName: 'notifications', timestamps: true, updatedAt: false, underscored: true })
+export class Notification extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  declare id: string;
 
-  public markAsRead(): void {
-    this.isRead = true;
-  }
+  @ForeignKey(() => User)
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'user_id' })
+  declare userId: string;
+
+  @Column({ type: DataType.STRING(150), allowNull: false })
+  declare title: string;
+
+  @Column({ type: DataType.TEXT, allowNull: false })
+  declare message: string;
+
+  @Column({
+    type: DataType.ENUM('ORDER', 'ORDER_STATUS', 'SYSTEM', 'PROMOTION', 'WALLET'),
+    defaultValue: 'SYSTEM',
+  })
+  declare type: NotificationType;
+
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'reference_id' })
+  declare referenceId?: string;
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'is_read' })
+  declare isRead: boolean;
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: false })
+  declare isBroadcast: boolean;
+
+  // Associations
+  @BelongsTo(() => User)
+  declare user: User;
 
   public toJSON() {
+    const values = { ...this.get() };
     return {
-      id: this.id,
-      userId: this.userId,
-      title: this.title,
-      message: this.message,
-      type: this.type,
-      referenceId: this.referenceId,
-      isRead: this.isRead,
-      createdAt: this.createdAt.toISOString(),
+      id: values.id,
+      userId: values.userId,
+      title: values.title,
+      message: values.message,
+      type: values.type,
+      referenceId: values.referenceId,
+      isRead: Boolean(values.isRead),
+      isBroadcast: Boolean(values.isBroadcast),
+      createdAt: values.createdAt ? new Date(values.createdAt).toISOString() : new Date().toISOString(),
     };
   }
 }

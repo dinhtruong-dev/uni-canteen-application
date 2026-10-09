@@ -1,17 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { paymentController } from '../controllers/payment.controller';
-import { paymentGatewayService } from '../services/payment-gateway.service';
 import { authMiddleware } from '../middlewares/auth.middleware';
-import { db } from '../services/database.service';
+import { paymentGatewayService } from '../services/payment-gateway.service';
+import { orderService } from '../services/order.service';
 
 const router = Router();
 
-// Order Payment Details
-router.get('/orders/:orderId', authMiddleware, (req, res) =>
-  paymentController.getPaymentByOrder(req as any, res)
+// Student Wallet Endpoints
+router.post('/process', authMiddleware, (req, res) =>
+  paymentController.processPayment(req as any, res)
 );
-
-// Campus Wallet Top-up & Transactions
 router.get('/wallet/transactions', authMiddleware, (req, res) =>
   paymentController.getWalletTransactions(req as any, res)
 );
@@ -20,37 +18,37 @@ router.post('/wallet/topup', authMiddleware, (req, res) =>
 );
 
 // Online Payment Gateway: VNPay & MoMo URL/QR Generation
-router.post('/create-gateway-url', authMiddleware, (req: Request, res: Response) => {
-  const { orderId, method } = req.body;
+router.post('/create-gateway-url', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { orderId, method } = req.body;
 
-  const order = db.orders.get(orderId);
-  if (!order) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
-  }
+    const order = await orderService.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+    }
 
-  const orderInfo = `Thanh toán đơn hàng ${order.orderCode} - Căng tin UniEat`;
+    const orderInfo = `Thanh toán đơn hàng ${order.orderCode} - Căng tin UniEat`;
 
-  if (method === 'VNPAY') {
-    const result = paymentGatewayService.createVNPayPayment(order.id, order.finalAmount, orderInfo);
-    return res.json({ success: true, data: result });
-  } else if (method === 'MOMO') {
-    const result = paymentGatewayService.createMoMoPayment(order.id, order.finalAmount, orderInfo);
-    return res.json({ success: true, data: result });
-  } else {
-    return res.status(400).json({ success: false, message: 'Cổng thanh toán không hợp lệ (hỗ trợ VNPAY, MOMO)' });
+    if (method === 'VNPAY') {
+      const result = paymentGatewayService.createVNPayPayment(order.id, order.finalAmount, orderInfo);
+      return res.json({ success: true, data: result });
+    } else if (method === 'MOMO') {
+      const result = paymentGatewayService.createMoMoPayment(order.id, order.finalAmount, orderInfo);
+      return res.json({ success: true, data: result });
+    } else {
+      return res.status(400).json({ success: false, message: 'Cổng thanh toán không hợp lệ (hỗ trợ VNPAY, MOMO)' });
+    }
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: 'Lỗi tạo liên kết thanh toán', error: err.message });
   }
 });
 
-// Callback / Webhook Simulation for VNPay / MoMo
-router.post('/confirm-gateway-payment', authMiddleware, (req: Request, res: Response) => {
-  const { orderId, transactionCode, provider } = req.body;
-  const ok = paymentGatewayService.confirmGatewayPayment(orderId, transactionCode, provider);
-  if (!ok) {
-    return res.status(400).json({ success: false, message: 'Xác nhận thanh toán thất bại' });
-  }
+// Callback / Return simulation endpoints
+router.get('/vnpay-return', (req: Request, res: Response) => {
   res.json({
     success: true,
-    message: `Thanh toán qua cổng ${provider} thành công! Đơn hàng đã được xác nhận.`,
+    message: 'Thanh toán qua VNPay thành công!',
+    query: req.query,
   });
 });
 

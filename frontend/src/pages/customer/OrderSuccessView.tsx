@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { HeaderNav } from '../../components/HeaderNav';
 import confetti from 'canvas-confetti';
 import {
   CheckCircle2,
@@ -37,7 +38,12 @@ export const OrderSuccessView: React.FC<{ orderId?: string }> = ({ orderId: prop
   }
 
   return (
-    <div className="max-w-xl mx-auto py-8 px-4 space-y-6">
+    <div className="max-w-xl mx-auto py-4 px-4 space-y-6">
+      {/* Header Navigation Component */}
+      <HeaderNav
+        title="Đặt Đơn Thành Công"
+        onBack={() => navigateTo('home')}
+      />
       {/* Success Card */}
       <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xl text-center space-y-5 relative overflow-hidden">
         <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">

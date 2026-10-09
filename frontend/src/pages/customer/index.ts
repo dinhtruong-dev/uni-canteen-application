@@ -8,7 +8,6 @@ export * from './FavoritesView';
 export * from './FoodDetailView';
 export * from './FoodReviewsView';
 export * from './HomeView';
-export * from './LandingView';
 export * from './MyOrdersView';
 export * from './NotificationsView';
 export * from './OrderSuccessView';

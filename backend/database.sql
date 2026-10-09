@@ -591,3 +591,27 @@ INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `refer
 ('notif-1', 'user-stu-1', 'Đơn hàng #ORD-20260923 đã hoàn thành!', 'Bếp đã chế biến xong suất Cơm Gà Chiên Mắm Tỏi. Mời bạn lại quầy lấy món.', 'ORDER', 'ord-1', TRUE),
 ('notif-2', 'user-stu-1', '⚡ Flash Sale 11h30 bắt đầu!', 'Giảm tới 45% toàn bộ Bún & Phở Nóng tại Căng tin B. Săn ngay kẻo hết suất!', 'PROMOTION', 'fs-1', FALSE),
 ('notif-3', 'user-stu-1', 'Nạp tiền ví Campus thành công', 'Bạn vừa nạp 150.000đ vào ví UniEat qua VNPay. Số dư hiện tại: 150.000đ.', 'WALLET', 'pay-1', TRUE);
+
+-- 17. GIAO DỊCH VÍ (Wallet Transactions)
+CREATE TABLE IF NOT EXISTS `wallet_transactions` (
+  `id` VARCHAR(50) NOT NULL,
+  `user_id` VARCHAR(50) NOT NULL,
+  `amount` DECIMAL(12, 2) NOT NULL,
+  `type` ENUM('TOPUP', 'PAYMENT', 'REFUND') NOT NULL,
+  `description` VARCHAR(255) NULL,
+  `status` ENUM('SUCCESS', 'PENDING', 'FAILED') NOT NULL DEFAULT 'SUCCESS',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_wtx_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 18. LỊCH SỬ TÌM KIẾM (Search Histories)
+CREATE TABLE IF NOT EXISTS `search_histories` (
+  `id` VARCHAR(50) NOT NULL,
+  `user_id` VARCHAR(50) NOT NULL,
+  `query` VARCHAR(255) NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_sh_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

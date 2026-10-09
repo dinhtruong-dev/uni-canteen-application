@@ -18,7 +18,6 @@ export class CloudinaryService {
   }> {
     const publicId = `${folder}/${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
-    // If input is already a valid remote URL, optimize with Cloudinary CDN pattern
     if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
       const optimizedUrl = `https://res.cloudinary.com/${this.cloudName}/image/fetch/f_auto,q_auto,w_800/${encodeURIComponent(imageData)}`;
       return {

@@ -58,7 +58,9 @@ export const redisConfig = {
     CACHE: 'unieat:cache:',
     SESSION: 'unieat:session:',
     OTP: 'unieat:otp:',
+    CART: 'unieat:cart:',
     RATE_LIMIT: 'unieat:ratelimit:',
     LOCK: 'unieat:lock:',
   },
 };
+

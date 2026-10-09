@@ -1,68 +1,47 @@
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { Canteen } from './Canteen';
+
 export type PickupSlotStatus = 'AVAILABLE' | 'FULL' | 'DISABLED';
 
-export class PickupSlot {
-  public id: string;
-  public canteenId: string;
-  public timeRange: string; // e.g. "11:00 - 11:15", "11:15 - 11:30"
-  public maxOrders: number;
-  public currentOrders: number;
-  public status: PickupSlotStatus;
-  public createdAt: Date;
-  public updatedAt: Date;
+@Table({ tableName: 'pickup_slots', timestamps: true, underscored: true })
+export class PickupSlot extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  public id!: string;
 
-  constructor(
-    id: string,
-    canteenId: string,
-    timeRange: string,
-    maxOrders: number = 20,
-    currentOrders: number = 0,
-    status: PickupSlotStatus = 'AVAILABLE',
-    createdAt: Date = new Date(),
-    updatedAt: Date = new Date()
-  ) {
-    this.id = id;
-    this.canteenId = canteenId;
-    this.timeRange = timeRange;
-    this.maxOrders = maxOrders;
-    this.currentOrders = currentOrders;
-    this.status = status;
-    this.createdAt = createdAt;
-    this.updatedAt = updatedAt;
-  }
+  @ForeignKey(() => Canteen)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'canteen_id' })
+  public canteenId!: string;
 
-  public incrementOrders(): boolean {
-    if (this.currentOrders >= this.maxOrders || this.status !== 'AVAILABLE') {
-      this.status = 'FULL';
-      return false;
-    }
-    this.currentOrders += 1;
-    if (this.currentOrders >= this.maxOrders) {
-      this.status = 'FULL';
-    }
-    this.updatedAt = new Date();
-    return true;
-  }
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'time_range' })
+  public timeRange!: string;
 
-  public decrementOrders(): void {
-    if (this.currentOrders > 0) {
-      this.currentOrders -= 1;
-    }
-    if (this.currentOrders < this.maxOrders && this.status === 'FULL') {
-      this.status = 'AVAILABLE';
-    }
-    this.updatedAt = new Date();
-  }
+  @Column({ type: DataType.INTEGER, defaultValue: 30, field: 'max_orders' })
+  public maxOrders!: number;
+
+  @Column({ type: DataType.INTEGER, defaultValue: 0, field: 'current_orders' })
+  public currentOrders!: number;
+
+  @Column({
+    type: DataType.ENUM('AVAILABLE', 'FULL', 'DISABLED'),
+    defaultValue: 'AVAILABLE',
+  })
+  public status!: PickupSlotStatus;
+
+  // Associations
+  @BelongsTo(() => Canteen)
+  public canteen!: Canteen;
 
   public toJSON() {
+    const values = { ...this.get() };
     return {
-      id: this.id,
-      canteenId: this.canteenId,
-      timeRange: this.timeRange,
-      maxOrders: this.maxOrders,
-      currentOrders: this.currentOrders,
-      status: this.status,
-      createdAt: this.createdAt.toISOString(),
-      updatedAt: this.updatedAt.toISOString(),
+      id: values.id,
+      canteenId: values.canteenId,
+      timeRange: values.timeRange,
+      maxOrders: Number(values.maxOrders) || 20,
+      currentOrders: Number(values.currentOrders) || 0,
+      status: values.status,
+      createdAt: values.createdAt ? new Date(values.createdAt).toISOString() : new Date().toISOString(),
+      updatedAt: values.updatedAt ? new Date(values.updatedAt).toISOString() : new Date().toISOString(),
     };
   }
 }

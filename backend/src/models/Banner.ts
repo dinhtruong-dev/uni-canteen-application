@@ -1,66 +1,71 @@
-export class Banner {
-  public id: string;
-  public title: string;
-  public subtitle?: string;
-  public imageUrl: string;
-  public linkUrl?: string; // target screen / route / product
-  public targetType?: 'PRODUCT' | 'CATEGORY' | 'EXTERNAL';
-  public targetId?: string;
-  public displayOrder: number;
-  public isActive: boolean;
-  public startDate?: Date;
-  public endDate?: Date;
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { Canteen } from './Canteen';
 
-  constructor(
-    id: string,
-    title: string,
-    imageUrl: string,
-    displayOrder: number = 1,
-    isActive: boolean = true,
-    options?: {
-      subtitle?: string;
-      linkUrl?: string;
-      targetType?: 'PRODUCT' | 'CATEGORY' | 'EXTERNAL';
-      targetId?: string;
-      startDate?: Date;
-      endDate?: Date;
-    }
-  ) {
-    this.id = id;
-    this.title = title;
-    this.imageUrl = imageUrl;
-    this.displayOrder = displayOrder;
-    this.isActive = isActive;
-    this.subtitle = options?.subtitle;
-    this.linkUrl = options?.linkUrl;
-    this.targetType = options?.targetType;
-    this.targetId = options?.targetId;
-    this.startDate = options?.startDate;
-    this.endDate = options?.endDate;
-  }
+@Table({ tableName: 'banners', timestamps: false, underscored: true })
+export class Banner extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  declare id: string;
 
-  public isCurrentlyActive(): boolean {
-    if (!this.isActive) return false;
-    const now = new Date();
-    if (this.startDate && now < this.startDate) return false;
-    if (this.endDate && now > this.endDate) return false;
-    return true;
-  }
+  @Column({ type: DataType.STRING(150), allowNull: false })
+  declare title: string;
+
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  declare subtitle?: string;
+
+  @Column({ type: DataType.STRING(500), allowNull: false, field: 'image_url' })
+  declare imageUrl: string;
+
+  @Column({ type: DataType.STRING(500), allowNull: true, field: 'link_url' })
+  declare linkUrl?: string;
+
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'target_type' })
+  declare targetType?: 'PRODUCT' | 'CATEGORY' | 'EXTERNAL';
+
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'target_id' })
+  declare targetId?: string;
+
+  @ForeignKey(() => Canteen)
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'canteen_id' })
+  declare canteenId?: string;
+
+  @Column({ type: DataType.INTEGER, defaultValue: 0, field: 'display_order' })
+  declare displayOrder: number;
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: true, field: 'is_active' })
+  declare isActive: boolean;
+
+  @Column({ type: DataType.DATE, allowNull: true, field: 'start_date' })
+  declare startDate?: Date;
+
+  @Column({ type: DataType.DATE, allowNull: true, field: 'end_date' })
+  declare endDate?: Date;
+
+  // Associations
+  @BelongsTo(() => Canteen)
+  declare canteen?: Canteen;
 
   public toJSON() {
+    const values = { ...this.get() };
+    const now = new Date();
+    const isCurrentlyActive =
+      Boolean(values.isActive) &&
+      (!values.startDate || now >= new Date(values.startDate)) &&
+      (!values.endDate || now <= new Date(values.endDate));
+
     return {
-      id: this.id,
-      title: this.title,
-      subtitle: this.subtitle,
-      imageUrl: this.imageUrl,
-      linkUrl: this.linkUrl,
-      targetType: this.targetType,
-      targetId: this.targetId,
-      displayOrder: this.displayOrder,
-      isActive: this.isActive,
-      isCurrentlyActive: this.isCurrentlyActive(),
-      startDate: this.startDate?.toISOString(),
-      endDate: this.endDate?.toISOString(),
+      id: values.id,
+      title: values.title,
+      subtitle: values.subtitle,
+      imageUrl: values.imageUrl,
+      linkUrl: values.linkUrl,
+      targetType: values.targetType,
+      targetId: values.targetId,
+      canteenId: values.canteenId,
+      displayOrder: Number(values.displayOrder) || 1,
+      isActive: Boolean(values.isActive),
+      isCurrentlyActive,
+      startDate: values.startDate ? new Date(values.startDate).toISOString() : undefined,
+      endDate: values.endDate ? new Date(values.endDate).toISOString() : undefined,
     };
   }
 }

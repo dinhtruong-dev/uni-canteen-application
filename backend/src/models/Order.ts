@@ -1,148 +1,159 @@
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany, HasOne } from 'sequelize-typescript';
+import { User } from './User';
+import { Canteen } from './Canteen';
+import { Voucher } from './Voucher';
+import { DiningTable } from './DiningTable';
+import { DeliveryAddress } from './DeliveryAddress';
 import { OrderDetail } from './OrderDetail';
-import { PaymentMethod } from './Payment';
+import { Payment } from './Payment';
+import { Review } from './Review';
+import { OrderType, OrderStatus, PaymentMethod } from '../types/order.types';
 
-export type OrderStatus =
-  | 'PENDING'
-  | 'CONFIRMED'
-  | 'PREPARING'
-  | 'READY'
-  | 'WAITING_PICKUP'
-  | 'DELIVERING'
-  | 'SERVED'
-  | 'COMPLETED'
-  | 'CANCELLED';
 
-export type OrderType = 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY';
+@Table({ tableName: 'orders', timestamps: true, underscored: true })
+export class Order extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  declare id: string;
 
-export class Order {
-  public id: string;
-  public orderCode: string;
-  public userId: string;
-  public userName: string;
-  public userPhone: string;
-  public canteenId: string;
-  public canteenName: string;
-  public voucherId?: string;
-  public orderDetails: OrderDetail[];
-  public totalAmount: number;
-  public discountAmount: number;
-  public finalAmount: number;
-  public status: OrderStatus;
-  public orderType: OrderType;
-  public tableId?: string;
-  public tableNumber?: string;
-  public pickupSlot?: string;
-  public pickupCode?: string;
-  public deliveryAddressId?: string;
-  public deliveryAddressText?: string;
-  public paymentMethod: PaymentMethod;
-  public isPaid: boolean;
-  public notes?: string;
-  public createdAt: Date;
-  public updatedAt: Date;
+  @Column({ type: DataType.STRING(30), allowNull: false, unique: true, field: 'order_code' })
+  declare orderCode: string;
 
-  constructor(
-    id: string,
-    orderCode: string,
-    userId: string,
-    userName: string,
-    userPhone: string,
-    canteenId: string,
-    canteenName: string,
-    orderDetails: OrderDetail[],
-    orderType: OrderType,
-    paymentMethod: PaymentMethod,
-    options?: {
-      voucherId?: string;
-      discountAmount?: number;
-      tableId?: string;
-      tableNumber?: string;
-      pickupSlot?: string;
-      pickupCode?: string;
-      deliveryAddressId?: string;
-      deliveryAddressText?: string;
-      status?: OrderStatus;
-      isPaid?: boolean;
-      notes?: string;
-      createdAt?: Date;
-      updatedAt?: Date;
-    }
-  ) {
-    this.id = id;
-    this.orderCode = orderCode;
-    this.userId = userId;
-    this.userName = userName;
-    this.userPhone = userPhone;
-    this.canteenId = canteenId;
-    this.canteenName = canteenName;
-    this.voucherId = options?.voucherId;
-    this.orderDetails = orderDetails;
-    this.orderType = orderType;
-    this.paymentMethod = paymentMethod;
+  @ForeignKey(() => User)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'user_id' })
+  declare userId: string;
 
-    this.totalAmount = orderDetails.reduce((sum, item) => sum + item.itemSubtotal, 0);
-    this.discountAmount = options?.discountAmount || 0;
-    this.finalAmount = Math.max(0, this.totalAmount - this.discountAmount);
+  @Column({ type: DataType.STRING(100), allowNull: false, field: 'user_name' })
+  declare userName: string;
 
-    this.tableId = options?.tableId;
-    this.tableNumber = options?.tableNumber;
-    this.pickupSlot = options?.pickupSlot;
-    this.pickupCode = options?.pickupCode || (orderType === 'TAKEAWAY' ? `PK-${orderCode.slice(-4)}` : undefined);
-    this.deliveryAddressId = options?.deliveryAddressId;
-    this.deliveryAddressText = options?.deliveryAddressText;
-    this.status = options?.status || 'PENDING';
-    this.isPaid = options?.isPaid || false;
-    this.notes = options?.notes;
-    this.createdAt = options?.createdAt || new Date();
-    this.updatedAt = options?.updatedAt || new Date();
-  }
+  @Column({ type: DataType.STRING(20), allowNull: false, field: 'user_phone' })
+  declare userPhone: string;
 
-  public updateStatus(newStatus: OrderStatus): void {
-    this.status = newStatus;
-    this.updatedAt = new Date();
-    if (newStatus === 'COMPLETED' || newStatus === 'READY' || newStatus === 'SERVED') {
-      this.isPaid = true;
-    }
-  }
+  @ForeignKey(() => Canteen)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'canteen_id' })
+  declare canteenId: string;
 
-  public canCancel(): boolean {
-    return this.status === 'PENDING' || this.status === 'CONFIRMED';
-  }
+  @Column({ type: DataType.STRING(100), allowNull: false, field: 'canteen_name' })
+  declare canteenName: string;
 
-  public cancel(): boolean {
-    if (!this.canCancel()) return false;
-    this.status = 'CANCELLED';
-    this.updatedAt = new Date();
-    return true;
-  }
+  @ForeignKey(() => Voucher)
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'voucher_id' })
+  declare voucherId?: string;
+
+  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false, field: 'total_amount' })
+  declare totalAmount: number;
+
+  @Column({ type: DataType.DECIMAL(12, 2), defaultValue: 0, field: 'discount_amount' })
+  declare discountAmount: number;
+
+  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false, field: 'final_amount' })
+  declare finalAmount: number;
+
+  @Column({
+    type: DataType.ENUM(
+      'PENDING',
+      'CONFIRMED',
+      'PREPARING',
+      'READY',
+      'WAITING_PICKUP',
+      'DELIVERING',
+      'SERVED',
+      'COMPLETED',
+      'CANCELLED'
+    ),
+    defaultValue: 'PENDING',
+  })
+  declare status: OrderStatus;
+
+  @Column({
+    type: DataType.ENUM('DINE_IN', 'TAKEAWAY', 'DELIVERY'),
+    allowNull: false,
+    field: 'order_type',
+  })
+  declare orderType: OrderType;
+
+  @ForeignKey(() => DiningTable)
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'table_id' })
+  declare tableId?: string;
+
+  @Column({ type: DataType.STRING(30), allowNull: true, field: 'table_number' })
+  declare tableNumber?: string;
+
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'pickup_slot' })
+  declare pickupSlot?: string;
+
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'pickup_code' })
+  declare pickupCode?: string;
+
+  @ForeignKey(() => DeliveryAddress)
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'delivery_address_id' })
+  declare deliveryAddressId?: string;
+
+  @Column({ type: DataType.STRING(255), allowNull: true, field: 'delivery_address_text' })
+  declare deliveryAddressText?: string;
+
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'payment_method' })
+  declare paymentMethod: PaymentMethod;
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'is_paid' })
+  declare isPaid: boolean;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare notes?: string;
+
+  // Associations
+  @BelongsTo(() => User)
+  declare user: User;
+
+  @BelongsTo(() => Canteen)
+  declare canteen: Canteen;
+
+  @BelongsTo(() => Voucher)
+  declare voucher?: Voucher;
+
+  @BelongsTo(() => DiningTable)
+  declare table?: DiningTable;
+
+  @BelongsTo(() => DeliveryAddress)
+  declare deliveryAddress?: DeliveryAddress;
+
+  @HasMany(() => OrderDetail)
+  declare orderDetails?: OrderDetail[];
+
+  @HasOne(() => Payment)
+  declare payment?: Payment;
+
+  @HasMany(() => Review)
+  declare reviews?: Review[];
 
   public toJSON() {
+    const values = { ...this.get() };
+    const details = this.orderDetails || values.orderDetails || [];
     return {
-      id: this.id,
-      orderCode: this.orderCode,
-      userId: this.userId,
-      userName: this.userName,
-      userPhone: this.userPhone,
-      canteenId: this.canteenId,
-      canteenName: this.canteenName,
-      voucherId: this.voucherId,
-      orderDetails: this.orderDetails.map((detail) => detail.toJSON()),
-      totalAmount: this.totalAmount,
-      discountAmount: this.discountAmount,
-      finalAmount: this.finalAmount,
-      status: this.status,
-      orderType: this.orderType,
-      tableId: this.tableId,
-      tableNumber: this.tableNumber,
-      pickupSlot: this.pickupSlot,
-      pickupCode: this.pickupCode,
-      deliveryAddressId: this.deliveryAddressId,
-      deliveryAddressText: this.deliveryAddressText,
-      paymentMethod: this.paymentMethod,
-      isPaid: this.isPaid,
-      notes: this.notes,
-      createdAt: this.createdAt.toISOString(),
-      updatedAt: this.updatedAt.toISOString(),
+      id: values.id,
+      orderCode: values.orderCode,
+      userId: values.userId,
+      userName: values.userName,
+      userPhone: values.userPhone,
+      canteenId: values.canteenId,
+      canteenName: values.canteenName,
+      voucherId: values.voucherId,
+      orderDetails: (details || []).map((detail: any) => (typeof detail?.toJSON === 'function' ? detail.toJSON() : detail)),
+      totalAmount: Number(values.totalAmount) || 0,
+      discountAmount: Number(values.discountAmount) || 0,
+      finalAmount: Number(values.finalAmount) || 0,
+      status: values.status,
+      orderType: values.orderType,
+      tableId: values.tableId,
+      tableNumber: values.tableNumber,
+      pickupSlot: values.pickupSlot,
+      pickupCode: values.pickupCode,
+      deliveryAddressId: values.deliveryAddressId,
+      deliveryAddressText: values.deliveryAddressText,
+      paymentMethod: values.paymentMethod,
+      isPaid: Boolean(values.isPaid),
+      notes: values.notes,
+      createdAt: values.createdAt ? new Date(values.createdAt).toISOString() : new Date().toISOString(),
+      updatedAt: values.updatedAt ? new Date(values.updatedAt).toISOString() : new Date().toISOString(),
     };
   }
 }

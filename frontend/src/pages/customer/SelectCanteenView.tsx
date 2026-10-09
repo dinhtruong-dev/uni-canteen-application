@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { Canteen } from '../../types';
+import { HeaderNav } from '../../components/HeaderNav';
 import {
   ArrowLeft,
   Store,
@@ -42,26 +43,11 @@ export const SelectCanteenView: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28">
-      {/* Top Header */}
-      <div className="sticky top-0 z-30 bg-white border-b border-slate-200/80 shadow-2xs">
-        <div className="max-w-2xl mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
-          <button
-            onClick={handleBack}
-            className="p-2 rounded-2xl hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer active:scale-95 flex items-center gap-1"
-            aria-label="Quay lại"
-          >
-            <ArrowLeft className="w-5 h-5 text-slate-800" />
-            <span className="text-xs font-semibold hidden sm:inline">Quay lại</span>
-          </button>
-
-          <h1 className="text-base sm:text-lg font-bold text-slate-900 text-center flex-1 truncate">
-            Chọn Căng Tin Nhận Món
-          </h1>
-
-          {/* Spacer to keep title centered */}
-          <div className="w-9" aria-hidden="true" />
-        </div>
-      </div>
+      {/* Top Header Navigation */}
+      <HeaderNav
+        title="Chọn Căng Tin Nhận Món"
+        onBack={handleBack}
+      />
 
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 pt-4 pb-8 space-y-4">

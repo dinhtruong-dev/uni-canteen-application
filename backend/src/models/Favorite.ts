@@ -1,33 +1,44 @@
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { User } from './User';
+import { Product } from './Product';
+
 export type FavoriteTargetType = 'PRODUCT' | 'ORDER';
 
-export class Favorite {
-  public id: string;
-  public userId: string;
-  public targetType: FavoriteTargetType;
-  public targetId: string; // productId or orderId
-  public createdAt: Date;
+@Table({ tableName: 'favorites', timestamps: true, updatedAt: false, underscored: true })
+export class Favorite extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  declare id: string;
 
-  constructor(
-    id: string,
-    userId: string,
-    targetType: FavoriteTargetType,
-    targetId: string,
-    createdAt: Date = new Date()
-  ) {
-    this.id = id;
-    this.userId = userId;
-    this.targetType = targetType;
-    this.targetId = targetId;
-    this.createdAt = createdAt;
-  }
+  @ForeignKey(() => User)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'user_id' })
+  declare userId: string;
+
+  @Column({
+    type: DataType.ENUM('PRODUCT', 'ORDER'),
+    defaultValue: 'PRODUCT',
+    field: 'target_type',
+  })
+  declare targetType: FavoriteTargetType;
+
+  @ForeignKey(() => Product)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'target_id' })
+  declare targetId: string;
+
+  // Associations
+  @BelongsTo(() => User)
+  declare user: User;
+
+  @BelongsTo(() => Product)
+  declare product?: Product;
 
   public toJSON() {
+    const values = { ...this.get() };
     return {
-      id: this.id,
-      userId: this.userId,
-      targetType: this.targetType,
-      targetId: this.targetId,
-      createdAt: this.createdAt.toISOString(),
+      id: values.id,
+      userId: values.userId,
+      targetType: values.targetType,
+      targetId: values.targetId,
+      createdAt: values.createdAt ? new Date(values.createdAt).toISOString() : new Date().toISOString(),
     };
   }
 }

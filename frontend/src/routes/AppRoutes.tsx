@@ -30,7 +30,7 @@ import { AdminPortalView } from '../pages/admin/AdminPortalView';
 export const AppRoutes: React.FC = () => {
   const { currentView, viewParams, currentUser } = useApp();
 
-  // 1. Khi chưa đăng nhập: Luôn hiển thị màn hình đăng nhập (bỏ hoàn toàn landing page khi vào web)
+  // 1. Khi chưa đăng nhập: Luôn hiển thị màn hình đăng nhập
   if (!currentUser) {
     if (currentView === 'register' || currentView === 'buyer/register') {
       return <RegisterView />;
@@ -70,7 +70,6 @@ export const AppRoutes: React.FC = () => {
   }
 
   switch (currentView) {
-    case 'landing':
     case 'home':
       return <HomeView />;
     case 'select-delivery':

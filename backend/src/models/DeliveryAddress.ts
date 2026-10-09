@@ -1,54 +1,57 @@
-export class DeliveryAddress {
-  public id: string;
-  public userId: string;
-  public recipientName: string;
-  public recipientPhone: string;
-  public dormBlock: string; // e.g. 'KTX A1', 'KTX B2', 'Giảng đường C'
-  public roomNumber: string; // e.g. 'Phòng 402'
-  public fullAddress: string;
-  public notes?: string;
-  public isDefault: boolean;
-  public createdAt: Date;
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany } from 'sequelize-typescript';
+import { User } from './User';
+import { Order } from './Order';
 
-  constructor(
-    id: string,
-    userId: string,
-    recipientName: string,
-    recipientPhone: string,
-    dormBlock: string,
-    roomNumber: string,
-    notes?: string,
-    isDefault: boolean = false,
-    createdAt: Date = new Date()
-  ) {
-    this.id = id;
-    this.userId = userId;
-    this.recipientName = recipientName;
-    this.recipientPhone = recipientPhone;
-    this.dormBlock = dormBlock;
-    this.roomNumber = roomNumber;
-    this.fullAddress = `${roomNumber}, ${dormBlock}, Ký túc xá Đại học`;
-    this.notes = notes;
-    this.isDefault = isDefault;
-    this.createdAt = createdAt;
-  }
+@Table({ tableName: 'delivery_addresses', timestamps: true, updatedAt: false, underscored: true })
+export class DeliveryAddress extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  declare id: string;
 
-  public setDefault(value: boolean): void {
-    this.isDefault = value;
-  }
+  @ForeignKey(() => User)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'user_id' })
+  declare userId: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: false, field: 'recipient_name' })
+  declare recipientName: string;
+
+  @Column({ type: DataType.STRING(20), allowNull: false, field: 'recipient_phone' })
+  declare recipientPhone: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: false, field: 'dorm_block' })
+  declare dormBlock: string;
+
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'room_number' })
+  declare roomNumber: string;
+
+  @Column({ type: DataType.STRING(255), allowNull: false, field: 'full_address' })
+  declare fullAddress: string;
+
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  declare notes?: string;
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'is_default' })
+  declare isDefault: boolean;
+
+  // Associations
+  @BelongsTo(() => User)
+  declare user: User;
+
+  @HasMany(() => Order)
+  declare orders: Order[];
 
   public toJSON() {
+    const values = { ...this.get() };
     return {
-      id: this.id,
-      userId: this.userId,
-      recipientName: this.recipientName,
-      recipientPhone: this.recipientPhone,
-      dormBlock: this.dormBlock,
-      roomNumber: this.roomNumber,
-      fullAddress: this.fullAddress,
-      notes: this.notes,
-      isDefault: this.isDefault,
-      createdAt: this.createdAt.toISOString(),
+      id: values.id,
+      userId: values.userId,
+      recipientName: values.recipientName,
+      recipientPhone: values.recipientPhone,
+      dormBlock: values.dormBlock,
+      roomNumber: values.roomNumber,
+      fullAddress: values.fullAddress,
+      notes: values.notes,
+      isDefault: Boolean(values.isDefault),
+      createdAt: values.createdAt ? new Date(values.createdAt).toISOString() : new Date().toISOString(),
     };
   }
 }

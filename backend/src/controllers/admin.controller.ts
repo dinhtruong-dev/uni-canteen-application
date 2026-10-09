@@ -1,29 +1,30 @@
 import { Request, Response } from 'express';
-import { executeQuery } from '../config/db.config';
-import { db } from '../services/database.service';
+import { QueryTypes } from 'sequelize';
+import { sequelize } from '../models';
 import { interactionService } from '../services/interaction.service';
+import { socketManager } from '../socket';
 
 export class AdminController {
   /**
-   * 1. Overview Dashboard (Thống kê thực từ MySQL DB)
+   * 1. Overview Dashboard (Thống kê thực từ MySQL DB qua Sequelize)
    */
-  public async getOverview(req: Request, res: Response) {
+  public async getOverview(_req: Request, res: Response) {
     try {
-      // 1.1 Doanh thu và đơn hàng
-      const revenueRow: any = await executeQuery(`
-        SELECT 
+      const [rawRevenue]: any = await sequelize.query(
+        `SELECT 
           COALESCE(SUM(CASE WHEN is_paid = 1 AND status != 'CANCELLED' THEN final_amount ELSE 0 END), 0) as totalRevenue,
-          COALESCE(SUM(CASE WHEN is_paid = 1 AND status != 'CANCELLED' AND created_at >= CURDATE() THEN final_amount ELSE 0 END), 0) as todayRevenue,
-          COUNT(*) as totalOrders,
+          COALESCE(SUM(CASE WHEN is_paid = 1 AND status != 'CANCELLED' AND DATE(created_at) = CURDATE() THEN final_amount ELSE 0 END), 0) as todayRevenue,
+          COUNT(id) as totalOrders,
           COUNT(CASE WHEN status = 'PENDING' THEN 1 END) as pendingOrders,
           COUNT(CASE WHEN status IN ('CONFIRMED', 'PREPARING') THEN 1 END) as cookingOrders,
           COUNT(CASE WHEN status IN ('READY', 'SERVED', 'DELIVERING') THEN 1 END) as deliveringOrders,
           COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) as completedOrders,
           COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) as cancelledOrders
-        FROM orders
-      `);
+        FROM orders`,
+        { type: QueryTypes.SELECT }
+      );
 
-      const revData = Array.isArray(revenueRow) && revenueRow[0] ? revenueRow[0] : {
+      const revData = rawRevenue || {
         totalRevenue: 0,
         todayRevenue: 0,
         totalOrders: 0,
@@ -34,48 +35,45 @@ export class AdminController {
         cancelledOrders: 0,
       };
 
-      // 1.2 Phân bổ theo hình thức nhận món (DINE_IN, TAKEAWAY/PICKUP, DELIVERY)
-      const orderTypeRows: any = await executeQuery(`
-        SELECT order_type, COUNT(*) as count 
-        FROM orders 
-        GROUP BY order_type
-      `);
+      const orderTypeRows = await sequelize.query(
+        `SELECT order_type, COUNT(id) as count FROM orders GROUP BY order_type`,
+        { type: QueryTypes.SELECT }
+      );
 
-      // 1.3 Phân bổ trạng thái đơn
-      const statusRows: any = await executeQuery(`
-        SELECT status, COUNT(*) as count 
-        FROM orders 
-        GROUP BY status
-      `);
+      const statusRows = await sequelize.query(
+        `SELECT status, COUNT(id) as count FROM orders GROUP BY status`,
+        { type: QueryTypes.SELECT }
+      );
 
-      // 1.4 Doanh thu 7 ngày gần nhất
-      const trendRows: any = await executeQuery(`
-        SELECT 
+      const trendRows = await sequelize.query(
+        `SELECT 
           DATE_FORMAT(created_at, '%d/%m') as date,
           COALESCE(SUM(CASE WHEN is_paid = 1 AND status != 'CANCELLED' THEN final_amount ELSE 0 END), 0) as revenue,
-          COUNT(*) as orders
+          COUNT(id) as orders
         FROM orders
         WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
         GROUP BY DATE(created_at), DATE_FORMAT(created_at, '%d/%m')
-        ORDER BY DATE(created_at) ASC
-      `);
+        ORDER BY DATE(created_at) ASC`,
+        { type: QueryTypes.SELECT }
+      );
 
-      // 1.5 Người dùng và cơ sở vật chất
-      const userRows: any = await executeQuery(`
-        SELECT 
+      const [rawUserStats]: any = await sequelize.query(
+        `SELECT 
           COUNT(CASE WHEN role = 'STUDENT' THEN 1 END) as totalStudents,
           COUNT(CASE WHEN role = 'STAFF' THEN 1 END) as totalStaff,
-          COUNT(*) as totalUsers
-        FROM users
-      `);
+          COUNT(id) as totalUsers
+        FROM users`,
+        { type: QueryTypes.SELECT }
+      );
 
-      const tableRows: any = await executeQuery(`
-        SELECT 
-          COUNT(*) as totalTables,
+      const [rawTableStats]: any = await sequelize.query(
+        `SELECT 
+          COUNT(id) as totalTables,
           COUNT(CASE WHEN status = 'OCCUPIED' THEN 1 END) as occupiedTables,
           COUNT(CASE WHEN status = 'AVAILABLE' THEN 1 END) as availableTables
-        FROM dining_tables
-      `);
+        FROM dining_tables`,
+        { type: QueryTypes.SELECT }
+      );
 
       return res.json({
         success: true,
@@ -89,10 +87,10 @@ export class AdminController {
             deliveringOrders: Number(revData.deliveringOrders) || 0,
             completedOrders: Number(revData.completedOrders) || 0,
             cancelledOrders: Number(revData.cancelledOrders) || 0,
-            totalStudents: Number(userRows?.[0]?.totalStudents) || db.users.size,
-            totalStaff: Number(userRows?.[0]?.totalStaff) || 5,
-            totalTables: Number(tableRows?.[0]?.totalTables) || db.tables.size,
-            occupiedTables: Number(tableRows?.[0]?.occupiedTables) || 0,
+            totalStudents: Number(rawUserStats?.totalStudents) || 0,
+            totalStaff: Number(rawUserStats?.totalStaff) || 5,
+            totalTables: Number(rawTableStats?.totalTables) || 0,
+            occupiedTables: Number(rawTableStats?.occupiedTables) || 0,
           },
           orderTypes: Array.isArray(orderTypeRows) ? orderTypeRows : [],
           statuses: Array.isArray(statusRows) ? statusRows : [],
@@ -106,32 +104,30 @@ export class AdminController {
   }
 
   /**
-   * 2. Deep Analytics & Statistics (Thống kê chuyên sâu từ MySQL DB)
+   * 2. Deep Analytics & Statistics (Thống kê chuyên sâu từ MySQL DB qua Sequelize)
    */
-  public async getStatistics(req: Request, res: Response) {
+  public async getStatistics(_req: Request, res: Response) {
     try {
-      // 2.1 Hiệu suất từng quầy căn tin
-      const canteenStats: any = await executeQuery(`
-        SELECT 
-          c.id,
-          c.name,
+      const canteenStats = await sequelize.query(
+        `SELECT 
+          c.id as id,
+          c.name as name,
           COALESCE(COUNT(o.id), 0) as orders,
           COALESCE(SUM(CASE WHEN o.is_paid = 1 AND o.status != 'CANCELLED' THEN o.final_amount ELSE 0 END), 0) as revenue,
           ROUND(COALESCE(COUNT(CASE WHEN o.status = 'CANCELLED' THEN 1 END) * 100.0 / NULLIF(COUNT(o.id), 0), 0), 1) as cancelRate
         FROM canteens c
         LEFT JOIN orders o ON c.id = o.canteen_id
-        GROUP BY c.id, c.name
-      `);
+        GROUP BY c.id, c.name`,
+        { type: QueryTypes.SELECT }
+      );
 
-      // 2.2 Phân bổ khung giờ cao điểm
-      const hourlyStats: any = await executeQuery(`
-        SELECT 
-          HOUR(created_at) as hourNum,
-          COUNT(*) as orders
+      const hourlyStats = await sequelize.query(
+        `SELECT HOUR(created_at) as hourNum, COUNT(id) as orders
         FROM orders
         GROUP BY HOUR(created_at)
-        ORDER BY hourNum ASC
-      `);
+        ORDER BY hourNum ASC`,
+        { type: QueryTypes.SELECT }
+      );
 
       const formattedHours = [
         { hour: '07h-08h', orders: 0 },
@@ -161,12 +157,14 @@ export class AdminController {
       return res.json({
         success: true,
         data: {
-          canteens: Array.isArray(canteenStats) ? canteenStats.map((c: any) => ({
-            name: c.name,
-            revenue: Number(c.revenue) || 0,
-            orders: Number(c.orders) || 0,
-            cancelRate: Number(c.cancelRate) || 0,
-          })) : [],
+          canteens: Array.isArray(canteenStats)
+            ? canteenStats.map((c: any) => ({
+              name: c.name,
+              revenue: Number(c.revenue) || 0,
+              orders: Number(c.orders) || 0,
+              cancelRate: Number(c.cancelRate) || 0,
+            }))
+            : [],
           hourly: formattedHours,
         },
       });
@@ -176,37 +174,50 @@ export class AdminController {
     }
   }
 
-  /**
-   * 3. Phát thông báo từ Admin (Lưu CSDL & Bắn Socket.IO tức thì)
-   */
+
   public async pushNotification(req: Request, res: Response) {
     try {
       const { target = 'ALL', title, message, type = 'SYSTEM' } = req.body;
       if (!title || !message) {
-        return res.status(400).json({ success: false, message: 'Tiêu đề và nội dung thông báo không được để trống' });
+        return res.status(400).json({ success: false, message: 'Tiêu đề và nội dung không được để trống' });
       }
 
+      const isBroadcast = target === 'ALL';
+
       const notif = await interactionService.createNotification({
-        userId: target,
+        userId: isBroadcast ? null : target,
         title: title.trim(),
         message: message.trim(),
-        type: type,
+        type,
       });
+
+      const notifJson = typeof (notif as any)?.toJSON === 'function'
+        ? (notif as any).toJSON()
+        : notif;
+
+      if (isBroadcast) {
+        socketManager.broadcastNotification(notifJson);
+      } else {
+        socketManager.sendNotificationToUser(target, notifJson);
+      }
 
       return res.status(201).json({
         success: true,
-        message: `Đã phát thông báo thành công tới ${target === 'ALL' ? 'toàn bộ người dùng' : target}`,
-        data: typeof (notif as any)?.toJSON === 'function' ? (notif as any).toJSON() : notif,
+        message: isBroadcast
+          ? 'Đã phát thông báo tới toàn bộ người dùng'
+          : `Đã gửi tới user ${target}`,
+        data: notifJson,
       });
     } catch (err: any) {
       console.error('[AdminController pushNotification Error]:', err);
-      return res.status(500).json({ success: false, message: 'Lỗi phát thông báo từ Admin', error: err.message });
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi phát thông báo từ Admin',
+        error: err.message,
+      });
     }
   }
 
-  /**
-   * 4. Quản lý Đánh giá từ Admin (Lấy từ MySQL DB)
-   */
   public async getReviews(req: Request, res: Response) {
     try {
       const { canteenId, rating } = req.query;

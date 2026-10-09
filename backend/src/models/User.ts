@@ -1,131 +1,114 @@
-import bcrypt from 'bcryptjs';
+import { Table, Column, Model, DataType, HasMany, BelongsToMany } from 'sequelize-typescript';
+import { Order } from './Order';
+import { DeliveryAddress } from './DeliveryAddress';
+import { Favorite } from './Favorite';
+import { UserVoucher } from './UserVoucher';
+import { Voucher } from './Voucher';
+import { Review } from './Review';
+import { Notification } from './Notification';
+import { WalletTransaction } from './WalletTransaction';
+import { Payment } from './Payment';
+import { UserRole, UserStatus } from '../types/auth.types';
 
-export type UserRole = 'STUDENT' | 'STAFF' | 'ADMIN';
-export type UserStatus = 'ACTIVE' | 'BANNED';
 
-export interface IUser {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: UserRole;
-  avatar: string;
-  status?: UserStatus;
-  isActive?: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+@Table({ tableName: 'users', timestamps: true, underscored: true })
+export class User extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  declare id: string;
 
-export class User implements IUser {
-  public id: string;
-  public name: string;
-  public email: string;
-  public passwordHash: string;
-  public phone: string;
-  public role: UserRole;
-  public avatar: string;
-  public studentId?: string;
-  public faculty?: string;
-  public department?: string;
-  public walletBalance: number;
-  public status: UserStatus;
-  public isActive: boolean;
-  public createdAt: Date;
-  public updatedAt: Date;
 
-  constructor(
-    id: string,
-    name: string,
-    email: string,
-    phone: string,
-    role: UserRole = 'STUDENT',
-    options?: {
-      password?: string;
-      passwordHash?: string;
-      avatar?: string;
-      studentId?: string;
-      faculty?: string;
-      department?: string;
-      walletBalance?: number;
-      status?: UserStatus;
-      isActive?: boolean;
-      createdAt?: Date;
-      updatedAt?: Date;
-    }
-  ) {
-    this.id = id;
-    this.name = name;
-    this.email = email;
-    this.phone = phone;
-    this.role = role;
-    this.avatar =
-      options?.avatar ||
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
-    this.studentId = options?.studentId;
-    this.faculty = options?.faculty;
-    this.department = options?.department;
-    this.walletBalance = options?.walletBalance || 0;
-    this.status = options?.status || (options?.isActive === false ? 'BANNED' : 'ACTIVE');
-    this.isActive = this.status === 'ACTIVE';
-    this.createdAt = options?.createdAt || new Date();
-    this.updatedAt = options?.updatedAt || new Date();
+  @Column({ type: DataType.STRING(30), allowNull: true, field: 'student_id' })
+  declare studentId?: string;
 
-    if (options?.passwordHash) {
-      this.passwordHash = options.passwordHash;
-    } else if (options?.password) {
-      this.passwordHash = bcrypt.hashSync(options.password, 10);
-    } else {
-      // Default hashed password for '123456'
-      this.passwordHash = bcrypt.hashSync('123456', 10);
-    }
-  }
+  @Column({ type: DataType.STRING(100), allowNull: false })
+  declare name: string;
 
-  public verifyPassword(password: string): boolean {
-    try {
-      if (bcrypt.compareSync(password, this.passwordHash)) {
-        return true;
-      }
-    } catch {}
-    // Hỗ trợ mật khẩu demo 123456 hoặc so khớp trực tiếp chuỗi hash/password mẫu
-    return password === '123456' || password === this.passwordHash;
-  }
+  @Column({ type: DataType.STRING(150), allowNull: false, unique: true })
+  declare email: string;
 
-  public setPassword(newPassword: string): void {
-    this.passwordHash = bcrypt.hashSync(newPassword, 10);
-    this.updatedAt = new Date();
-  }
+  @Column({ type: DataType.STRING(255), allowNull: false, field: 'password_hash' })
+  declare passwordHash: string;
 
-  public addFunds(amount: number): number {
-    if (amount <= 0) throw new Error('Số tiền nạp phải lớn hơn 0');
-    this.walletBalance += amount;
-    this.updatedAt = new Date();
-    return this.walletBalance;
-  }
+  @Column({ type: DataType.STRING(20), allowNull: false })
+  declare phone: string;
 
-  public deductFunds(amount: number): boolean {
-    if (amount <= 0) throw new Error('Số tiền thanh toán không hợp lệ');
-    if (this.walletBalance < amount) return false;
-    this.walletBalance -= amount;
-    this.updatedAt = new Date();
-    return true;
-  }
+  @Column({
+    type: DataType.ENUM('STUDENT', 'STAFF', 'ADMIN'),
+    allowNull: false,
+    defaultValue: 'STUDENT',
+  })
+  declare role: UserRole;
+
+  @Column({ type: DataType.STRING(100), allowNull: true })
+  declare faculty?: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: true })
+  declare department?: string;
+
+  @Column({
+    type: DataType.DECIMAL(12, 2),
+    allowNull: false,
+    defaultValue: 0,
+    field: 'wallet_balance',
+  })
+  declare walletBalance: number;
+
+  @Column({ type: DataType.STRING(500), allowNull: true })
+  declare avatar?: string;
+
+  @Column({
+    type: DataType.ENUM('ACTIVE', 'BLOCKED', 'BANNED'),
+    allowNull: false,
+    defaultValue: 'ACTIVE',
+  })
+  declare status: UserStatus;
+
+  // Associations
+  @HasMany(() => Order)
+  declare orders: Order[];
+
+  @HasMany(() => DeliveryAddress)
+  declare deliveryAddresses: DeliveryAddress[];
+
+  @HasMany(() => Favorite)
+  declare favorites: Favorite[];
+
+  @HasMany(() => UserVoucher)
+  declare userVouchers: UserVoucher[];
+
+  @BelongsToMany(() => Voucher, () => UserVoucher)
+  declare vouchers: Voucher[];
+
+  @HasMany(() => Review)
+  declare reviews: Review[];
+
+  @HasMany(() => Notification)
+  declare notifications: Notification[];
+
+  @HasMany(() => WalletTransaction)
+  declare walletTransactions: WalletTransaction[];
+
+  @HasMany(() => Payment)
+  declare payments: Payment[];
 
   public toJSON() {
+    const values = { ...this.get() };
+    delete values.passwordHash;
     return {
-      id: this.id,
-      name: this.name,
-      email: this.email,
-      phone: this.phone,
-      role: this.role,
-      avatar: this.avatar,
-      studentId: this.studentId,
-      faculty: this.faculty,
-      department: this.department,
-      walletBalance: this.walletBalance,
-      status: this.status,
-      isActive: this.isActive,
-      createdAt: this.createdAt.toISOString(),
-      updatedAt: this.updatedAt.toISOString(),
+      id: values.id,
+      studentId: values.studentId,
+      name: values.name,
+      email: values.email,
+      phone: values.phone,
+      role: values.role,
+      faculty: values.faculty,
+      department: values.department,
+      walletBalance: Number(values.walletBalance) || 0,
+      avatar: values.avatar,
+      status: values.status,
+      isActive: values.status === 'ACTIVE',
+      createdAt: values.createdAt ? new Date(values.createdAt).toISOString() : new Date().toISOString(),
+      updatedAt: values.updatedAt ? new Date(values.updatedAt).toISOString() : new Date().toISOString(),
     };
   }
 }

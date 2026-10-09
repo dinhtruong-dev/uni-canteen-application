@@ -1,110 +1,86 @@
-export type VoucherDiscountType = 'PERCENTAGE' | 'FIXED';
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany, BelongsToMany } from 'sequelize-typescript';
+import { Canteen } from './Canteen';
+import { UserVoucher } from './UserVoucher';
+import { User } from './User';
+import { Order } from './Order';
 
-export class Voucher {
-  public id: string;
-  public code: string;
-  public title: string;
-  public description: string;
-  public discountType: VoucherDiscountType;
-  public discountValue: number; // 20 for 20% or 15000 for 15.000đ
-  public minOrderAmount: number;
+export type VoucherDiscountType = 'PERCENT' | 'FIXED' | 'PERCENTAGE';
+
+@Table({ tableName: 'vouchers', timestamps: false, underscored: true })
+export class Voucher extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  public id!: string;
+
+  @Column({ type: DataType.STRING(50), allowNull: false, unique: true })
+  public code!: string;
+
+  @Column({ type: DataType.STRING(150), allowNull: false })
+  public title!: string;
+
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  public description!: string;
+
+  @ForeignKey(() => Canteen)
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'canteen_id' })
+  public canteenId?: string;
+
+  @Column({ type: DataType.STRING(20), allowNull: false, field: 'discount_type' })
+  public discountType!: VoucherDiscountType;
+
+  @Column({ type: DataType.DECIMAL(10, 2), allowNull: false, field: 'discount_value' })
+  public discountValue!: number;
+
+  @Column({ type: DataType.DECIMAL(10, 2), defaultValue: 0, field: 'min_order_amount' })
+  public minOrderAmount!: number;
+
+  @Column({ type: DataType.DECIMAL(10, 2), allowNull: true, field: 'max_discount' })
   public maxDiscount?: number;
-  public startDate: Date;
-  public endDate: Date;
-  public usageLimit: number;
-  public usedCount: number;
-  public isActive: boolean;
 
-  constructor(
-    id: string,
-    code: string,
-    title: string,
-    description: string,
-    discountType: VoucherDiscountType,
-    discountValue: number,
-    minOrderAmount: number = 0,
-    options?: {
-      maxDiscount?: number;
-      startDate?: Date;
-      endDate?: Date;
-      usageLimit?: number;
-      usedCount?: number;
-      isActive?: boolean;
-    }
-  ) {
-    this.id = id;
-    this.code = code.toUpperCase().trim();
-    this.title = title;
-    this.description = description;
-    this.discountType = discountType;
-    this.discountValue = discountValue;
-    this.minOrderAmount = minOrderAmount;
-    this.maxDiscount = options?.maxDiscount;
-    this.startDate = options?.startDate || new Date(Date.now() - 7 * 24 * 3600 * 1000);
-    this.endDate = options?.endDate || new Date(Date.now() + 30 * 24 * 3600 * 1000);
-    this.usageLimit = options?.usageLimit || 1000;
-    this.usedCount = options?.usedCount || 0;
-    this.isActive = options?.isActive !== undefined ? options.isActive : true;
-  }
+  @Column({ type: DataType.DATE, allowNull: true, field: 'start_date' })
+  public startDate!: Date;
 
-  public isValid(currentAmount: number): { valid: boolean; reason?: string } {
-    if (!this.isActive) {
-      return { valid: false, reason: 'Voucher hiện không khả dụng' };
-    }
-    const now = new Date();
-    if (now < this.startDate || now > this.endDate) {
-      return { valid: false, reason: 'Voucher đã hết hạn sử dụng' };
-    }
-    if (this.usedCount >= this.usageLimit) {
-      return { valid: false, reason: 'Voucher đã hết số lượt sử dụng' };
-    }
-    if (currentAmount < this.minOrderAmount) {
-      return {
-        valid: false,
-        reason: `Đơn hàng tối thiểu ${this.minOrderAmount.toLocaleString('vi-VN')}đ để áp dụng voucher này`,
-      };
-    }
-    return { valid: true };
-  }
+  @Column({ type: DataType.DATE, allowNull: true, field: 'end_date' })
+  public endDate!: Date;
 
-  public calculateDiscount(orderAmount: number): number {
-    const validity = this.isValid(orderAmount);
-    if (!validity.valid) return 0;
+  @Column({ type: DataType.INTEGER, defaultValue: 100, field: 'usage_limit' })
+  public usageLimit!: number;
 
-    let discount = 0;
-    if (this.discountType === 'PERCENTAGE') {
-      discount = (orderAmount * this.discountValue) / 100;
-      if (this.maxDiscount && discount > this.maxDiscount) {
-        discount = this.maxDiscount;
-      }
-    } else {
-      discount = this.discountValue;
-    }
+  @Column({ type: DataType.INTEGER, defaultValue: 0, field: 'used_count' })
+  public usedCount!: number;
 
-    return Math.min(discount, orderAmount);
-  }
+  @Column({ type: DataType.BOOLEAN, defaultValue: true, field: 'is_active' })
+  public isActive!: boolean;
 
-  public claim(): boolean {
-    if (this.usedCount >= this.usageLimit) return false;
-    this.usedCount += 1;
-    return true;
-  }
+  // Associations
+  @BelongsTo(() => Canteen)
+  public canteen?: Canteen;
+
+  @HasMany(() => UserVoucher)
+  public userVouchers!: UserVoucher[];
+
+  @BelongsToMany(() => User, () => UserVoucher)
+  public users!: User[];
+
+  @HasMany(() => Order)
+  public orders!: Order[];
 
   public toJSON() {
+    const values = { ...this.get() };
     return {
-      id: this.id,
-      code: this.code,
-      title: this.title,
-      description: this.description,
-      discountType: this.discountType,
-      discountValue: this.discountValue,
-      minOrderAmount: this.minOrderAmount,
-      maxDiscount: this.maxDiscount,
-      startDate: this.startDate.toISOString(),
-      endDate: this.endDate.toISOString(),
-      usageLimit: this.usageLimit,
-      usedCount: this.usedCount,
-      isActive: this.isActive,
+      id: values.id,
+      code: values.code,
+      title: values.title,
+      description: values.description,
+      canteenId: values.canteenId,
+      discountType: values.discountType,
+      discountValue: Number(values.discountValue) || 0,
+      minOrderAmount: Number(values.minOrderAmount) || 0,
+      maxDiscount: values.maxDiscount ? Number(values.maxDiscount) : undefined,
+      startDate: values.startDate ? new Date(values.startDate).toISOString() : new Date().toISOString(),
+      endDate: values.endDate ? new Date(values.endDate).toISOString() : new Date().toISOString(),
+      usageLimit: Number(values.usageLimit) || 0,
+      usedCount: Number(values.usedCount) || 0,
+      isActive: Boolean(values.isActive),
     };
   }
 }

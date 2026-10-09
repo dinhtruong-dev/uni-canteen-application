@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { FoodTopping, FoodSize } from '../../types';
+import { HeaderNav } from '../../components/HeaderNav';
 import {
   ArrowLeft,
   Star,
@@ -31,6 +32,7 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
     toggleFavorite,
     isFavorite,
     navigateTo,
+    goBack,
     canteens,
     showToast,
     cart,
@@ -97,11 +99,7 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
   const totalCartPrice = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
 
   const handleBack = () => {
-    if (viewParams?.fromView) {
-      navigateTo(viewParams.fromView, viewParams.fromParams);
-    } else {
-      navigateTo('home');
-    }
+    goBack(viewParams?.fromView || 'home', viewParams?.fromParams);
   };
 
   const handleAddToCart = () => {
@@ -139,35 +137,29 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 pb-24 animate-in fade-in duration-200">
-      {/* Navigation Top Header */}
-      <div className="flex items-center justify-between border-b border-[#E9DDE3] pb-3">
-        <button
-          onClick={handleBack}
-          className="p-2 -ml-2 rounded-full text-[#1F2937] hover:text-[#FF4F8B] hover:bg-[#FFF3F7] transition-colors cursor-pointer"
-          title="Quay lại"
-        >
-          <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-        </button>
-        <h1 className="text-base sm:text-lg font-extrabold text-[#1F2937] text-center flex-1 truncate px-2">
-          Chi tiết món ăn
-        </h1>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => toggleFavorite(food.id)}
-            className="p-2 rounded-full text-slate-400 hover:text-[#FF4F8B] hover:bg-[#FFF3F7] transition-colors cursor-pointer"
-            title="Yêu thích"
-          >
-            <Heart className={`w-5 h-5 ${favorite ? 'fill-[#FF4F8B] text-[#FF4F8B]' : ''}`} />
-          </button>
-          <button
-            onClick={handleShare}
-            className="p-2 rounded-full text-slate-400 hover:text-[#1F2937] hover:bg-[#FFF3F7] transition-colors cursor-pointer"
-            title="Chia sẻ"
-          >
-            <Share2 className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+      {/* Navigation Top Header Component */}
+      <HeaderNav
+        title="Chi tiết món ăn"
+        onBack={handleBack}
+        rightAction={
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => toggleFavorite(food.id)}
+              className="p-2 rounded-full text-slate-400 hover:text-[#FF4F8B] hover:bg-[#FFF3F7] transition-colors cursor-pointer"
+              title="Yêu thích"
+            >
+              <Heart className={`w-5 h-5 ${favorite ? 'fill-[#FF4F8B] text-[#FF4F8B]' : ''}`} />
+            </button>
+            <button
+              onClick={handleShare}
+              className="p-2 rounded-full text-slate-400 hover:text-[#1F2937] hover:bg-[#FFF3F7] transition-colors cursor-pointer"
+              title="Chia sẻ"
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
+          </div>
+        }
+      />
 
       {/* Main Content Area without outer card backgrounds */}
       <div className="space-y-3">

@@ -13,37 +13,55 @@ import canteenRoutes from './canteen.routes';
 import searchRoutes from './search.routes';
 import staffRoutes from './staff.routes';
 import adminRoutes from './admin.routes';
-import { isDbConnected, dbConfig } from '../config/db.config';
-import { db } from '../services/database.service';
+import { sequelize } from '../db/sequelize';
+import { User, Product, Category, Canteen, DiningTable, Voucher } from '../models';
 
 const apiRouter = Router();
 
 // Health Check & Database Status
-apiRouter.get('/health', (_req, res) => {
-  const connected = isDbConnected();
+apiRouter.get('/health', async (_req, res) => {
+  let connected = false;
+  let stats = {
+    categories: 0,
+    products: 0,
+    users: 0,
+    canteens: 0,
+    tables: 0,
+    vouchers: 0,
+  };
+
+  try {
+    await sequelize.authenticate();
+    connected = true;
+    const [uCount, pCount, cCount, cantCount, tCount, vCount] = await Promise.all([
+      User.count(),
+      Product.count(),
+      Category.count(),
+      Canteen.count(),
+      DiningTable.count(),
+      Voucher.count(),
+    ]);
+
+    stats = {
+      categories: cCount,
+      products: pCount,
+      users: uCount,
+      canteens: cantCount,
+      tables: tCount,
+      vouchers: vCount,
+    };
+  } catch { }
+
   res.json({
     status: 'ok',
     service: 'UniEat Express Campus API',
     database: {
       connected,
-      syncedWithMySQL: db.isSyncedWithDb,
-      dataSource: db.isSyncedWithDb
-        ? 'MySQL Live Database (Đang nạp và dùng trực tiếp dữ liệu từ MySQL trên máy)'
-        : 'In-Memory Fallback Cache (Dữ liệu đệm/mẫu trong RAM do chưa kết nối hoặc chưa đồng bộ MySQL)',
-      config: {
-        host: dbConfig.host,
-        port: dbConfig.port,
-        database: dbConfig.database,
-        user: dbConfig.user,
-      },
-      stats: {
-        categories: db.categories.size,
-        products: db.products.size,
-        users: db.users.size,
-        canteens: db.canteens.size,
-        tables: db.tables.size,
-        vouchers: db.vouchers.size,
-      },
+      syncedWithMySQL: connected,
+      dataSource: connected
+        ? 'MySQL Live Database (Sequelize ORM)'
+        : 'Database Disconnected',
+      stats,
     },
     technologies: [
       'React.js (.tsx)',
@@ -51,35 +69,32 @@ apiRouter.get('/health', (_req, res) => {
       'Tailwind CSS',
       'Node.js',
       'Express.js',
-      'MySQL Schema (database.sql)',
+      'Sequelize ORM',
       'JWT & Bcrypt',
       'Cloudinary CDN',
       'QR Code Dining Table',
       'Socket.IO Realtime',
       'Online Payment (VNPay & MoMo)',
     ],
-    architecture: 'Router -> Middlewares -> Validations -> Controllers -> Services -> Models',
+    architecture: 'Stateless Back-End (Sequelize ORM Engine)',
     timestamp: new Date().toISOString(),
   });
 });
 
-// Trigger manual sync from MySQL
+// Trigger manual sync status check
 apiRouter.post('/health/sync-db', async (_req, res) => {
-  const success = await db.syncFromMySQL();
+  let connected = false;
+  try {
+    await sequelize.authenticate();
+    connected = true;
+  } catch { }
+
   res.json({
-    success,
-    message: success
-      ? '✅ Đồng bộ dữ liệu thành công từ MySQL trên máy của bạn!'
-      : '❌ Không thể nạp dữ liệu từ MySQL. Hãy đảm bảo MySQL đang chạy và đã import file backend/database.sql.',
-    syncedWithMySQL: db.isSyncedWithDb,
-    stats: {
-      categories: db.categories.size,
-      products: db.products.size,
-      users: db.users.size,
-      canteens: db.canteens.size,
-      tables: db.tables.size,
-      vouchers: db.vouchers.size,
-    },
+    success: connected,
+    message: connected
+      ? '✅ Đã kết nối và vận hành trực tiếp trên MySQL Database via Sequelize!'
+      : '❌ Không thể kết nối MySQL. Hãy đảm bảo MySQL đang chạy và đúng cấu hình.',
+    syncedWithMySQL: connected,
   });
 });
 
@@ -89,81 +104,40 @@ apiRouter.use('/auth', authRoutes);
 // Image Upload (Cloudinary)
 apiRouter.use('/upload', uploadRoutes);
 
-// Group 1: Nhóm Người dùng & Hồ sơ cá nhân
+// Users & Profile
 apiRouter.use('/users', userRoutes);
 
-// Group 2: Nhóm Vận hành & Cơ sở vật chất (Bàn ăn & Căng tin)
-apiRouter.use('/tables', tableRoutes);
+// Canteens
 apiRouter.use('/canteens', canteenRoutes);
 
-// Group 3: Nhóm Thực đơn (Menu) & Tìm kiếm (Search)
+// Dining Tables & QR Codes
+apiRouter.use('/tables', tableRoutes);
+
+// Menu (Categories & Products)
 apiRouter.use('/menu', menuRoutes);
 
-/**
- * /api/search
- * Search endpoint with server-side pagination, canteens, and dynamic search history
- */
-apiRouter.use('/search', searchRoutes);
-// Direct aliases for convenience:
-apiRouter.get('/categories', (req, res, next) => {
-  req.url = '/categories';
-  menuRoutes(req, res, next);
-});
-apiRouter.get('/products', (req, res, next) => {
-  req.url = '/products';
-  menuRoutes(req, res, next);
-});
-apiRouter.get('/products/:id', (req, res, next) => {
-  req.url = `/products/${req.params.id}`;
-  menuRoutes(req, res, next);
-});
-
-// Group 4: Nhóm Giỏ hàng (Mua sắm)
+// Cart (Shopping Cart)
 apiRouter.use('/cart', cartRoutes);
 
-// Group 5: Nhóm Giao dịch & Đơn hàng
+// Orders
 apiRouter.use('/orders', orderRoutes);
+
+// Payment (VNPay & MoMo)
 apiRouter.use('/payments', paymentRoutes);
 
-// Group 6: Nhóm Marketing (Quản trị bởi Admin)
+// Marketing (Banners, Vouchers, Flash Sale)
 apiRouter.use('/marketing', marketingRoutes);
-// Direct aliases for vouchers and banners:
-apiRouter.use('/vouchers', (req, res, next) => {
-  if (req.path === '/validate' && req.method === 'POST') {
-    req.url = '/vouchers/validate';
-  } else if (req.path === '/' && req.method === 'GET') {
-    req.url = '/vouchers';
-  }
-  marketingRoutes(req, res, next);
-});
-apiRouter.use('/banners', (req, res, next) => {
-  req.url = '/banners';
-  marketingRoutes(req, res, next);
-});
-apiRouter.use('/flash-sales', (req, res, next) => {
-  req.url = `/flash-sales${req.url === '/' ? '' : req.url}`;
-  marketingRoutes(req, res, next);
-});
 
-// Group 7: Nhóm Tương tác & Trải nghiệm khách hàng
-apiRouter.use('/interactions', interactionRoutes);
-apiRouter.use('/reviews', (req, res, next) => {
-  req.url = `/reviews${req.url === '/' ? '' : req.url}`;
-  interactionRoutes(req, res, next);
-});
-apiRouter.use('/notifications', (req, res, next) => {
-  req.url = `/notifications${req.url === '/' ? '' : req.url}`;
-  interactionRoutes(req, res, next);
-});
+// Interaction (Reviews & Notifications)
+apiRouter.use('/interaction', interactionRoutes);
 
-// Group 8: Staff Canteen Management & Operations
+// Search & Filtering
+apiRouter.use('/search', searchRoutes);
+
+// Staff Portal (Pos, Kitchen, Orders, Tables)
 apiRouter.use('/staff', staffRoutes);
-apiRouter.use('/pickup-slots', (req, res, next) => {
-  req.url = `/pickup-slots${req.url === '/' ? '' : req.url}`;
-  staffRoutes(req, res, next);
-});
 
-// Group 9: Admin Management & Deep Statistics
+// Admin Portal (Analytics, Users, System Management)
 apiRouter.use('/admin', adminRoutes);
 
 export default apiRouter;

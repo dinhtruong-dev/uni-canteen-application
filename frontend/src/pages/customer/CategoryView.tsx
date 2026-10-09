@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { FoodItem, Canteen } from '../../types';
+import { HeaderNav } from '../../components/HeaderNav';
 import {
-  ArrowLeft,
-  Share2,
   Search,
   SlidersHorizontal,
   X,
@@ -44,6 +43,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
     setQrScannerOpen,
     viewParams,
     navigateTo,
+    goBack,
+    updateUrlParams,
     addToCart,
     cart,
     updateCartQuantity,
@@ -67,8 +68,30 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
       const found = canteens.find((c) => c.id === incomingCanteenId);
       if (found) return found;
     }
-    return selectedCanteen || canteens[0];
+    return (
+      selectedCanteen ||
+      canteens[0] || {
+        id: 'canteen-1',
+        name: 'Căng tin A - Giảng Đường Trung Tâm A2',
+        displayName: 'Căng Tin A2',
+        code: 'CT-A2',
+        location: 'Tầng 1, Tòa A2 Giảng Đường Trung Tâm',
+        distance: '150m',
+        duration: '2 phút',
+        openingHours: '06:30 - 20:00',
+        isOpen: true,
+        rating: 4.9,
+        reviewCount: 312,
+        image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1000',
+        totalTables: 45,
+        phone: '0987654321',
+      }
+    );
   }, [incomingCanteenId, canteens, selectedCanteen]);
+
+  const searchParams = useMemo(() => {
+    return typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  }, []);
 
   // Initial category state:
   // In Canteen Mode, default to 'ALL' so students see ALL dishes of that canteen!
@@ -76,65 +99,111 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
   const initialCatId = isCanteenMode
     ? 'ALL'
     : categoryId ||
-      viewParams?.category ||
-      viewParams?.categoryId ||
-      activeCategories[0]?.id ||
-      'cat-1';
+    viewParams?.category ||
+    viewParams?.categoryId ||
+    searchParams.get('category') ||
+    activeCategories[0]?.id ||
+    'cat-1';
 
   const [selectedCatId, setSelectedCatId] = useState<string>(initialCatId);
-  const [searchQuery, setSearchQuery] = useState<string>(viewParams?.search || '');
+  const [searchQuery, setSearchQuery] = useState<string>(
+    viewParams?.search || searchParams.get('search') || ''
+  );
   const [selectedCanteenId, setSelectedCanteenId] = useState<string>(
-    isCanteenMode ? activeCanteen.id : selectedCanteen ? selectedCanteen.id : 'ALL'
+    isCanteenMode && activeCanteen
+      ? activeCanteen.id
+      : selectedCanteen
+      ? selectedCanteen.id
+      : viewParams?.canteenId || searchParams.get('canteenId') || 'ALL'
   );
 
   // Filter bar states
-  const [isPromoOnly, setIsPromoOnly] = useState<boolean>(false);
-  const [pricePreset, setPricePreset] = useState<'ALL' | 'UNDER_30' | '30_50' | 'ABOVE_50'>('ALL');
-  const [sortBy, setSortBy] = useState<'POPULAR' | 'PRICE_LOW' | 'PRICE_HIGH' | 'RATING'>('POPULAR');
+  const [isPromoOnly, setIsPromoOnly] = useState<boolean>(
+    viewParams?.isPromoOnly === true || viewParams?.isPromoOnly === 'true' || searchParams.get('isPromoOnly') === 'true'
+  );
+  const [pricePreset, setPricePreset] = useState<'ALL' | 'UNDER_30' | '30_50' | 'ABOVE_50'>(
+    (viewParams?.pricePreset || searchParams.get('pricePreset') || 'ALL') as any
+  );
+  const [sortBy, setSortBy] = useState<'POPULAR' | 'PRICE_LOW' | 'PRICE_HIGH' | 'RATING'>(
+    (viewParams?.sortBy || searchParams.get('sortBy') || 'POPULAR') as any
+  );
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isCanteenMode) {
+    if (isCanteenMode && activeCanteen) {
       setSelectedCatId('ALL');
       setSelectedCanteenId(activeCanteen.id);
-    } else if (viewParams?.category) {
-      setSelectedCatId(viewParams.category);
-    } else if (viewParams?.categoryId) {
-      setSelectedCatId(viewParams.categoryId);
     }
-  }, [viewParams, isCanteenMode, activeCanteen.id]);
+  }, [isCanteenMode, activeCanteen?.id]);
+
+  // Đồng bộ state bộ lọc lên URL Search Query String
+  useEffect(() => {
+    updateUrlParams({
+      category: selectedCatId,
+      canteenId: selectedCanteenId,
+      search: searchQuery,
+      isPromoOnly,
+      pricePreset,
+      sortBy,
+    });
+  }, [selectedCatId, selectedCanteenId, searchQuery, isPromoOnly, pricePreset, sortBy]);
+
+  // Phục hồi vị trí cuộn chuột khi từ Chi tiết bấm Back quay lại
+  useEffect(() => {
+    const savedY = viewParams?.scrollY || searchParams.get('scrollY');
+    if (savedY !== undefined && savedY !== null) {
+      const scrollPos = Number(savedY);
+      if (!isNaN(scrollPos) && scrollPos > 0) {
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: scrollPos, behavior: 'auto' });
+        });
+      }
+    }
+  }, [viewParams?.scrollY]);
 
   const currentCategory = useMemo(() => {
     if (selectedCatId === 'ALL') {
       return { id: 'ALL', name: 'Tất cả món', image: '' };
     }
-    return activeCategories.find((c) => c.id === selectedCatId) || activeCategories[0];
+    const found = activeCategories.find((c) => c.id === selectedCatId) || activeCategories[0];
+    return (
+      found || {
+        id: 'cat-1',
+        name: 'Thực đơn',
+        description: '',
+        image: '',
+        icon: 'Utensils',
+        sortOrder: 1,
+        isActive: true,
+      }
+    );
   }, [selectedCatId, activeCategories]);
 
   // Categories available in this specific canteen
   const availableCategoriesInCanteen = useMemo(() => {
-    if (!isCanteenMode) return activeCategories;
+    if (!isCanteenMode || !activeCanteen) return activeCategories;
     const canteenFoodCategoryIds = new Set(
       foods.filter((f) => f.canteenId === activeCanteen.id).map((f) => f.categoryId)
     );
     return activeCategories.filter((cat) => canteenFoodCategoryIds.has(cat.id));
-  }, [isCanteenMode, foods, activeCanteen.id, activeCategories]);
+  }, [isCanteenMode, foods, activeCanteen?.id, activeCategories]);
 
   const totalCanteenFoodsCount = useMemo(() => {
+    if (!activeCanteen) return 0;
     return foods.filter((f) => f.canteenId === activeCanteen.id).length;
-  }, [foods, activeCanteen.id]);
+  }, [foods, activeCanteen?.id]);
 
   const handleShare = () => {
-    const title = isCanteenMode ? activeCanteen.name : currentCategory.name;
+    const title = isCanteenMode ? activeCanteen?.name || '' : currentCategory?.name || '';
     const text = isCanteenMode
-      ? `Khám phá thực đơn phong phú tại ${activeCanteen.name} trên UniEat!`
-      : `Khám phá các món ${currentCategory.name} siêu ngon giá sinh viên trên UniEat!`;
+      ? `Khám phá thực đơn phong phú tại ${activeCanteen?.name || ''} trên UniEat!`
+      : `Khám phá các món ${currentCategory?.name || ''} siêu ngon giá sinh viên trên UniEat!`;
 
     if (navigator.share) {
-      navigator.share({ title, text, url: window.location.href }).catch(() => {});
+      navigator.share({ title, text, url: window.location.href }).catch(() => { });
     } else {
       navigator.clipboard?.writeText(window.location.href);
       showToast('Đã sao chép liên kết!', 'success');
@@ -146,7 +215,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
     let result = [...foods];
 
     // Canteen Mode: STRICTLY filter by active canteen first
-    if (isCanteenMode) {
+    if (isCanteenMode && activeCanteen) {
       result = result.filter((f) => f.canteenId === activeCanteen.id);
       // If a specific category tab is clicked in canteen mode:
       if (selectedCatId !== 'ALL') {
@@ -212,11 +281,30 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
   ]);
 
   const handleBack = () => {
-    if (viewParams?.fromView) {
-      navigateTo(viewParams.fromView, viewParams.fromParams);
-    } else {
-      navigateTo('home');
-    }
+    goBack(viewParams?.fromView || 'home', viewParams?.fromParams);
+  };
+
+  const handleGoToFoodDetail = (food: FoodItem) => {
+    const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+    const currentParams = {
+      category: selectedCatId,
+      canteenId: isCanteenMode && activeCanteen ? activeCanteen.id : selectedCanteenId,
+      canteen: isCanteenMode ? activeCanteen : undefined,
+      search: searchQuery,
+      isPromoOnly,
+      pricePreset,
+      sortBy,
+      scrollY: currentScrollY,
+    };
+
+    updateUrlParams(currentParams);
+
+    navigateTo('food-detail', {
+      foodId: food.id,
+      food,
+      fromView: 'category',
+      fromParams: currentParams,
+    });
   };
 
   // Group dishes by category for Canteen Mode
@@ -257,16 +345,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
     return (
       <div
         key={food.id}
-        onClick={() =>
-          navigateTo('food-detail', {
-            foodId: food.id,
-            food,
-            fromView: 'category',
-            fromParams: isCanteenMode
-              ? { canteenId: activeCanteen.id, canteen: activeCanteen }
-              : { category: selectedCatId },
-          })
-        }
+        onClick={() => handleGoToFoodDetail(food)}
         className="py-3 sm:py-4 transition-all flex items-start gap-3 sm:gap-4 group cursor-pointer"
       >
         {/* Left: Large Rounded Square Image */}
@@ -337,14 +416,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                         (food.sizes && food.sizes.length > 0) ||
                         (food.toppings && food.toppings.length > 0)
                       ) {
-                        navigateTo('food-detail', {
-                          foodId: food.id,
-                          food,
-                          fromView: 'category',
-                          fromParams: isCanteenMode
-                            ? { canteenId: activeCanteen.id, canteen: activeCanteen }
-                            : { category: selectedCatId },
-                        });
+                        handleGoToFoodDetail(food);
                       } else {
                         addToCart(food, 1);
                       }
@@ -389,14 +461,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                         (food.sizes && food.sizes.length > 0) ||
                         (food.toppings && food.toppings.length > 0)
                       ) {
-                        navigateTo('food-detail', {
-                          foodId: food.id,
-                          food,
-                          fromView: 'category',
-                          fromParams: isCanteenMode
-                            ? { canteenId: activeCanteen.id, canteen: activeCanteen }
-                            : { category: selectedCatId },
-                        });
+                        handleGoToFoodDetail(food);
                       } else if (cartItemsForFood.length > 0) {
                         const targetItem = cartItemsForFood[cartItemsForFood.length - 1];
                         updateCartQuantity(targetItem.id, targetItem.quantity + 1);
@@ -421,39 +486,14 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
 
   return (
     <div className="space-y-4 pb-20 max-w-3xl mx-auto">
-      {/* 1. Header: Back button, Title (Canteen name or Category name), Share icon */}
-      <div className="sticky top-0 z-30 bg-[#FFFDFE]/95 backdrop-blur-md pt-2 pb-3 border-b border-[#E9DDE3] -mx-4 px-4 sm:-mx-6 sm:px-6">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={handleBack}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-[#1F2937] hover:bg-[#FFF3F7] active:scale-95 transition-all cursor-pointer"
-            aria-label="Quay lại"
-          >
-            <ArrowLeft className="w-5 h-5 text-[#1F2937]" />
-          </button>
-
-          <div className="text-center px-2 flex-1 min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-[#1F2937] truncate">
-              {isCanteenMode ? activeCanteen.name : currentCategory.name}
-            </h1>
-            {isCanteenMode && (
-              <p className="text-[11px] text-[#64748B] truncate flex items-center justify-center gap-1">
-                <MapPin className="w-3 h-3 text-[#FF4F8B] shrink-0" />
-                <span>{activeCanteen.location}</span>
-              </p>
-            )}
-          </div>
-
-          <button
-            onClick={handleShare}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-[#1F2937] hover:bg-[#FFF3F7] active:scale-95 transition-all cursor-pointer"
-            aria-label="Chia sẻ"
-            title="Chia sẻ"
-          >
-            <Share2 className="w-5 h-5 text-[#1F2937]" />
-          </button>
-        </div>
-      </div>
+      {/* 1. Header Navigation Component */}
+      <HeaderNav
+        title={isCanteenMode ? activeCanteen?.name || '' : currentCategory?.name || ''}
+        subtitle={isCanteenMode ? activeCanteen?.location : undefined}
+        showLocationIcon={isCanteenMode}
+        onBack={handleBack}
+        onShare={handleShare}
+      />
 
       {/* 2. Canteen Detail Hero (Giống trang chi tiết sản phẩm) */}
       {isCanteenMode && (
@@ -468,9 +508,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
             {/* Overlay Badges */}
             <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
               <span
-                className={`text-[11px] font-bold px-2 py-0.5 rounded-lg shadow-sm ${
-                  activeCanteen.isOpen ? 'bg-[#22C55E] text-white' : 'bg-slate-800 text-slate-200'
-                }`}
+                className={`text-[11px] font-bold px-2 py-0.5 rounded-lg shadow-sm ${activeCanteen.isOpen ? 'bg-[#22C55E] text-white' : 'bg-slate-800 text-slate-200'
+                  }`}
               >
                 {activeCanteen.isOpen ? 'Đang mở cửa' : 'Đã đóng cửa'}
               </span>
@@ -558,11 +597,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
             <button
               type="button"
               onClick={() => setSelectedCatId('ALL')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                selectedCatId === 'ALL'
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${selectedCatId === 'ALL'
                   ? 'bg-[#FF4F8B] text-white shadow-2xs'
                   : 'bg-white text-[#64748B] border border-[#E9DDE3] hover:border-[#FF4F8B]/40 hover:text-[#1F2937]'
-              }`}
+                }`}
             >
               Tất cả
             </button>
@@ -573,11 +611,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                   key={cat.id}
                   type="button"
                   onClick={() => setSelectedCatId(cat.id)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
-                    isSelected
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${isSelected
                       ? 'bg-[#FF4F8B] text-white shadow-2xs'
                       : 'bg-white text-[#64748B] border border-[#E9DDE3] hover:border-[#FF4F8B]/40 hover:text-[#1F2937]'
-                  }`}
+                    }`}
                 >
                   {cat.image ? (
                     <img
@@ -600,11 +637,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
             <button
               type="button"
               onClick={() => setIsFilterModalOpen(true)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer border ${
-                isPromoOnly || pricePreset !== 'ALL' || selectedCanteenId !== 'ALL'
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer border ${isPromoOnly || pricePreset !== 'ALL' || selectedCanteenId !== 'ALL'
                   ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FFE4EE]'
                   : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
-              }`}
+                }`}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
               <span>Bộ lọc</span>
@@ -624,10 +660,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                   {sortBy === 'POPULAR'
                     ? 'Phổ biến nhất'
                     : sortBy === 'PRICE_LOW'
-                    ? 'Giá: Thấp → Cao'
-                    : sortBy === 'PRICE_HIGH'
-                    ? 'Giá: Cao → Thấp'
-                    : 'Đánh giá cao'}
+                      ? 'Giá: Thấp → Cao'
+                      : sortBy === 'PRICE_HIGH'
+                        ? 'Giá: Cao → Thấp'
+                        : 'Đánh giá cao'}
                 </span>
                 <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
               </button>
@@ -646,9 +682,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                         setSortBy('POPULAR');
                         setIsSortOpen(false);
                       }}
-                      className={`w-full px-3 py-2 text-left font-medium hover:bg-[#FFF3F7] transition-colors ${
-                        sortBy === 'POPULAR' ? 'text-[#FF4F8B] font-bold bg-[#FFF3F7]' : 'text-[#1F2937]'
-                      }`}
+                      className={`w-full px-3 py-2 text-left font-medium hover:bg-[#FFF3F7] transition-colors ${sortBy === 'POPULAR' ? 'text-[#FF4F8B] font-bold bg-[#FFF3F7]' : 'text-[#1F2937]'
+                        }`}
                     >
                       Phổ biến nhất
                     </button>
@@ -658,9 +693,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                         setSortBy('PRICE_LOW');
                         setIsSortOpen(false);
                       }}
-                      className={`w-full px-3 py-2 text-left font-medium hover:bg-[#FFF3F7] transition-colors ${
-                        sortBy === 'PRICE_LOW' ? 'text-[#FF4F8B] font-bold bg-[#FFF3F7]' : 'text-[#1F2937]'
-                      }`}
+                      className={`w-full px-3 py-2 text-left font-medium hover:bg-[#FFF3F7] transition-colors ${sortBy === 'PRICE_LOW' ? 'text-[#FF4F8B] font-bold bg-[#FFF3F7]' : 'text-[#1F2937]'
+                        }`}
                     >
                       Giá: Thấp đến cao
                     </button>
@@ -670,9 +704,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                         setSortBy('PRICE_HIGH');
                         setIsSortOpen(false);
                       }}
-                      className={`w-full px-3 py-2 text-left font-medium hover:bg-[#FFF3F7] transition-colors ${
-                        sortBy === 'PRICE_HIGH' ? 'text-[#FF4F8B] font-bold bg-[#FFF3F7]' : 'text-[#1F2937]'
-                      }`}
+                      className={`w-full px-3 py-2 text-left font-medium hover:bg-[#FFF3F7] transition-colors ${sortBy === 'PRICE_HIGH' ? 'text-[#FF4F8B] font-bold bg-[#FFF3F7]' : 'text-[#1F2937]'
+                        }`}
                     >
                       Giá: Cao đến thấp
                     </button>
@@ -682,9 +715,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                         setSortBy('RATING');
                         setIsSortOpen(false);
                       }}
-                      className={`w-full px-3 py-2 text-left font-medium hover:bg-[#FFF3F7] transition-colors ${
-                        sortBy === 'RATING' ? 'text-[#FF4F8B] font-bold bg-[#FFF3F7]' : 'text-[#1F2937]'
-                      }`}
+                      className={`w-full px-3 py-2 text-left font-medium hover:bg-[#FFF3F7] transition-colors ${sortBy === 'RATING' ? 'text-[#FF4F8B] font-bold bg-[#FFF3F7]' : 'text-[#1F2937]'
+                        }`}
                     >
                       Đánh giá cao nhất
                     </button>
@@ -697,11 +729,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
             <button
               type="button"
               onClick={() => setIsPromoOnly((prev) => !prev)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 whitespace-nowrap transition-all cursor-pointer border ${
-                isPromoOnly
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 whitespace-nowrap transition-all cursor-pointer border ${isPromoOnly
                   ? 'bg-[#FF4F8B] text-white border-[#FF4F8B] shadow-2xs'
                   : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
-              }`}
+                }`}
             >
               <Tag className="w-3 h-3" />
               <span>Khuyến mại</span>
@@ -713,11 +744,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
               onClick={() =>
                 setPricePreset((prev) => (prev === 'UNDER_30' ? 'ALL' : 'UNDER_30'))
               }
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border ${
-                pricePreset === 'UNDER_30'
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border ${pricePreset === 'UNDER_30'
                   ? 'bg-[#FF4F8B] text-white border-[#FF4F8B] shadow-2xs'
                   : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
-              }`}
+                }`}
             >
               Dưới 30k
             </button>
@@ -726,11 +756,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
             <select
               value={selectedCanteenId}
               onChange={(e) => setSelectedCanteenId(e.target.value)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border cursor-pointer focus:outline-none transition-all ${
-                selectedCanteenId !== 'ALL'
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border cursor-pointer focus:outline-none transition-all ${selectedCanteenId !== 'ALL'
                   ? 'text-[#FF4F8B] border-[#FFE4EE] bg-[#FFF3F7]'
                   : 'text-[#64748B] border-[#E9DDE3]'
-              }`}
+                }`}
             >
               <option value="ALL">Tất cả căng tin</option>
               {canteens.map((c) => (
@@ -862,11 +891,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                   <button
                     type="button"
                     onClick={() => setSelectedCanteenId('ALL')}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold text-left border transition-all cursor-pointer ${
-                      selectedCanteenId === 'ALL'
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold text-left border transition-all cursor-pointer ${selectedCanteenId === 'ALL'
                         ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
                         : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
-                    }`}
+                      }`}
                   >
                     Tất cả căng tin
                   </button>
@@ -875,11 +903,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                       key={c.id}
                       type="button"
                       onClick={() => setSelectedCanteenId(c.id)}
-                      className={`px-3 py-2 rounded-xl text-xs font-semibold text-left border truncate transition-all cursor-pointer ${
-                        selectedCanteenId === c.id
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold text-left border truncate transition-all cursor-pointer ${selectedCanteenId === c.id
                           ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
                           : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
-                      }`}
+                        }`}
                     >
                       {c.name}
                     </button>
@@ -903,11 +930,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                       key={p.id}
                       type="button"
                       onClick={() => setPricePreset(p.id as any)}
-                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer text-center ${
-                        pricePreset === p.id
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer text-center ${pricePreset === p.id
                           ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
                           : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
-                      }`}
+                        }`}
                     >
                       {p.label}
                     </button>
@@ -923,22 +949,20 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                 <button
                   type="button"
                   onClick={() => setIsPromoOnly((prev) => !prev)}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                    isPromoOnly
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${isPromoOnly
                       ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
                       : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
-                  }`}
+                    }`}
                 >
                   <span className="flex items-center gap-2">
                     <Tag className="w-4 h-4 text-[#FF4F8B]" />
                     <span>Chỉ hiển thị món có giảm giá / Bán chạy</span>
                   </span>
                   <span
-                    className={`w-5 h-5 rounded-md flex items-center justify-center border ${
-                      isPromoOnly
+                    className={`w-5 h-5 rounded-md flex items-center justify-center border ${isPromoOnly
                         ? 'bg-[#FF4F8B] border-[#FF4F8B] text-white'
                         : 'border-[#CBD5E1]'
-                    }`}
+                      }`}
                   >
                     {isPromoOnly && <CheckCircle2 className="w-3.5 h-3.5" />}
                   </span>
@@ -961,11 +985,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                       key={s.id}
                       type="button"
                       onClick={() => setSortBy(s.id as any)}
-                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer text-center ${
-                        sortBy === s.id
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer text-center ${sortBy === s.id
                           ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
                           : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
-                      }`}
+                        }`}
                     >
                       {s.label}
                     </button>

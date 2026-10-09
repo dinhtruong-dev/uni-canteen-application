@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { ArrowLeft, Camera, Save } from 'lucide-react';
+import { HeaderNav } from '../../components/HeaderNav';
+import { Camera, Save } from 'lucide-react';
 
 export const EditProfileView: React.FC = () => {
   const { currentUser, updateProfile, showToast, navigateTo } = useApp();
@@ -64,20 +65,11 @@ export const EditProfileView: React.FC = () => {
 
   return (
     <div className="max-w-xl mx-auto space-y-6 pb-20 animate-in fade-in duration-200 px-1 sm:px-0">
-      {/* Top Header Bar - Icon only back button, Title: Thông tin tài khoản */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-        <button
-          onClick={() => navigateTo('profile')}
-          className="p-2 -ml-2 rounded-full text-slate-700 hover:text-orange-600 hover:bg-slate-100 transition-colors cursor-pointer"
-          title="Quay lại"
-        >
-          <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-        </button>
-        <h1 className="text-base sm:text-lg font-extrabold text-slate-900 text-center flex-1">
-          Thông tin tài khoản
-        </h1>
-        <div className="w-9"></div> {/* Spacer balance */}
-      </div>
+      {/* Header Navigation Component */}
+      <HeaderNav
+        title="Thông tin tài khoản"
+        onBack={() => navigateTo('profile')}
+      />
 
       <form onSubmit={handleSaveProfile} className="space-y-6 text-xs">
         {/* Avatar - Only Avatar circle with Camera badge icon */}

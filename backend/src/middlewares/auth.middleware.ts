@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { UserRole } from '../models';
 import { authService } from '../services/auth.service';
-import { db } from '../services/database.service';
-
+import { UserRole } from '../types/auth.types';
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
@@ -24,10 +22,6 @@ interface RateLimitRecord {
 
 const loginAttempts = new Map<string, RateLimitRecord>();
 
-/**
- * Middleware giới hạn số lần đăng nhập sai (Brute-Force Protection)
- * Tối đa 5 lần thử sai trong 5 phút. Nếu vượt quá -> Khóa tạm thời 5 phút.
- */
 export function loginRateLimiter(req: Request, res: Response, next: NextFunction) {
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const email = (req.body?.email || '').toLowerCase().trim();
@@ -57,7 +51,7 @@ export function recordFailedLogin(req: Request) {
   record.attempts += 1;
 
   if (record.attempts >= 5) {
-    record.blockedUntil = now + 5 * 60 * 1000; // Khóa 5 phút
+    record.blockedUntil = now + 5 * 60 * 1000;
     console.warn(`[Security Alert] Khóa tạm thời IP/Email: ${key} do thử đăng nhập sai ${record.attempts} lần.`);
   }
 
@@ -74,7 +68,7 @@ export function resetFailedLogin(req: Request) {
 // ==============================================================================
 // LỚP BẢO MẬT JWT BẮT BUỘC (STRICT JWT AUTHENTICATION MIDDLEWARE)
 // ==============================================================================
-export function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -94,14 +88,11 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
     });
   }
 
-  const userFromDb = db.users.get(decoded.id);
   req.user = {
     id: decoded.id,
-    name: userFromDb?.name || decoded.name,
+    name: decoded.name,
     email: decoded.email,
     role: decoded.role,
-    studentId: userFromDb?.studentId,
-    faculty: userFromDb?.faculty,
   };
 
   return next();
@@ -110,7 +101,7 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
 // ==============================================================================
 // AUTH MIDDLEWARE CHO CÁC ROUTE CÔNG KHAI CÓ TÙY CHỌN USER
 // ==============================================================================
-export function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
 
   if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -118,48 +109,24 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
     const decoded = authService.verifyToken(token);
 
     if (decoded) {
-      const userFromDb = db.users.get(decoded.id);
       req.user = {
         id: decoded.id,
-        name: userFromDb?.name || decoded.name,
+        name: decoded.name,
         email: decoded.email,
         role: decoded.role,
-        studentId: userFromDb?.studentId,
-        faculty: userFromDb?.faculty,
       };
       return next();
     }
   }
 
-  // Fallback to active demo student user if no token provided
-  const customUserId = req.headers['x-user-id'] as string;
-  const user = customUserId ? db.users.get(customUserId) : db.users.get('user-stu-1');
-
-  if (user) {
-    req.user = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      studentId: user.studentId,
-      faculty: user.faculty,
-    };
-  } else if (customUserId) {
-    req.user = {
-      id: customUserId,
-      name: 'Sinh viên',
-      email: '',
-      role: 'STUDENT' as UserRole,
-    };
-  } else {
-    req.user = {
-      id: 'user-stu-1',
-      name: 'Đặng Hoàng Minh',
-      email: 'minh.dh22@university.edu.vn',
-      role: 'STUDENT' as UserRole,
-      studentId: 'SV20220192',
-    };
-  }
+  const customUserId = (req.headers['x-user-id'] as string) || 'user-stu-1';
+  req.user = {
+    id: customUserId,
+    name: customUserId === 'user-stu-1' ? 'Đặng Hoàng Minh' : 'Sinh viên',
+    email: customUserId === 'user-stu-1' ? 'minh.dh22@university.edu.vn' : '',
+    role: 'STUDENT' as UserRole,
+    studentId: customUserId === 'user-stu-1' ? '20230012' : undefined,
+  };
 
   next();
 }

@@ -38,10 +38,10 @@ export class UserController {
     }
   }
 
-  public createAddress(req: AuthenticatedRequest, res: Response) {
+  public async createAddress(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id || 'user-stu-1';
-      const address = userService.createAddress(userId, req.body);
+      const address = await userService.createAddress(userId, req.body);
       const data = typeof (address as any)?.toJSON === 'function' ? (address as any).toJSON() : address;
       res.status(201).json({ success: true, message: 'Đã thêm địa chỉ KTX mới', data });
     } catch (err: any) {
@@ -49,10 +49,10 @@ export class UserController {
     }
   }
 
-  public deleteAddress(req: AuthenticatedRequest, res: Response) {
+  public async deleteAddress(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id || 'user-stu-1';
-      const deleted = userService.deleteAddress(userId, req.params.id);
+      const deleted = await userService.deleteAddress(userId, req.params.id);
       if (!deleted) {
         return res.status(404).json({ success: false, message: 'Không tìm thấy địa chỉ' });
       }
@@ -62,24 +62,23 @@ export class UserController {
     }
   }
 
-  public getFavorites(req: AuthenticatedRequest, res: Response) {
+  public async getFavorites(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id || 'user-stu-1';
       const targetType = req.query.targetType as any;
-      const favorites = userService
-        .getFavoritesByUserId(userId, targetType)
-        .map((f: any) => (typeof f?.toJSON === 'function' ? f.toJSON() : f));
+      const favList = await userService.getFavoritesByUserId(userId, targetType);
+      const favorites = favList.map((f: any) => (typeof f?.toJSON === 'function' ? f.toJSON() : f));
       res.json({ success: true, data: favorites });
     } catch (err: any) {
       res.status(500).json({ success: false, message: 'Lỗi tải danh sách yêu thích', error: err.message });
     }
   }
 
-  public toggleFavorite(req: AuthenticatedRequest, res: Response) {
+  public async toggleFavorite(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id || 'user-stu-1';
       const { targetType, targetId } = req.body;
-      const result = userService.toggleFavorite(userId, targetType, targetId);
+      const result = await userService.toggleFavorite(userId, targetType, targetId);
       res.json({
         success: true,
         data: result,

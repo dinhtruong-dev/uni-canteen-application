@@ -1,196 +1,207 @@
-import { db } from './database.service';
-import { SearchHistoryItem } from '../models';
-
-export interface SearchFilterOptions {
-  q?: string;
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  promoOnly?: boolean;
-  under30k?: boolean;
-  categoryId?: string;
-  type?: string;
-}
+// src/services/search.service.ts
+import { Op } from 'sequelize';
+import sequelize from '../db/sequelize';
+import { Product, Canteen, SearchHistoryItem } from '../models';
+import type {
+  SearchFilterOptions,
+  SearchResult,
+  CanteenGroup,
+} from '../types/search.types';
 
 export class SearchService {
-  public async executeSearch(options: SearchFilterOptions) {
-    const q = (options.q || '').trim().toLowerCase();
-    const page = Math.max(1, options.page || 1);
-    const limit = Math.max(1, options.limit || 3);
-    const sortBy = options.sortBy || 'popular';
-    const promoOnly = Boolean(options.promoOnly);
-    const under30k = Boolean(options.under30k);
-    const categoryId = options.categoryId;
-    const type = (options.type || 'all').toLowerCase();
+  // ---------------------------------------------------------------------------
+  // SEARCH
+  // ---------------------------------------------------------------------------
 
-    // Automatically record search query in history if meaningful
-    if (q && q.length >= 2) {
-      this.addHistory(options.q || q, 'user-guest').catch(() => {});
-    }
+  public async executeSearch(options: SearchFilterOptions): Promise<SearchResult> {
+    try {
+      const q = (options.q || '').trim().toLowerCase();
+      const page = Math.max(1, options.page || 1);
+      const limit = Math.max(1, options.limit || 3);
+      const sortBy = options.sortBy || 'popular';
+      const promoOnly = Boolean(options.promoOnly);
+      const under30k = Boolean(options.under30k);
+      const categoryId = options.categoryId;
+      const type = (options.type || 'all').toLowerCase();
 
-    // 1. Fetch available products dynamically from DatabaseService
-    let matchingProducts = Array.from(db.products.values()).filter((p) => p.isAvailable);
+      if (q && q.length >= 2) {
+        this.addHistory(options.q || q, 'user-guest').catch(() => { });
+      }
 
-    // 2. Fetch canteens dynamically from DatabaseService
-    let matchingCanteens = Array.from(db.canteens.values());
+      // ---- Product filter ----
+      const productWhere: any = { isAvailable: true };
 
-    // 3. Filter by search query `q`
-    if (q) {
-      matchingProducts = matchingProducts.filter((p) => {
-        const matchName = p.name.toLowerCase().includes(q);
-        const matchDesc = p.description?.toLowerCase().includes(q);
-        const matchCanteen = p.canteenName?.toLowerCase().includes(q);
-        const matchCat = p.categoryName?.toLowerCase().includes(q);
-        return matchName || matchDesc || matchCanteen || matchCat;
+      if (q) {
+        productWhere[Op.or] = [
+          { name: { [Op.like]: `%${q}%` } },
+          { description: { [Op.like]: `%${q}%` } },
+          { canteenName: { [Op.like]: `%${q}%` } },
+        ];
+      }
+      if (promoOnly) {
+        productWhere.originalPrice = { [Op.gt]: sequelize.col('price') };
+      }
+      if (under30k) {
+        productWhere.price = { [Op.lte]: 30000 };
+      }
+      if (categoryId && categoryId !== 'ALL') {
+        productWhere.categoryId = categoryId;
+      }
+
+      let order: any = [['soldCount', 'DESC']];
+      if (sortBy === 'rating') order = [['rating', 'DESC']];
+      else if (sortBy === 'price_asc') order = [['price', 'ASC']];
+      else if (sortBy === 'price_desc') order = [['price', 'DESC']];
+
+      const matchingProducts = await Product.findAll({
+        where: productWhere,
+        order,
       });
 
-      matchingCanteens = matchingCanteens.filter((c) => {
-        const matchName = c.name?.toLowerCase().includes(q);
-        const matchDisp = c.displayName?.toLowerCase().includes(q);
-        const matchLoc = c.location?.toLowerCase().includes(q);
-        const matchCode = c.code?.toLowerCase().includes(q);
-        return matchName || matchDisp || matchLoc || matchCode;
+      // ---- Canteen filter ----
+      const canteenWhere: any = {};
+      if (q) {
+        canteenWhere[Op.or] = [
+          { name: { [Op.like]: `%${q}%` } },
+          { displayName: { [Op.like]: `%${q}%` } },
+          { location: { [Op.like]: `%${q}%` } },
+          { code: { [Op.like]: `%${q}%` } },
+        ];
+      }
+      const matchingCanteens = await Canteen.findAll({ where: canteenWhere });
+      const allCanteensList = await Canteen.findAll({ order: [['name', 'ASC']] });
+
+      // ---- Group product theo canteen ----
+      const groupedCanteens: CanteenGroup[] = [];
+
+      for (const canteen of allCanteensList) {
+        const foodsInThisCanteen = matchingProducts.filter(
+          (p: any) => p.canteenId === canteen.id || p.canteen_id === canteen.id
+        );
+        const canteenMatchedDirectly = matchingCanteens.some((c: any) => c.id === canteen.id);
+
+        if (!q || foodsInThisCanteen.length > 0 || canteenMatchedDirectly) {
+          groupedCanteens.push({
+            canteen,
+            foods: foodsInThisCanteen,
+            totalFoodsInCanteen: foodsInThisCanteen.length,
+          });
+        }
+      }
+
+      // Sort: nhiều món trước, rồi tới rating
+      groupedCanteens.sort((a, b) => {
+        if (b.foods.length !== a.foods.length) return b.foods.length - a.foods.length;
+        return (Number(b.canteen?.rating) || 0) - (Number(a.canteen?.rating) || 0);
       });
+
+      // ---- Phân trang ----
+      const totalCanteens = groupedCanteens.length;
+      const totalPages = Math.max(1, Math.ceil(totalCanteens / limit));
+      const startIndex = (page - 1) * limit;
+      const paginatedGrouped = groupedCanteens.slice(startIndex, startIndex + limit);
+
+      const foodLimit = limit > 3 ? limit : 10;
+      const foodTotalPages = Math.max(1, Math.ceil(matchingProducts.length / foodLimit));
+      const paginatedFoodItems = matchingProducts.slice(
+        (page - 1) * foodLimit,
+        page * foodLimit
+      );
+
+      return {
+        success: true,
+        query: q,
+        page,
+        limit,
+        totalPages: type === 'foods' ? foodTotalPages : totalPages,
+        totalMatches: matchingProducts.length,
+        totalCanteens,
+        hasMore: page < totalPages,
+        data: paginatedGrouped,
+        canteens: matchingCanteens,
+        foodItems: paginatedFoodItems,
+      };
+    } catch (err: any) {
+      console.error('[SearchService.executeSearch Error]:', err.message);
+      throw err;
     }
-
-    // 4. Quick filter tags
-    if (promoOnly) {
-      matchingProducts = matchingProducts.filter((p) => p.originalPrice && p.originalPrice > p.price);
-    }
-    if (under30k) {
-      matchingProducts = matchingProducts.filter((p) => p.price <= 30000);
-    }
-    if (categoryId && categoryId !== 'ALL') {
-      matchingProducts = matchingProducts.filter((p) => p.categoryId === categoryId);
-    }
-
-    // 5. Dynamic Sorting
-    if (sortBy === 'rating') {
-      matchingProducts.sort((a, b) => b.rating - a.rating);
-    } else if (sortBy === 'price_asc') {
-      matchingProducts.sort((a, b) => a.price - b.price);
-    } else if (sortBy === 'price_desc') {
-      matchingProducts.sort((a, b) => b.price - a.price);
-    } else {
-      matchingProducts.sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0));
-    }
-
-    // 6. Group matching products by Canteen (dynamic multi-canteen grouping)
-    const allCanteensList = Array.from(db.canteens.values());
-    const groupedCanteens: any[] = [];
-
-    for (const canteen of allCanteensList) {
-      const foodsInThisCanteen = matchingProducts
-        .filter((p) => p.canteenId === canteen.id)
-        .map((p: any) => (typeof p?.toJSON === 'function' ? p.toJSON() : p));
-
-      const totalFoodsInCanteen = Array.from(db.products.values()).filter(
-        (p) => p.canteenId === canteen.id
-      ).length;
-
-      const canteenMatchedDirectly = matchingCanteens.some((c) => c.id === canteen.id);
-
-      if (!q || foodsInThisCanteen.length > 0 || canteenMatchedDirectly) {
-        groupedCanteens.push({
-          canteen: typeof (canteen as any)?.toJSON === 'function' ? (canteen as any).toJSON() : canteen,
-          foods: foodsInThisCanteen,
-          totalFoodsInCanteen,
-        });
-      }
-    }
-
-    // Sort canteens: prioritize canteens with matching items and higher rating
-    groupedCanteens.sort((a, b) => {
-      if (b.foods.length !== a.foods.length) {
-        return b.foods.length - a.foods.length;
-      }
-      return (b.canteen?.rating || 0) - (a.canteen?.rating || 0);
-    });
-
-    // 7. Server-side pagination
-    const totalCanteens = groupedCanteens.length;
-    const totalPages = Math.max(1, Math.ceil(totalCanteens / limit));
-    const startIndex = (page - 1) * limit;
-    const paginatedGrouped = groupedCanteens.slice(startIndex, startIndex + limit);
-
-    // Flat paginated foods for items-specific queries
-    const foodLimit = limit > 3 ? limit : 10;
-    const foodTotalPages = Math.max(1, Math.ceil(matchingProducts.length / foodLimit));
-    const paginatedFoodItems = matchingProducts
-      .slice((page - 1) * foodLimit, page * foodLimit)
-      .map((p: any) => (typeof p?.toJSON === 'function' ? p.toJSON() : p));
-
-    // Small delay simulating network search
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    return {
-      success: true,
-      query: q,
-      page,
-      limit,
-      totalPages: type === 'foods' ? foodTotalPages : totalPages,
-      totalMatches: matchingProducts.length,
-      totalCanteens,
-      hasMore: page < totalPages,
-      data: paginatedGrouped,
-      canteens: matchingCanteens.map((c: any) => (typeof c?.toJSON === 'function' ? c.toJSON() : c)),
-      foodItems: paginatedFoodItems,
-    };
   }
 
   public async getHistory(userId: string = 'user-guest'): Promise<string[]> {
-    const items = Array.from(db.searchHistories.values())
-      .filter((item) => item.userId === userId || item.userId === 'user-guest')
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    try {
+      const rows = await SearchHistoryItem.findAll({
+        where: {
+          [Op.or]: [{ userId }, { userId: 'user-guest' }],
+        },
+        order: [['createdAt', 'DESC']],
+        limit: 10,
+      });
 
-    const uniqueQueries: string[] = [];
-    for (const item of items) {
-      if (!uniqueQueries.some((q) => q.toLowerCase() === item.query.toLowerCase())) {
-        uniqueQueries.push(item.query);
+      if (Array.isArray(rows) && rows.length > 0) {
+        return Array.from(new Set(rows.map((r) => r.query)));
       }
+      return [];
+    } catch (err: any) {
+      console.error('[SearchService.getHistory Error]:', err.message);
+      return [];
     }
-    return uniqueQueries.slice(0, 10);
   }
 
-  public async addHistory(query: string, userId: string = 'user-guest'): Promise<string[]> {
+  public async addHistory(
+    query: string,
+    userId: string = 'user-guest'
+  ): Promise<string[]> {
     const trimmed = query.trim();
     if (!trimmed) return this.getHistory(userId);
 
-    // Remove existing item with same query to bump to top
-    for (const [id, item] of db.searchHistories.entries()) {
-      if (item.query.toLowerCase() === trimmed.toLowerCase() && (item.userId === userId || item.userId === 'user-guest')) {
-        db.searchHistories.delete(id);
-      }
+    try {
+      await SearchHistoryItem.destroy({
+        where: {
+          query: trimmed,
+          [Op.or]: [{ userId }, { userId: 'user-guest' }],
+        },
+      });
+
+      const id = `sh-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      await SearchHistoryItem.create({ id, query: trimmed, userId });
+
+      return this.getHistory(userId);
+    } catch (err: any) {
+      console.error('[SearchService.addHistory Error]:', err.message);
+      return this.getHistory(userId);
     }
-
-    const newItem = new SearchHistoryItem(
-      `sh-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      trimmed,
-      userId,
-      new Date().toISOString()
-    );
-    db.searchHistories.set(newItem.id, newItem);
-
-    return this.getHistory(userId);
   }
 
-  public async removeHistory(query: string, userId: string = 'user-guest'): Promise<string[]> {
-    const trimmed = query.trim().toLowerCase();
-    for (const [id, item] of db.searchHistories.entries()) {
-      if (item.query.toLowerCase() === trimmed && (item.userId === userId || item.userId === 'user-guest')) {
-        db.searchHistories.delete(id);
-      }
+  public async removeHistory(
+    query: string,
+    userId: string = 'user-guest'
+  ): Promise<string[]> {
+    try {
+      await SearchHistoryItem.destroy({
+        where: {
+          query: query.trim(),
+          [Op.or]: [{ userId }, { userId: 'user-guest' }],
+        },
+      });
+      return this.getHistory(userId);
+    } catch (err: any) {
+      console.error('[SearchService.removeHistory Error]:', err.message);
+      return this.getHistory(userId);
     }
-    return this.getHistory(userId);
   }
 
   public async clearHistory(userId: string = 'user-guest'): Promise<boolean> {
-    for (const [id, item] of db.searchHistories.entries()) {
-      if (item.userId === userId || item.userId === 'user-guest') {
-        db.searchHistories.delete(id);
-      }
+    try {
+      await SearchHistoryItem.destroy({
+        where: {
+          [Op.or]: [{ userId }, { userId: 'user-guest' }],
+        },
+      });
+      return true;
+    } catch (err: any) {
+      console.error('[SearchService.clearHistory Error]:', err.message);
+      return false;
     }
-    return true;
   }
 }
 

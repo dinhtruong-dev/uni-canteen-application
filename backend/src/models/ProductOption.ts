@@ -1,68 +1,50 @@
-export type OptionType = 'SIZE' | 'TOPPING' | 'SUGAR_LEVEL' | 'ICE_LEVEL' | 'CUSTOM';
+// src/models/ProductOption.ts
+import {
+  Table,
+  Column,
+  Model,
+  DataType,
+  ForeignKey,
+  BelongsTo,
+  HasMany,
+} from 'sequelize-typescript';
+import { Product } from './Product';
+import { OptionItem } from './OptionItem';
 
-export class ProductOptionItem {
-  public id: string;
-  public name: string;
-  public extraPrice: number;
-  public isDefault: boolean;
+export type OptionType =
+  | 'SIZE'
+  | 'TOPPING'
+  | 'SUGAR_LEVEL'
+  | 'ICE_LEVEL'
+  | 'CUSTOM';
 
-  constructor(id: string, name: string, extraPrice: number = 0, isDefault: boolean = false) {
-    this.id = id;
-    this.name = name;
-    this.extraPrice = extraPrice;
-    this.isDefault = isDefault;
-  }
+@Table({ tableName: 'product_options', timestamps: false, underscored: true })
+export class ProductOption extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  declare id: string;
 
-  public toJSON() {
-    return {
-      id: this.id,
-      name: this.name,
-      extraPrice: this.extraPrice,
-      isDefault: this.isDefault,
-    };
-  }
-}
+  @ForeignKey(() => Product)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'product_id' })
+  declare productId: string;
 
-export class ProductOption {
-  public id: string;
-  public productId: string;
-  public name: string; // e.g. "Chọn Size", "Thêm Topping", "Độ ngọt", "Lượng đá"
-  public type: OptionType;
-  public isRequired: boolean;
-  public maxSelect: number; // 1 for single choice (radio), >1 for multiple (checkboxes)
-  public items: ProductOptionItem[];
+  @Column({ type: DataType.STRING(100), allowNull: false })
+  declare name: string;
 
-  constructor(
-    id: string,
-    productId: string,
-    name: string,
-    type: OptionType,
-    isRequired: boolean = false,
-    maxSelect: number = 1,
-    items: ProductOptionItem[] = []
-  ) {
-    this.id = id;
-    this.productId = productId;
-    this.name = name;
-    this.type = type;
-    this.isRequired = isRequired;
-    this.maxSelect = maxSelect;
-    this.items = items;
-  }
+  @Column({
+    type: DataType.ENUM('SIZE', 'TOPPING', 'SUGAR_LEVEL', 'ICE_LEVEL', 'CUSTOM'),
+    defaultValue: 'CUSTOM',
+  })
+  declare type: OptionType;
 
-  public addItem(item: ProductOptionItem): void {
-    this.items.push(item);
-  }
+  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'is_required' })
+  declare isRequired: boolean;
 
-  public toJSON() {
-    return {
-      id: this.id,
-      productId: this.productId,
-      name: this.name,
-      type: this.type,
-      isRequired: this.isRequired,
-      maxSelect: this.maxSelect,
-      items: this.items.map((i) => i.toJSON()),
-    };
-  }
+  @Column({ type: DataType.INTEGER, defaultValue: 1, field: 'max_select' })
+  declare maxSelect: number;
+
+  // Associations
+  @BelongsTo(() => Product, { onDelete: 'CASCADE' })
+  declare product: Product;
+
+  public items?: any[];
 }

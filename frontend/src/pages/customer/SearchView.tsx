@@ -60,19 +60,35 @@ const QUICK_CATEGORIES = [
 ];
 
 export const SearchView: React.FC = () => {
-  const { foods, canteens, viewParams, navigateTo, setSelectedCanteen } = useApp();
+  const { foods, canteens, viewParams, navigateTo, goBack, updateUrlParams, setSelectedCanteen } = useApp();
+
+  const searchParams = useMemo(() => {
+    return typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  }, []);
 
   // Search input & parameters
-  const [searchQuery, setSearchQuery] = useState<string>(viewParams?.search || '');
-  const [activeSort, setActiveSort] = useState<'popular' | 'rating' | 'price_asc' | 'price_desc'>('popular');
+  const [searchQuery, setSearchQuery] = useState<string>(viewParams?.search || searchParams.get('search') || '');
+  const [activeSort, setActiveSort] = useState<'popular' | 'rating' | 'price_asc' | 'price_desc'>(
+    (viewParams?.sort || searchParams.get('sort') || 'popular') as any
+  );
   const [isSortOpen, setIsSortOpen] = useState<boolean>(false);
-  const [promoOnly, setPromoOnly] = useState<boolean>(false);
-  const [under30k, setUnder30k] = useState<boolean>(false);
-  const [freeshipOnly, setFreeshipOnly] = useState<boolean>(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [promoOnly, setPromoOnly] = useState<boolean>(
+    viewParams?.promoOnly === true || viewParams?.promoOnly === 'true' || searchParams.get('promoOnly') === 'true'
+  );
+  const [under30k, setUnder30k] = useState<boolean>(
+    viewParams?.under30k === true || viewParams?.under30k === 'true' || searchParams.get('under30k') === 'true'
+  );
+  const [freeshipOnly, setFreeshipOnly] = useState<boolean>(
+    viewParams?.freeshipOnly === true || viewParams?.freeshipOnly === 'true' || searchParams.get('freeshipOnly') === 'true'
+  );
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(
+    viewParams?.selectedCategory || searchParams.get('selectedCategory') || null
+  );
 
   // Pagination state (Page from backend)
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [currentPage, setCurrentPage] = useState<number>(
+    viewParams?.page ? Number(viewParams.page) : 1
+  );
   const LIMIT_PER_PAGE = 3; // 3 Canteens per page
 
   // Backend response & Loading state
@@ -82,6 +98,32 @@ export const SearchView: React.FC = () => {
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Sync URL parameters
+  useEffect(() => {
+    updateUrlParams({
+      search: searchQuery,
+      sort: activeSort,
+      promoOnly,
+      under30k,
+      freeshipOnly,
+      selectedCategory,
+      page: currentPage,
+    });
+  }, [searchQuery, activeSort, promoOnly, under30k, freeshipOnly, selectedCategory, currentPage]);
+
+  // Phục hồi vị trí cuộn chuột khi Back quay lại
+  useEffect(() => {
+    const savedY = viewParams?.scrollY || searchParams.get('scrollY');
+    if (savedY !== undefined && savedY !== null) {
+      const scrollPos = Number(savedY);
+      if (!isNaN(scrollPos) && scrollPos > 0) {
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: scrollPos, behavior: 'auto' });
+        });
+      }
+    }
+  }, [viewParams?.scrollY]);
 
   // Scroll detection
   useEffect(() => {
@@ -281,6 +323,27 @@ export const SearchView: React.FC = () => {
     price_desc: 'Giá giảm dần',
   };
 
+  const handleGoToFoodDetail = (food: FoodItem) => {
+    const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+    const currentParams = {
+      search: searchQuery,
+      sort: activeSort,
+      promoOnly,
+      under30k,
+      freeshipOnly,
+      selectedCategory,
+      page: currentPage,
+      scrollY: currentScrollY,
+    };
+    updateUrlParams(currentParams);
+    navigateTo('food-detail', {
+      foodId: food.id,
+      food,
+      fromView: 'search',
+      fromParams: currentParams,
+    });
+  };
+
   const isSearchActive = Boolean(searchQuery.trim() || selectedCategory);
 
   return (
@@ -297,7 +360,7 @@ export const SearchView: React.FC = () => {
           {/* Nút quay lại trang chủ ← */}
           <button
             type="button"
-            onClick={() => navigateTo('home')}
+            onClick={() => goBack('home')}
             className="w-10 h-10 rounded-full bg-white border border-[#E9DDE3] flex items-center justify-center text-[#1F2937] hover:bg-[#FFF3F7] active:scale-95 transition-all cursor-pointer shrink-0 shadow-2xs"
             title="Quay lại"
           >
@@ -608,14 +671,7 @@ export const SearchView: React.FC = () => {
                         {matchingFoods.map((food) => (
                           <div
                             key={food.id}
-                            onClick={() =>
-                              navigateTo('food-detail', {
-                                foodId: food.id,
-                                food,
-                                fromView: 'search',
-                                fromParams: { search: searchQuery },
-                              })
-                            }
+                            onClick={() => handleGoToFoodDetail(food)}
                             className="bg-transparent group/item flex flex-col h-full cursor-pointer select-none transition-all w-full"
                           >
                             {/* Hình ảnh món ăn bo góc cao cấp */}
@@ -756,13 +812,7 @@ export const SearchView: React.FC = () => {
                 return (
                   <div
                     key={food.id}
-                    onClick={() =>
-                      navigateTo('food-detail', {
-                        foodId: food.id,
-                        food,
-                        fromView: 'search',
-                      })
-                    }
+                    onClick={() => handleGoToFoodDetail(food)}
                     className="bg-transparent group flex flex-col h-full cursor-pointer select-none transition-all w-full"
                   >
                     <div className="relative aspect-square w-full bg-slate-100 rounded-2xl overflow-hidden border border-[#E9DDE3] shadow-2xs group-hover:shadow-md group-hover:border-[#FF4F8B] transition-all">

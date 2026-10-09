@@ -37,7 +37,7 @@ interface ReviewComment {
 }
 
 export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
-  const { foods, viewParams, navigateTo, canteens, orders, showToast, currentUser } = useApp();
+  const { foods, viewParams, navigateTo, goBack, canteens, orders, showToast, currentUser } = useApp();
 
   const isCanteenReview = viewParams?.isCanteen || (viewParams?.canteenId && !foodId && !viewParams?.foodId);
   const canteen = viewParams?.canteen || canteens.find((c) => c.id === viewParams?.canteenId);
@@ -267,13 +267,7 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
       <div className="flex items-center justify-between border-b border-slate-200 pb-3">
         <button
           onClick={() => {
-            if (isCanteenReview) {
-              navigateTo('home');
-            } else if (food) {
-              navigateTo('food-detail', { foodId: food.id });
-            } else {
-              navigateTo('home');
-            }
+            goBack(isCanteenReview ? 'home' : 'food-detail', food ? { foodId: food.id } : undefined);
           }}
           className="p-2 -ml-2 rounded-full text-slate-700 hover:text-orange-600 hover:bg-slate-100 transition-colors cursor-pointer"
           title="Quay lại"

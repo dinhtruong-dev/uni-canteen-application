@@ -137,6 +137,8 @@ interface AppContextType {
   setCurrentView: (view: string) => void;
   viewParams: Record<string, any>;
   navigateTo: (view: string, params?: Record<string, any>) => void;
+  goBack: (fallbackView?: string, fallbackParams?: Record<string, any>) => void;
+  updateUrlParams: (params: Record<string, any>) => void;
 
   // Marketing & Database Synced Data
   banners: BannerItem[];
@@ -397,11 +399,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // STUDENT / BUYER / CUSTOMER
     const rawPath = typeof window !== 'undefined' ? window.location.pathname.replace(/^\//, '') : '';
-    if (rawPath && !rawPath.startsWith('admin') && !rawPath.startsWith('staff') && rawPath !== 'kitchen-kds' && rawPath !== 'kds' && rawPath !== 'landing' && rawPath !== 'login') {
+    if (rawPath && !rawPath.startsWith('admin') && !rawPath.startsWith('staff') && rawPath !== 'kitchen-kds' && rawPath !== 'kds' && rawPath !== 'login') {
       return rawPath;
     }
     const saved = localStorage.getItem('unieat_current_view');
-    if (saved && !saved.startsWith('admin') && !saved.startsWith('staff') && saved !== 'kitchen-kds' && saved !== 'kds' && saved !== 'landing' && saved !== 'login') {
+    if (saved && !saved.startsWith('admin') && !saved.startsWith('staff') && saved !== 'kitchen-kds' && saved !== 'kds' && saved !== 'login') {
       return saved;
     }
     return 'home';
@@ -416,6 +418,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     return {};
   });
+
+  const updateUrlParams = (newParams: Record<string, any>) => {
+    const updated = { ...viewParams, ...newParams };
+    setViewParams(updated);
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams();
+      Object.entries(updated).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '' && typeof v !== 'object') {
+          searchParams.set(k, String(v));
+        }
+      });
+      const queryString = searchParams.toString() ? `?${searchParams.toString()}` : '';
+      let pathSegment = currentView === 'home' ? '' : currentView;
+      window.history.replaceState({ view: currentView, params: updated }, '', `/${pathSegment}${queryString}`);
+    }
+  };
 
   const navigateTo = (view: string, params: Record<string, any> = {}) => {
     let targetView = view;
@@ -439,7 +457,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setViewParams(params);
     localStorage.setItem('unieat_current_view', targetView);
 
-    // Đồng bộ đường dẫn trên thanh địa chỉ trình duyệt giống Shopee
+    // Đồng bộ đường dẫn trên thanh địa chỉ trình duyệt
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([k, v]) => {
@@ -458,7 +476,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       window.history.pushState({ view: targetView, params }, '', newUrl);
     }
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (params.scrollY !== undefined && params.scrollY !== null) {
+      const targetY = Number(params.scrollY);
+      setTimeout(() => {
+        window.scrollTo({ top: isNaN(targetY) ? 0 : targetY, behavior: 'auto' });
+      }, 50);
+    } else if (!params.preserveScroll) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const goBack = (fallbackView: string = 'home', fallbackParams: Record<string, any> = {}) => {
+    if (typeof window !== 'undefined' && window.history.length > 1 && window.history.state?.view) {
+      window.history.back();
+    } else if (viewParams?.fromView) {
+      navigateTo(viewParams.fromView, viewParams.fromParams || {});
+    } else {
+      navigateTo(fallbackView, fallbackParams);
+    }
   };
 
   // Lắng nghe sự kiện Back/Forward của trình duyệt
@@ -489,10 +524,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       const searchParams = new URLSearchParams(window.location.search);
-      const params: Record<string, any> = {};
-      searchParams.forEach((val, key) => { params[key] = val; });
+      const paramsFromUrl: Record<string, any> = {};
+      searchParams.forEach((val, key) => { paramsFromUrl[key] = val; });
+      const finalParams = e.state?.params ? { ...paramsFromUrl, ...e.state.params } : paramsFromUrl;
+
       setCurrentView(targetView);
-      setViewParams(e.state?.params || params);
+      setViewParams(finalParams);
+
+      if (finalParams.scrollY !== undefined && finalParams.scrollY !== null) {
+        const targetY = Number(finalParams.scrollY);
+        setTimeout(() => {
+          window.scrollTo({ top: isNaN(targetY) ? 0 : targetY, behavior: 'auto' });
+        }, 50);
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -521,9 +565,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     localStorage.setItem('unieat_cart', JSON.stringify(cart));
-    if (currentUser) {
-      cartApiService.syncCart(cart).catch(() => {});
-    }
+    cartApiService.syncCart(cart).catch(() => {});
   }, [cart, currentUser]);
 
   useEffect(() => {
@@ -1981,6 +2023,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setCurrentView,
         viewParams,
         navigateTo,
+        goBack,
+        updateUrlParams,
         banners,
         flashSales,
         categories,

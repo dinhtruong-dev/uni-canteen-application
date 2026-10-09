@@ -1,70 +1,76 @@
-export type PaymentMethod = 'CAMPUS_WALLET' | 'MOMO' | 'ZALOPAY' | 'VNPAY' | 'BANK_TRANSFER' | 'CASH';
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import type { PaymentMethod, PaymentStatus } from '../types/order.types';
+import { Order } from './Order';
+import { User } from './User';
 
-export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
+@Table({ tableName: 'payments', timestamps: true, updatedAt: false, underscored: true })
+export class Payment extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  declare id: string;
 
-export class Payment {
-  public id: string;
-  public orderId: string;
-  public userId: string;
-  public amount: number;
-  public method: PaymentMethod;
-  public status: PaymentStatus;
-  public transactionCode: string;
-  public gatewayResponse?: Record<string, any>;
-  public paidAt?: Date;
-  public createdAt: Date;
+  @ForeignKey(() => Order)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'order_id' })
+  declare orderId: string;
 
-  constructor(
-    id: string,
-    orderId: string,
-    userId: string,
-    amount: number,
-    method: PaymentMethod,
-    status: PaymentStatus = 'PENDING',
-    transactionCode?: string,
-    options?: {
-      gatewayResponse?: Record<string, any>;
-      paidAt?: Date;
-      createdAt?: Date;
-    }
-  ) {
-    this.id = id;
-    this.orderId = orderId;
-    this.userId = userId;
-    this.amount = amount;
-    this.method = method;
-    this.status = status;
-    this.transactionCode = transactionCode || `PAY-${Math.floor(100000 + Math.random() * 900000)}`;
-    this.gatewayResponse = options?.gatewayResponse;
-    this.paidAt = options?.paidAt || (status === 'SUCCESS' ? new Date() : undefined);
-    this.createdAt = options?.createdAt || new Date();
-  }
+  @ForeignKey(() => User)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'user_id' })
+  declare userId: string;
 
-  public markSuccess(transactionCode?: string): void {
-    this.status = 'SUCCESS';
-    this.paidAt = new Date();
-    if (transactionCode) this.transactionCode = transactionCode;
-  }
+  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false })
+  declare amount: number;
 
-  public markFailed(reason?: string): void {
-    this.status = 'FAILED';
-    if (reason) {
-      this.gatewayResponse = { ...this.gatewayResponse, failureReason: reason };
-    }
-  }
+  @Column({
+    type: DataType.ENUM(
+      'STUDENT_WALLET',
+      'CAMPUS_WALLET',
+      'MOMO',
+      'ZALOPAY',
+      'VNPAY_QR',
+      'VNPAY',
+      'CASH'
+    ),
+    allowNull: false,
+    field: 'method',
+  })
+  declare method: PaymentMethod;
+
+  @Column({
+    type: DataType.ENUM('PENDING', 'SUCCESS', 'FAILED', 'REFUNDED'),
+    defaultValue: 'PENDING',
+  })
+  declare status: PaymentStatus;
+
+  @Column({ type: DataType.STRING(100), allowNull: false, unique: true, field: 'transaction_code' })
+  declare transactionCode: string;
+
+  @Column({ type: DataType.JSON, allowNull: true, field: 'gateway_response_json' })
+  declare gatewayResponse?: Record<string, any>;
+
+  @Column({ type: DataType.DATE, allowNull: true, field: 'paid_at' })
+  declare paidAt?: Date;
+
+  // Associations
+  @BelongsTo(() => Order)
+  declare order: Order;
+
+  @BelongsTo(() => User)
+  declare user: User;
 
   public toJSON() {
+    const values = { ...this.get() };
     return {
-      id: this.id,
-      orderId: this.orderId,
-      userId: this.userId,
-      amount: this.amount,
-      method: this.method,
-      status: this.status,
-      transactionCode: this.transactionCode,
-      gatewayResponse: this.gatewayResponse,
-      paidAt: this.paidAt ? this.paidAt.toISOString() : null,
-      createdAt: this.createdAt.toISOString(),
+      id: values.id,
+      orderId: values.orderId,
+      userId: values.userId,
+      amount: Number(values.amount) || 0,
+      method: values.method,
+      status: values.status,
+      transactionCode: values.transactionCode,
+      gatewayResponse: values.gatewayResponse,
+      paidAt: values.paidAt ? new Date(values.paidAt).toISOString() : null,
+      createdAt: values.createdAt
+        ? new Date(values.createdAt).toISOString()
+        : new Date().toISOString(),
     };
   }
 }

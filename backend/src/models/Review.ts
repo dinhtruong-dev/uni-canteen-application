@@ -1,90 +1,84 @@
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { User } from './User';
+import { Order } from './Order';
+
 export type ReviewTargetType = 'PRODUCT' | 'CANTEEN';
 export type ReviewStatus = 'VISIBLE' | 'HIDDEN';
 
-export class Review {
-  public id: string;
-  public userId: string;
-  public userName: string;
-  public userRole: string;
-  public userAvatar?: string;
-  public targetType: ReviewTargetType;
-  public targetId: string; // productId or canteenId
-  public orderId?: string; // Mã đơn hàng đã hoàn thành
-  public rating: number; // 1 to 5
-  public comment: string;
-  public verifiedPurchase: boolean;
-  public helpfulCount: number;
-  public images: string[];
-  public status: ReviewStatus;
-  public replyText?: string;
-  public repliedAt?: string;
-  public createdAt: Date;
+@Table({ tableName: 'reviews', timestamps: true, updatedAt: false, underscored: true })
+export class Review extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  declare id: string;
 
-  constructor(
-    id: string,
-    userId: string,
-    userName: string,
-    targetType: ReviewTargetType,
-    targetId: string,
-    rating: number,
-    comment?: string,
-    options?: {
-      orderId?: string;
-      userRole?: string;
-      userAvatar?: string;
-      verifiedPurchase?: boolean;
-      helpfulCount?: number;
-      images?: string[];
-      status?: ReviewStatus;
-      replyText?: string;
-      repliedAt?: string;
-      createdAt?: Date;
-    }
-  ) {
-    this.id = id;
-    this.userId = userId;
-    this.userName = userName;
-    this.userRole = options?.userRole || 'Sinh viên';
-    this.userAvatar = options?.userAvatar;
-    this.targetType = targetType;
-    this.targetId = targetId;
-    this.orderId = options?.orderId;
-    this.rating = Math.max(1, Math.min(5, rating));
-    this.comment = comment || '';
-    this.verifiedPurchase = options?.verifiedPurchase !== undefined ? options.verifiedPurchase : true;
-    this.helpfulCount = options?.helpfulCount || 0;
-    this.images = options?.images || [];
-    this.status = options?.status || 'VISIBLE';
-    this.replyText = options?.replyText;
-    this.repliedAt = options?.repliedAt;
-    this.createdAt = options?.createdAt || new Date();
-  }
+  @ForeignKey(() => User)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'user_id' })
+  declare userId: string;
 
-  public upvoteHelpful(): number {
-    this.helpfulCount += 1;
-    return this.helpfulCount;
-  }
+  @Column({ type: DataType.STRING(100), allowNull: false, field: 'user_name' })
+  declare userName: string;
 
-  public toJSON() {
+  @Column({ type: DataType.ENUM('PRODUCT', 'CANTEEN'), allowNull: false, field: 'target_type' })
+  declare targetType: ReviewTargetType;
+
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'target_id' })
+  declare targetId: string;
+
+  @ForeignKey(() => Order)
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'order_id' })
+  declare orderId?: string;
+
+  @Column({ type: DataType.INTEGER, defaultValue: 5 })
+  declare rating: number;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare comment: string;
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: true, field: 'verified_purchase' })
+  declare verifiedPurchase: boolean;
+
+  @Column({ type: DataType.INTEGER, defaultValue: 0, field: 'helpful_count' })
+  declare helpfulCount: number;
+
+  @Column({ type: DataType.ENUM('VISIBLE', 'HIDDEN'), defaultValue: 'VISIBLE' })
+  declare status: ReviewStatus;
+
+  @Column({ type: DataType.TEXT, allowNull: true, field: 'reply_text' })
+  declare replyText?: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: true, field: 'replied_at' })
+  declare repliedAt?: string;
+
+  // Associations
+  @BelongsTo(() => User, { onDelete: 'CASCADE' })
+  declare user: User;
+
+  @BelongsTo(() => Order)
+  declare order?: Order;
+
+  userRole: string = 'Sinh viên';
+  userAvatar?: string;
+
+  toJSON() {
+    const values = { ...this.get() };
     return {
-      id: this.id,
-      userId: this.userId,
-      userName: this.userName,
-      userRole: this.userRole,
+      id: values.id,
+      userId: values.userId,
+      userName: values.userName,
+      userRole: this.userRole || 'Sinh viên',
       userAvatar: this.userAvatar,
-      targetType: this.targetType,
-      targetId: this.targetId,
-      orderId: this.orderId,
-      rating: this.rating,
-      comment: this.comment,
-      verifiedPurchase: this.verifiedPurchase,
-      helpfulCount: this.helpfulCount,
-      images: this.images,
-      status: this.status,
-      replyText: this.replyText,
-      reply: this.replyText,
-      repliedAt: this.repliedAt,
-      createdAt: this.createdAt.toISOString(),
+      targetType: values.targetType,
+      targetId: values.targetId,
+      orderId: values.orderId,
+      rating: Number(values.rating) || 5,
+      comment: values.comment,
+      verifiedPurchase: Boolean(values.verifiedPurchase),
+      helpfulCount: Number(values.helpfulCount) || 0,
+      images: [],
+      status: values.status,
+      replyText: values.replyText,
+      reply: values.replyText,
+      repliedAt: values.repliedAt,
+      createdAt: values.createdAt ? new Date(values.createdAt).toISOString() : new Date().toISOString(),
     };
   }
 }

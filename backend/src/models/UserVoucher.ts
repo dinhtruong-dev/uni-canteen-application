@@ -1,60 +1,46 @@
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { User } from './User';
 import { Voucher } from './Voucher';
 
-export interface IUserVoucher {
-  id: string;
-  userId: string;
-  voucherId: string;
-  isUsed: boolean;
-  usedAt?: Date;
-  createdAt: Date;
-}
+@Table({ tableName: 'user_vouchers', timestamps: true, updatedAt: false, underscored: true })
+export class UserVoucher extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  declare id: string;
 
-export class UserVoucher implements IUserVoucher {
-  public id: string;
-  public userId: string;
-  public voucherId: string;
-  public isUsed: boolean;
-  public usedAt?: Date;
-  public createdAt: Date;
-  public voucher?: Voucher;
+  @ForeignKey(() => User)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'user_id' })
+  declare userId: string;
 
-  constructor(
-    id: string,
-    userId: string,
-    voucherId: string,
-    options?: {
-      isUsed?: boolean;
-      usedAt?: Date;
-      createdAt?: Date;
-      voucher?: Voucher;
-    }
-  ) {
-    this.id = id;
-    this.userId = userId;
-    this.voucherId = voucherId;
-    this.isUsed = options?.isUsed !== undefined ? options.isUsed : false;
-    this.usedAt = options?.usedAt;
-    this.createdAt = options?.createdAt || new Date();
-    this.voucher = options?.voucher;
-  }
+  @ForeignKey(() => Voucher)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'voucher_id' })
+  declare voucherId: string;
 
-  public markAsUsed(): void {
-    this.isUsed = true;
-    this.usedAt = new Date();
-  }
+  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'is_used' })
+  declare isUsed: boolean;
+
+  @Column({ type: DataType.DATE, allowNull: true, field: 'used_at' })
+  declare usedAt?: Date;
+
+  // Associations
+  @BelongsTo(() => User)
+  declare user: User;
+
+  @BelongsTo(() => Voucher)
+  declare voucher?: Voucher;
 
   public toJSON() {
+    const values = { ...this.get() };
     return {
-      id: this.id,
-      userId: this.userId,
-      voucherId: this.voucherId,
-      isUsed: this.isUsed,
-      usedAt: this.usedAt ? this.usedAt.toISOString() : undefined,
-      createdAt: this.createdAt.toISOString(),
-      voucher: this.voucher
-        ? typeof this.voucher.toJSON === 'function'
-          ? this.voucher.toJSON()
-          : this.voucher
+      id: values.id,
+      userId: values.userId,
+      voucherId: values.voucherId,
+      isUsed: Boolean(values.isUsed),
+      usedAt: values.usedAt ? new Date(values.usedAt).toISOString() : undefined,
+      createdAt: values.createdAt ? new Date(values.createdAt).toISOString() : new Date().toISOString(),
+      voucher: this.voucher || values.voucher
+        ? typeof (this.voucher || values.voucher)?.toJSON === 'function'
+          ? (this.voucher || values.voucher).toJSON()
+          : this.voucher || values.voucher
         : undefined,
     };
   }

@@ -1,120 +1,120 @@
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany } from 'sequelize-typescript';
+import { Category } from './Category';
+import { Canteen } from './Canteen';
+import { OrderDetail } from './OrderDetail';
+import { FlashSale } from './FlashSale';
+import { Favorite } from './Favorite';
 import { ProductOption } from './ProductOption';
 
-export class Product {
-  public id: string;
-  public name: string;
-  public price: number;
-  public originalPrice?: number;
-  public categoryId: string;
-  public categoryName?: string;
-  public canteenId: string;
-  public canteenName?: string;
-  public image: string;
-  public description?: string;
-  public rating: number;
-  public reviewCount: number;
-  public preparationTime: number; // in minutes
-  public isAvailable: boolean;
-  public isBestSeller?: boolean;
-  public isNew?: boolean;
-  public isVegetarian?: boolean;
-  public soldCount: number;
-  public calories?: number;
-  public options: ProductOption[];
-  public createdAt: Date;
+@Table({ tableName: 'products', timestamps: true, updatedAt: false, underscored: true })
+export class Product extends Model {
+  @Column({ type: DataType.STRING(50), primaryKey: true })
+  declare id: string;
 
-  constructor(
-    id: string,
-    name: string,
-    price: number,
-    categoryId: string,
-    canteenId: string,
-    image: string,
-    rating: number = 4.8,
-    reviewCount: number = 50,
-    preparationTime: number = 10,
-    isAvailable: boolean = true,
-    extra?: {
-      originalPrice?: number;
-      categoryName?: string;
-      canteenName?: string;
-      description?: string;
-      isBestSeller?: boolean;
-      isNew?: boolean;
-      isVegetarian?: boolean;
-      soldCount?: number;
-      calories?: number;
-      options?: ProductOption[];
-      createdAt?: Date;
-    }
-  ) {
-    this.id = id;
-    this.name = name;
-    this.price = price;
-    this.categoryId = categoryId;
-    this.canteenId = canteenId;
-    this.image = image;
-    this.rating = rating;
-    this.reviewCount = reviewCount;
-    this.preparationTime = preparationTime;
-    this.isAvailable = isAvailable;
+  @Column({ type: DataType.STRING(150), allowNull: false })
+  declare name: string;
 
-    this.originalPrice = extra?.originalPrice;
-    this.categoryName = extra?.categoryName;
-    this.canteenName = extra?.canteenName;
-    this.description = extra?.description;
-    this.isBestSeller = extra?.isBestSeller;
-    this.isNew = extra?.isNew;
-    this.isVegetarian = extra?.isVegetarian;
-    this.soldCount = extra?.soldCount || 0;
-    this.calories = extra?.calories;
-    this.options = extra?.options || [];
-    this.createdAt = extra?.createdAt || new Date();
-  }
+  @Column({ type: DataType.DECIMAL(10, 2), allowNull: false })
+  declare price: number;
 
-  public getDiscountPercent(): number {
-    if (!this.originalPrice || this.originalPrice <= this.price) return 0;
-    return Math.round(((this.originalPrice - this.price) / this.originalPrice) * 100);
-  }
+  @Column({ type: DataType.DECIMAL(10, 2), allowNull: true, field: 'original_price' })
+  declare originalPrice?: number;
 
-  public calculateFinalPrice(selectedOptionItemIds: string[] = []): number {
-    let total = this.price;
-    if (this.options && selectedOptionItemIds.length > 0) {
-      for (const opt of this.options) {
-        for (const item of opt.items) {
-          if (selectedOptionItemIds.includes(item.id)) {
-            total += item.extraPrice;
-          }
-        }
-      }
-    }
-    return total;
-  }
+  @ForeignKey(() => Category)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'category_id' })
+  declare categoryId: string;
+
+  @Column({ type: DataType.STRING(100), defaultValue: '', field: 'category_name' })
+  declare categoryName?: string;
+
+  @ForeignKey(() => Canteen)
+  @Column({ type: DataType.STRING(50), allowNull: false, field: 'canteen_id' })
+  declare canteenId: string;
+
+  @Column({ type: DataType.STRING(100), defaultValue: '', field: 'canteen_name' })
+  declare canteenName?: string;
+
+  @Column({ type: DataType.STRING(500), allowNull: false })
+  declare image: string;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare description?: string;
+
+  @Column({ type: DataType.DECIMAL(2, 1), defaultValue: 5.0 })
+  declare rating: number;
+
+  @Column({ type: DataType.INTEGER, defaultValue: 0, field: 'review_count' })
+  declare reviewCount: number;
+
+  @Column({ type: DataType.INTEGER, defaultValue: 10, field: 'preparation_time' })
+  declare preparationTime: number;
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: true, field: 'is_available' })
+  declare isAvailable: boolean;
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'is_bestseller' })
+  declare isBestSeller?: boolean;
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'is_new' })
+  declare isNew?: boolean;
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'is_vegetarian' })
+  declare isVegetarian?: boolean;
+
+  @Column({ type: DataType.INTEGER, defaultValue: 0, field: 'sold_count' })
+  declare soldCount: number;
+
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  declare calories?: number;
+
+  // Associations
+  @BelongsTo(() => Category)
+  declare category: Category;
+
+  @BelongsTo(() => Canteen)
+  declare canteen: Canteen;
+
+  @HasMany(() => OrderDetail)
+  declare orderDetails: OrderDetail[];
+
+  @HasMany(() => FlashSale)
+  declare flashSales: FlashSale[];
+
+  @HasMany(() => Favorite)
+  declare favorites: Favorite[];
+
+  @HasMany(() => ProductOption)
+  declare options: ProductOption[];
 
   public toJSON() {
+    const values = { ...this.get() };
+    const orig = Number(values.originalPrice) || 0;
+    const pr = Number(values.price) || 0;
+    const discountPercent = orig > pr && orig > 0 ? Math.round(((orig - pr) / orig) * 100) : 0;
+
     return {
-      id: this.id,
-      name: this.name,
-      price: this.price,
-      originalPrice: this.originalPrice,
-      discountPercent: this.getDiscountPercent(),
-      categoryId: this.categoryId,
-      categoryName: this.categoryName,
-      canteenId: this.canteenId,
-      canteenName: this.canteenName,
-      image: this.image,
-      description: this.description,
-      rating: this.rating,
-      reviewCount: this.reviewCount,
-      preparationTime: this.preparationTime,
-      isAvailable: this.isAvailable,
-      isBestSeller: this.isBestSeller,
-      isNew: this.isNew,
-      isVegetarian: this.isVegetarian,
-      soldCount: this.soldCount,
-      calories: this.calories,
-      options: this.options.map((o) => o.toJSON()),
-      createdAt: this.createdAt.toISOString(),
+      id: values.id,
+      name: values.name,
+      price: pr,
+      originalPrice: values.originalPrice ? Number(values.originalPrice) : undefined,
+      discountPercent,
+      categoryId: values.categoryId,
+      categoryName: this.categoryName || values.categoryName,
+      canteenId: values.canteenId,
+      canteenName: this.canteenName || values.canteenName,
+      image: values.image,
+      description: values.description,
+      rating: Number(values.rating) || 5.0,
+      reviewCount: Number(values.reviewCount) || 0,
+      preparationTime: Number(values.preparationTime) || 10,
+      isAvailable: Boolean(values.isAvailable),
+      isBestSeller: Boolean(values.isBestSeller),
+      isNew: Boolean(values.isNew),
+      isVegetarian: Boolean(values.isVegetarian),
+      soldCount: Number(values.soldCount) || 0,
+      calories: values.calories ? Number(values.calories) : undefined,
+      options: (this.options || values.options || []).map((o: any) => (typeof o?.toJSON === 'function' ? o.toJSON() : o)),
+      createdAt: values.createdAt ? new Date(values.createdAt).toISOString() : new Date().toISOString(),
     };
   }
 }

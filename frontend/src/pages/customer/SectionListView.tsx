@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { FoodItem } from '../../types';
+import { HeaderNav } from '../../components/HeaderNav';
 import {
   ArrowLeft,
   Share2,
@@ -22,20 +23,54 @@ import {
 } from 'lucide-react';
 
 export const SectionListView: React.FC = () => {
-  const { foods, canteens, viewParams, navigateTo, addToCart, setSelectedCanteen, showToast } = useApp();
+  const { foods, canteens, viewParams, navigateTo, goBack, updateUrlParams, addToCart, setSelectedCanteen, showToast } = useApp();
 
-  const filterType = viewParams?.filterType || 'BEST_SELLER';
-  const pageTitle = viewParams?.title || 'Danh sách món ăn';
+  const searchParams = useMemo(() => {
+    return typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  }, []);
+
+  const filterType = viewParams?.filterType || searchParams.get('filterType') || 'BEST_SELLER';
+  const pageTitle = viewParams?.title || searchParams.get('title') || 'Danh sách món ăn';
 
   // Active Dropdown / Modal Filter State
   const [activeDropdown, setActiveDropdown] = useState<'NONE' | 'FILTER' | 'DISCOUNT' | 'PRICE'>('NONE');
 
   // Filter values
-  const [discountFilter, setDiscountFilter] = useState<number>(filterType === 'FLASH_SALE' ? 1 : 0);
-  const [pricePreset, setPricePreset] = useState<'ALL' | 'UNDER_25' | '25_50' | 'ABOVE_50' | 'CUSTOM'>('ALL');
+  const [discountFilter, setDiscountFilter] = useState<number>(
+    viewParams?.discountFilter ? Number(viewParams.discountFilter) : filterType === 'FLASH_SALE' ? 1 : 0
+  );
+  const [pricePreset, setPricePreset] = useState<'ALL' | 'UNDER_25' | '25_50' | 'ABOVE_50' | 'CUSTOM'>(
+    (viewParams?.pricePreset || searchParams.get('pricePreset') || 'ALL') as any
+  );
   const [customMinPrice, setCustomMinPrice] = useState('');
   const [customMaxPrice, setCustomMaxPrice] = useState('');
-  const [sortOption, setSortOption] = useState<'DEFAULT' | 'DISCOUNT_HIGH' | 'PRICE_LOW' | 'PRICE_HIGH'>('DEFAULT');
+  const [sortOption, setSortOption] = useState<'DEFAULT' | 'DISCOUNT_HIGH' | 'PRICE_LOW' | 'PRICE_HIGH'>(
+    (viewParams?.sortOption || searchParams.get('sortOption') || 'DEFAULT') as any
+  );
+
+  // Sync state changes to URL
+  useEffect(() => {
+    updateUrlParams({
+      filterType,
+      title: pageTitle,
+      discountFilter,
+      pricePreset,
+      sortOption,
+    });
+  }, [filterType, pageTitle, discountFilter, pricePreset, sortOption]);
+
+  // Phục hồi vị trí cuộn chuột
+  useEffect(() => {
+    const savedY = viewParams?.scrollY || searchParams.get('scrollY');
+    if (savedY !== undefined && savedY !== null) {
+      const scrollPos = Number(savedY);
+      if (!isNaN(scrollPos) && scrollPos > 0) {
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: scrollPos, behavior: 'auto' });
+        });
+      }
+    }
+  }, [viewParams?.scrollY]);
 
   // Live countdown timer for Flash Sale
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 41, seconds: 39 });
@@ -131,15 +166,29 @@ export const SectionListView: React.FC = () => {
     setActiveDropdown('NONE');
   };
 
+  const handleGoToFoodDetail = (food: FoodItem) => {
+    const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+    const currentParams = {
+      filterType,
+      title: pageTitle,
+      discountFilter,
+      pricePreset,
+      sortOption,
+      scrollY: currentScrollY,
+    };
+    updateUrlParams(currentParams);
+    navigateTo('food-detail', {
+      foodId: food.id,
+      food,
+      fromView: 'section-list',
+      fromParams: currentParams,
+    });
+  };
+
   const handleQuickAdd = (e: React.MouseEvent, food: FoodItem) => {
     e.stopPropagation();
     if ((food.sizes && food.sizes.length > 0) || (food.toppings && food.toppings.length > 0)) {
-      navigateTo('food-detail', {
-        foodId: food.id,
-        food,
-        fromView: 'section-list',
-        fromParams: { filterType, title: pageTitle },
-      });
+      handleGoToFoodDetail(food);
     } else {
       addToCart(food, 1);
       showToast(`Đã thêm "${food.name}" vào giỏ hàng`, 'success');
@@ -172,31 +221,12 @@ export const SectionListView: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto space-y-4 pb-20 px-1 sm:px-0">
-      {/* 1. Header: Back Arrow on left, Title in center, Share on right */}
-      <div className="sticky top-0 z-30 bg-[#FFFDFE]/95 backdrop-blur-md pt-2 pb-3 border-b border-[#E9DDE3] flex items-center justify-between">
-        <button
-          onClick={() => navigateTo('home')}
-          className="w-10 h-10 rounded-full flex items-center justify-center text-[#1F2937] hover:bg-[#FFF3F7] active:scale-95 transition-all cursor-pointer shrink-0"
-          title="Quay lại"
-        >
-          <ArrowLeft className="w-5 h-5 text-[#1F2937]" />
-        </button>
-
-        <h1 className="font-bold text-[#1F2937] text-base sm:text-lg flex items-center gap-1.5 text-center truncate">
-          {filterType === 'FLASH_SALE' && <Zap className="w-5 h-5 text-[#FF4F8B] fill-[#FF4F8B]" />}
-          {filterType === 'BEST_SELLER' && <span className="text-xl">🔥</span>}
-          {filterType === 'NEW' && <span className="text-xl">✨</span>}
-          <span>{pageTitle}</span>
-        </h1>
-
-        <button
-          onClick={handleShare}
-          className="w-10 h-10 rounded-full flex items-center justify-center text-[#1F2937] hover:bg-[#FFF3F7] active:scale-95 transition-all cursor-pointer shrink-0"
-          title="Chia sẻ"
-        >
-          <Share2 className="w-5 h-5 text-[#1F2937]" />
-        </button>
-      </div>
+      {/* Header Navigation Component */}
+      <HeaderNav
+        title={`${filterType === 'BEST_SELLER' ? '🔥 ' : filterType === 'NEW' ? '✨ ' : ''}${pageTitle}`}
+        onBack={() => goBack('home')}
+        onShare={handleShare}
+      />
 
       {/* 2. Horizontal Filter Pill Bar (ONLY for Flash Sale) */}
       {filterType === 'FLASH_SALE' && (
@@ -421,14 +451,7 @@ export const SectionListView: React.FC = () => {
               return (
                 <div
                   key={food.id}
-                  onClick={() =>
-                    navigateTo('food-detail', {
-                      foodId: food.id,
-                      food,
-                      fromView: 'section-list',
-                      fromParams: { filterType, title: pageTitle },
-                    })
-                  }
+                  onClick={() => handleGoToFoodDetail(food)}
                   className="p-3 sm:p-4 hover:bg-[#FFFDFE] transition-all flex items-start gap-3 sm:gap-4 group cursor-pointer"
                 >
                   {/* Left: Large Rounded Square Image */}

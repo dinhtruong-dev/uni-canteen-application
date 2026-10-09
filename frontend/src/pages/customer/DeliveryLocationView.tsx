@@ -236,17 +236,15 @@ export const DeliveryLocationView: React.FC = () => {
                       key={bld.id}
                       type="button"
                       onClick={() => handleSelectBuilding(bld.name)}
-                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between group ${
-                        isSelected
-                          ? 'border-emerald-600 bg-emerald-50/90 shadow-xs ring-2 ring-emerald-500/20'
-                          : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
-                      }`}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between group ${isSelected
+                        ? 'border-emerald-600 bg-emerald-50/90 shadow-xs ring-2 ring-emerald-500/20'
+                        : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
+                        }`}
                     >
                       <div className="flex items-center justify-between gap-1">
                         <span
-                          className={`text-xs sm:text-sm font-bold ${
-                            isSelected ? 'text-emerald-950' : 'text-slate-800'
-                          }`}
+                          className={`text-xs sm:text-sm font-bold ${isSelected ? 'text-emerald-950' : 'text-slate-800'
+                            }`}
                         >
                           {bld.name}
                         </span>
@@ -312,11 +310,10 @@ export const DeliveryLocationView: React.FC = () => {
                   key={sug}
                   type="button"
                   onClick={() => setRoom(sug)}
-                  className={`px-3 py-1 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-                    room === sug
-                      ? 'bg-emerald-600 text-white shadow-2xs font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1 rounded-xl text-xs font-medium transition-all cursor-pointer ${room === sug
+                    ? 'bg-emerald-600 text-white shadow-2xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   {sug}
                 </button>
