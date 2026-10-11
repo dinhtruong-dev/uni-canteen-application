@@ -60,24 +60,24 @@ export const AdminStatisticsView: React.FC = () => {
   const canteenData = statData?.canteens && statData.canteens.length > 0
     ? statData.canteens
     : [
-        { name: 'Căn Tin A (A2)', revenue: 45200000, orders: 1250, cancelRate: 2.1 },
-        { name: 'Căn Tin B (B5)', revenue: 38900000, orders: 1040, cancelRate: 1.8 },
-        { name: 'Căn Tin C (TD)', revenue: 26400000, orders: 720, cancelRate: 3.4 },
-      ];
+      { name: 'Căn Tin A (A2)', revenue: 45200000, orders: 1250, cancelRate: 2.1 },
+      { name: 'Căn Tin B (B5)', revenue: 38900000, orders: 1040, cancelRate: 1.8 },
+      { name: 'Căn Tin C (TD)', revenue: 26400000, orders: 720, cancelRate: 3.4 },
+    ];
 
   // Peak Hour distribution from MySQL DB with fallback
   const hourlyData = statData?.hourly && statData.hourly.length > 0
     ? statData.hourly
     : [
-        { hour: '07h-08h', orders: 145 },
-        { hour: '08h-09h', orders: 85 },
-        { hour: '11h-12h', orders: 480 },
-        { hour: '12h-13h', orders: 560 },
-        { hour: '13h-14h', orders: 190 },
-        { hour: '17h-18h', orders: 280 },
-        { hour: '18h-19h', orders: 340 },
-        { hour: '19h-20h', orders: 160 },
-      ];
+      { hour: '07h-08h', orders: 145 },
+      { hour: '08h-09h', orders: 85 },
+      { hour: '11h-12h', orders: 480 },
+      { hour: '12h-13h', orders: 560 },
+      { hour: '13h-14h', orders: 190 },
+      { hour: '17h-18h', orders: 280 },
+      { hour: '18h-19h', orders: 340 },
+      { hour: '19h-20h', orders: 160 },
+    ];
 
   // System cancel rate
   const totalSystemOrders = orders.length;
@@ -125,25 +125,22 @@ export const AdminStatisticsView: React.FC = () => {
             <div className="flex bg-slate-800 p-1 rounded-2xl border border-slate-700">
               <button
                 onClick={() => setDateRange('WEEK')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  dateRange === 'WEEK' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400'
-                }`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${dateRange === 'WEEK' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400'
+                  }`}
               >
                 Tuần này
               </button>
               <button
                 onClick={() => setDateRange('MONTH')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  dateRange === 'MONTH' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400'
-                }`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${dateRange === 'MONTH' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400'
+                  }`}
               >
                 Tháng này
               </button>
               <button
                 onClick={() => setDateRange('QUARTER')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  dateRange === 'QUARTER' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400'
-                }`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${dateRange === 'QUARTER' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400'
+                  }`}
               >
                 Học kỳ này
               </button>

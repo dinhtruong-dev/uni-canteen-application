@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import { PaymentMethod, FoodItem } from '../../types';
 import { OnlinePaymentModal } from '../../components/OnlinePaymentModal';
 import { userService, cartApiService } from '../../services/api';
@@ -483,8 +483,8 @@ export const CheckoutView: React.FC = () => {
                         showToast(`Đã chọn địa chỉ: ${full}`, 'success');
                       }}
                       className={`p-3.5 bg-white rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${isSelected
-                          ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
-                          : 'border-slate-200 hover:border-slate-300'
+                        ? 'border-[#22c3d3] ring-2 ring-[#22c3d3]/15 bg-[#f5fcfc]'
+                        : 'border-slate-200 hover:border-slate-300'
                         }`}
                     >
                       <div className="flex items-start gap-3">
@@ -1206,18 +1206,18 @@ export const CheckoutView: React.FC = () => {
                       setPickupTimeSlot(slot.timeRange);
                     }}
                     className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative flex flex-col justify-between min-h-[76px] ${isSelected
-                        ? 'border-[#22c3d3] bg-[#f0fdfa] ring-2 ring-[#22c3d3]/35 text-[#0f766e] shadow-xs'
-                        : isAvailable
-                          ? 'border-slate-200/90 bg-white hover:border-[#22c3d3]/50 hover:bg-slate-50/60 text-slate-800'
-                          : 'border-slate-200 bg-slate-100/70 text-slate-400 cursor-not-allowed opacity-60'
+                      ? 'border-[#22c3d3] bg-[#f0fdfa] ring-2 ring-[#22c3d3]/35 text-[#0f766e] shadow-xs'
+                      : isAvailable
+                        ? 'border-slate-200/90 bg-white hover:border-[#22c3d3]/50 hover:bg-slate-50/60 text-slate-800'
+                        : 'border-slate-200 bg-slate-100/70 text-slate-400 cursor-not-allowed opacity-60'
                       }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-[13px] font-bold block">{slot.timeRange}</span>
                       <div
                         className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center shrink-0 transition-all ${isSelected
-                            ? 'border-[#22c3d3] bg-[#22c3d3] text-white shadow-2xs'
-                            : 'border-slate-300 bg-white'
+                          ? 'border-[#22c3d3] bg-[#22c3d3] text-white shadow-2xs'
+                          : 'border-slate-300 bg-white'
                           }`}
                       >
                         {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
@@ -1226,10 +1226,10 @@ export const CheckoutView: React.FC = () => {
                     <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-100">
                       <span
                         className={`text-[11px] font-semibold ${isSelected
-                            ? 'text-[#0d9488] font-bold'
-                            : isAvailable
-                              ? 'text-emerald-600'
-                              : 'text-slate-400'
+                          ? 'text-[#0d9488] font-bold'
+                          : isAvailable
+                            ? 'text-emerald-600'
+                            : 'text-slate-400'
                           }`}
                       >
                         {isSelected ? '✓ Đã chọn' : isAvailable ? 'Còn chỗ' : 'Hết chỗ'}

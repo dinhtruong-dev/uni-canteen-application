@@ -104,11 +104,10 @@ export const StaffTopbar: React.FC<StaffTopbarProps> = ({
         {/* Sound Alarm Toggle */}
         <button
           onClick={onToggleSound}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-            isSoundEnabled
-              ? 'bg-slate-800 border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/10'
-              : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
-          }`}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${isSoundEnabled
+            ? 'bg-slate-800 border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/10'
+            : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
+            }`}
           title={isSoundEnabled ? 'Âm báo đơn mới đang bật' : 'Âm báo đang tắt (nhấn để bật)'}
         >
           {isSoundEnabled ? (

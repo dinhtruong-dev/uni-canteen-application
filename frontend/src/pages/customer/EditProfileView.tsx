@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import { HeaderNav } from '../../components/HeaderNav';
 import { Camera, Save } from 'lucide-react';
 

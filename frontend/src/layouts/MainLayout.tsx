@@ -65,9 +65,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <div
-      className={`min-h-screen text-slate-900 flex flex-col font-sans selection:bg-[#22c3d3] selection:text-white ${
-        isCheckoutPage ? 'bg-white' : 'bg-slate-50'
-      }`}
+      className={`min-h-screen text-slate-900 flex flex-col font-sans selection:bg-[#22c3d3] selection:text-white ${isCheckoutPage ? 'bg-white' : 'bg-slate-50'
+        }`}
     >
       <ToastContainer />
 

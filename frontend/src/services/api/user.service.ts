@@ -1,5 +1,7 @@
 import { apiClient } from './apiClient';
-import { User, DeliveryAddress, WalletTransaction, Notification } from '../../types';
+import type { User } from '../../types/user.types';
+import type { WalletTransaction } from '../../types/notification.types';
+import type { Notification } from '../../types/notification.types';
 
 export class UserService {
   public async getUsers(): Promise<User[]> {

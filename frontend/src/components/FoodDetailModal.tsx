@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FoodItem, FoodTopping, FoodSize } from '../types';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../store/AppContext';
 import { X, Star, Minus, Plus, ShoppingBag, Clock, Check, Utensils, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -21,13 +21,13 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({ food, onClose 
     food.sizes && food.sizes.length > 0 ? food.sizes[0] : undefined
   );
   const [selectedToppings, setSelectedToppings] = useState<FoodTopping[]>([]);
-  
+
   // Broth / Sauce / Soup options
   const defaultBrothOptions = food.categoryId === 'cat-2' // Bún & Phở
     ? ['Nước dùng ninh xương truyền thống', 'Nước dùng cay nồng Sa Tế', 'Nước dùng thanh ngọt ít mỡ', 'Nước lẩu Thái chua cay']
     : food.categoryId === 'cat-1' // Cơm
-    ? ['Nước sốt mắm tỏi đậm đà', 'Nước sốt bơ tỏi thơm ngậy', 'Nước sốt xá xíu ngọt nhẹ', 'Sốt ớt cay nồng']
-    : ['Chuẩn vị căng tin', 'Nhiều sốt/nước dùng', 'Ít sốt/nước dùng'];
+      ? ['Nước sốt mắm tỏi đậm đà', 'Nước sốt bơ tỏi thơm ngậy', 'Nước sốt xá xíu ngọt nhẹ', 'Sốt ớt cay nồng']
+      : ['Chuẩn vị căng tin', 'Nhiều sốt/nước dùng', 'Ít sốt/nước dùng'];
 
   const [selectedBroth, setSelectedBroth] = useState<string>(defaultBrothOptions[0]);
   const [notes, setNotes] = useState('');
@@ -123,11 +123,10 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({ food, onClose 
                       <button
                         key={size.name}
                         onClick={() => setSelectedSize(size)}
-                        className={`p-3 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all ${
-                          isSelected
-                            ? 'border-orange-500 bg-orange-50/50 text-orange-950 ring-2 ring-orange-500/20'
-                            : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                        }`}
+                        className={`p-3 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all ${isSelected
+                          ? 'border-orange-500 bg-orange-50/50 text-orange-950 ring-2 ring-orange-500/20'
+                          : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                          }`}
                       >
                         <span>{size.name}</span>
                         <span className="font-bold text-slate-900">
@@ -146,8 +145,8 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({ food, onClose 
                 {food.categoryId === 'cat-2'
                   ? '🍲 Chọn loại nước dùng / nước lẩu:'
                   : food.categoryId === 'cat-1'
-                  ? '🍛 Chọn loại nước sốt / canh kèm:'
-                  : '🥣 Lựa chọn hương vị / nước sốt:'}
+                    ? '🍛 Chọn loại nước sốt / canh kèm:'
+                    : '🥣 Lựa chọn hương vị / nước sốt:'}
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {defaultBrothOptions.map((option) => {
@@ -157,11 +156,10 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({ food, onClose 
                       key={option}
                       type="button"
                       onClick={() => setSelectedBroth(option)}
-                      className={`p-2.5 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-orange-500 bg-orange-50/70 text-orange-950 ring-2 ring-orange-500/20'
-                          : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                      }`}
+                      className={`p-2.5 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${isSelected
+                        ? 'border-orange-500 bg-orange-50/70 text-orange-950 ring-2 ring-orange-500/20'
+                        : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                        }`}
                     >
                       <span className="line-clamp-1">{option}</span>
                       {isSelected && <Check className="w-3.5 h-3.5 text-orange-600 shrink-0 ml-1" />}
@@ -182,19 +180,17 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({ food, onClose 
                       <label
                         key={topping.id}
                         onClick={() => toggleTopping(topping)}
-                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer text-xs font-medium transition-all ${
-                          isChecked
-                            ? 'border-orange-500 bg-orange-50/40 text-orange-950'
-                            : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                        }`}
+                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer text-xs font-medium transition-all ${isChecked
+                          ? 'border-orange-500 bg-orange-50/40 text-orange-950'
+                          : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                          }`}
                       >
                         <div className="flex items-center gap-2.5">
                           <div
-                            className={`w-4 h-4 rounded-md border flex items-center justify-center transition-colors ${
-                              isChecked
-                                ? 'bg-orange-500 border-orange-500 text-white'
-                                : 'border-slate-300 bg-white'
-                            }`}
+                            className={`w-4 h-4 rounded-md border flex items-center justify-center transition-colors ${isChecked
+                              ? 'bg-orange-500 border-orange-500 text-white'
+                              : 'border-slate-300 bg-white'
+                              }`}
                           >
                             {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
                           </div>

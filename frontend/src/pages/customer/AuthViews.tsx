@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import {
   Utensils,
   Eye,
@@ -95,11 +95,10 @@ const OtpSixDigitsInput: React.FC<OtpInputProps> = ({ value, onChange, disabled 
           onChange={(e) => handleChange(idx, e)}
           onKeyDown={(e) => handleKeyDown(idx, e)}
           onPaste={handlePaste}
-          className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-black font-mono rounded-2xl border-2 transition-all outline-hidden ${
-            digit
-              ? 'border-orange-500 bg-orange-50/50 text-slate-900 shadow-sm shadow-orange-500/20'
-              : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-orange-500 focus:bg-white focus:ring-4 focus:ring-orange-500/10'
-          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-black font-mono rounded-2xl border-2 transition-all outline-hidden ${digit
+            ? 'border-orange-500 bg-orange-50/50 text-slate-900 shadow-sm shadow-orange-500/20'
+            : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-orange-500 focus:bg-white focus:ring-4 focus:ring-orange-500/10'
+            } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         />
       ))}
     </div>
@@ -330,11 +329,10 @@ export const LoginView: React.FC = () => {
                       setLoginMode('PASSWORD_2FA');
                       setOtpCode('');
                     }}
-                    className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                      loginMode === 'PASSWORD_2FA'
-                        ? 'bg-white text-orange-600 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                    className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${loginMode === 'PASSWORD_2FA'
+                      ? 'bg-white text-orange-600 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                      }`}
                   >
                     Mật khẩu + Xác thực Email
                   </button>
@@ -344,11 +342,10 @@ export const LoginView: React.FC = () => {
                       setLoginMode('QUICK_OTP');
                       setOtpCode('');
                     }}
-                    className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                      loginMode === 'QUICK_OTP'
-                        ? 'bg-white text-orange-600 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                    className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${loginMode === 'QUICK_OTP'
+                      ? 'bg-white text-orange-600 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                      }`}
                   >
                     Đăng nhập bằng Email OTP
                   </button>
@@ -372,10 +369,10 @@ export const LoginView: React.FC = () => {
               {is2faPending
                 ? `Mã bảo mật 6 chữ số đã được gửi tới hộp thư: ${twoFaMaskedRecipient}`
                 : quickOtpSent
-                ? `Mã xác thực đã được gửi tới hộp thư: ${quickMasked}`
-                : loginMode === 'PASSWORD_2FA'
-                ? 'Nhập tài khoản email trường và mật khẩu để xác minh đăng nhập'
-                : 'Nhập địa chỉ email trường để nhận mã OTP đăng nhập tức thì'}
+                  ? `Mã xác thực đã được gửi tới hộp thư: ${quickMasked}`
+                  : loginMode === 'PASSWORD_2FA'
+                    ? 'Nhập tài khoản email trường và mật khẩu để xác minh đăng nhập'
+                    : 'Nhập địa chỉ email trường để nhận mã OTP đăng nhập tức thì'}
             </p>
 
             {nextTarget && !is2faPending && !quickOtpSent && (

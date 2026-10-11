@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import {
   Bell,
   CheckCheck,
@@ -68,11 +68,10 @@ export const NotificationsView: React.FC = () => {
           {/* Mark All Read Button */}
           <button
             onClick={markAllNotifsAsRead}
-            className={`p-1.5 rounded-full transition-all cursor-pointer ${
-              unreadNotifCount > 0
-                ? 'text-cyan-600 hover:bg-cyan-50'
-                : 'text-slate-300 hover:bg-slate-100'
-            }`}
+            className={`p-1.5 rounded-full transition-all cursor-pointer ${unreadNotifCount > 0
+              ? 'text-cyan-600 hover:bg-cyan-50'
+              : 'text-slate-300 hover:bg-slate-100'
+              }`}
             title="Đánh dấu tất cả đã đọc"
             aria-label="Đánh dấu tất cả đã đọc"
           >
@@ -84,33 +83,30 @@ export const NotificationsView: React.FC = () => {
         <div className="flex items-center gap-2 pt-2">
           <button
             onClick={() => setActiveTab('ALL')}
-            className={`px-3.5 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
-              activeTab === 'ALL'
-                ? 'bg-[#2f323a] text-white shadow-xs'
-                : 'bg-[#f3f4f6] text-slate-700 hover:bg-slate-200 border border-slate-200/60'
-            }`}
+            className={`px-3.5 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${activeTab === 'ALL'
+              ? 'bg-[#2f323a] text-white shadow-xs'
+              : 'bg-[#f3f4f6] text-slate-700 hover:bg-slate-200 border border-slate-200/60'
+              }`}
           >
             Tất cả
           </button>
 
           <button
             onClick={() => setActiveTab('PROMO')}
-            className={`px-3.5 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
-              activeTab === 'PROMO'
-                ? 'bg-[#2f323a] text-white shadow-xs'
-                : 'bg-[#f3f4f6] text-slate-700 hover:bg-slate-200 border border-slate-200/60'
-            }`}
+            className={`px-3.5 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${activeTab === 'PROMO'
+              ? 'bg-[#2f323a] text-white shadow-xs'
+              : 'bg-[#f3f4f6] text-slate-700 hover:bg-slate-200 border border-slate-200/60'
+              }`}
           >
             Ưu đãi
           </button>
 
           <button
             onClick={() => setActiveTab('UPDATES')}
-            className={`px-3.5 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
-              activeTab === 'UPDATES'
-                ? 'bg-[#2f323a] text-white shadow-xs'
-                : 'bg-[#f3f4f6] text-slate-700 hover:bg-slate-200 border border-slate-200/60'
-            }`}
+            className={`px-3.5 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${activeTab === 'UPDATES'
+              ? 'bg-[#2f323a] text-white shadow-xs'
+              : 'bg-[#f3f4f6] text-slate-700 hover:bg-slate-200 border border-slate-200/60'
+              }`}
           >
             Cập nhật
           </button>
@@ -129,8 +125,8 @@ export const NotificationsView: React.FC = () => {
               {activeTab === 'PROMO'
                 ? 'Chưa có thông báo ưu đãi nào.'
                 : activeTab === 'UPDATES'
-                ? 'Chưa có cập nhật mới nào.'
-                : 'Danh sách thông báo trống.'}
+                  ? 'Chưa có cập nhật mới nào.'
+                  : 'Danh sách thông báo trống.'}
             </p>
           </div>
         ) : (

@@ -287,8 +287,8 @@ export const StaffDashboardView: React.FC = () => {
                       {order.orderType === 'DINE_IN'
                         ? `Bàn ${order.tableNumber || '01'}`
                         : order.orderType === 'DELIVERY'
-                        ? `Giao KTX ${order.deliveryAddressText ? `: ${order.deliveryAddressText}` : ''}`
-                        : 'Mang đi (Quầy)'}
+                          ? `Giao KTX ${order.deliveryAddressText ? `: ${order.deliveryAddressText}` : ''}`
+                          : 'Mang đi (Quầy)'}
                     </span>
                   </div>
 
@@ -404,8 +404,8 @@ export const StaffDashboardView: React.FC = () => {
                       {order.orderType === 'DINE_IN'
                         ? `Bàn ${order.tableNumber || '01'}`
                         : order.orderType === 'DELIVERY'
-                        ? `Giao KTX ${order.deliveryAddressText ? `: ${order.deliveryAddressText}` : ''}`
-                        : 'Mang đi (Quầy)'}
+                          ? `Giao KTX ${order.deliveryAddressText ? `: ${order.deliveryAddressText}` : ''}`
+                          : 'Mang đi (Quầy)'}
                     </span>
                   </div>
 
@@ -430,11 +430,10 @@ export const StaffDashboardView: React.FC = () => {
                     <>
                       <button
                         onClick={(e) => handleCallCustomer(e, order.id)}
-                        className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
-                          callingOrderId === order.id
-                            ? 'bg-cyan-500 text-white animate-pulse'
-                            : 'bg-cyan-500/20 hover:bg-cyan-500 text-cyan-400 hover:text-slate-950'
-                        }`}
+                        className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${callingOrderId === order.id
+                          ? 'bg-cyan-500 text-white animate-pulse'
+                          : 'bg-cyan-500/20 hover:bg-cyan-500 text-cyan-400 hover:text-slate-950'
+                          }`}
                         title="Phát loa thông báo khách qua app và quầy"
                       >
                         <Megaphone className="w-3.5 h-3.5" />

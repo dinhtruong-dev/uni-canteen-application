@@ -177,11 +177,10 @@ export const AdminPickupSlotsView: React.FC = () => {
           return (
             <div
               key={slot.id}
-              className={`bg-slate-900/90 border rounded-3xl p-5 transition-all shadow-md space-y-4 ${
-                slot.isAvailable && !isFull
-                  ? 'border-slate-800 hover:border-blue-500/40'
-                  : 'border-rose-900/40 opacity-80'
-              }`}
+              className={`bg-slate-900/90 border rounded-3xl p-5 transition-all shadow-md space-y-4 ${slot.isAvailable && !isFull
+                ? 'border-slate-800 hover:border-blue-500/40'
+                : 'border-rose-900/40 opacity-80'
+                }`}
             >
               <div className="flex items-start justify-between">
                 <div>
@@ -193,13 +192,12 @@ export const AdminPickupSlotsView: React.FC = () => {
                 </div>
 
                 <span
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                    isFull
-                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                      : slot.isAvailable
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${isFull
+                    ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    : slot.isAvailable
                       ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                       : 'bg-slate-800 text-slate-400'
-                  }`}
+                    }`}
                 >
                   {isFull ? 'ĐÃ KÍN CHỖ' : slot.isAvailable ? 'ĐANG MỞ' : 'TẠM KHÓA'}
                 </span>
@@ -215,9 +213,8 @@ export const AdminPickupSlotsView: React.FC = () => {
                 </div>
                 <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all ${
-                      percent > 80 ? 'bg-rose-500' : percent > 50 ? 'bg-amber-500' : 'bg-blue-500'
-                    }`}
+                    className={`h-full rounded-full transition-all ${percent > 80 ? 'bg-rose-500' : percent > 50 ? 'bg-amber-500' : 'bg-blue-500'
+                      }`}
                     style={{ width: `${percent}%` }}
                   />
                 </div>
@@ -227,11 +224,10 @@ export const AdminPickupSlotsView: React.FC = () => {
               <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
                 <button
                   onClick={() => handleToggle(slot.id)}
-                  className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
-                    slot.isAvailable
-                      ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20'
-                      : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20'
-                  }`}
+                  className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${slot.isAvailable
+                    ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20'
+                    : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20'
+                    }`}
                 >
                   <Power className="w-3.5 h-3.5" />
                   <span>{slot.isAvailable ? 'Tạm Khóa Slot' : 'Mở Lại Slot'}</span>

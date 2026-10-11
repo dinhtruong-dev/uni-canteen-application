@@ -300,13 +300,12 @@ export const AdminUsersView: React.FC = () => {
 
                     <td className="py-3.5 px-4">
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                          u.role === 'ADMIN'
-                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                            : u.role === 'STAFF'
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${u.role === 'ADMIN'
+                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                          : u.role === 'STAFF'
                             ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                             : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                        }`}
+                          }`}
                       >
                         <Shield className="w-3 h-3" />
                         {u.role === 'STUDENT' ? 'SINH VIÊN' : u.role === 'STAFF' ? 'NHÂN VIÊN' : 'ADMIN'}
@@ -321,11 +320,10 @@ export const AdminUsersView: React.FC = () => {
 
                     <td className="py-3.5 px-4">
                       <span
-                        className={`inline-flex items-center gap-1 font-bold text-[11px] px-2 py-0.5 rounded-full ${
-                          u.status === 'ACTIVE'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                        }`}
+                        className={`inline-flex items-center gap-1 font-bold text-[11px] px-2 py-0.5 rounded-full ${u.status === 'ACTIVE'
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                          }`}
                       >
                         {u.status === 'ACTIVE' ? (
                           <>
@@ -375,11 +373,10 @@ export const AdminUsersView: React.FC = () => {
                         {/* Lock / Unlock */}
                         <button
                           onClick={() => handleToggleBlock(u)}
-                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                            u.status === 'ACTIVE'
-                              ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20'
-                              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
-                          }`}
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${u.status === 'ACTIVE'
+                            ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20'
+                            : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
+                            }`}
                           title={u.status === 'ACTIVE' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
                         >
                           {u.status === 'ACTIVE' ? (
@@ -746,11 +743,10 @@ export const AdminUsersView: React.FC = () => {
                       key={amt}
                       type="button"
                       onClick={() => setCreditAmount(amt)}
-                      className={`py-1.5 rounded-xl font-mono text-xs font-bold border cursor-pointer ${
-                        creditAmount === amt
-                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                          : 'bg-slate-800 text-slate-300 border-slate-700'
-                      }`}
+                      className={`py-1.5 rounded-xl font-mono text-xs font-bold border cursor-pointer ${creditAmount === amt
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                        : 'bg-slate-800 text-slate-300 border-slate-700'
+                        }`}
                     >
                       +{amt / 1000}k
                     </button>

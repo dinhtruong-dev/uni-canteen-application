@@ -1,5 +1,4 @@
 import { apiClient } from './apiClient';
-import { TableInfo } from '../../types';
 
 export class TableService {
   public async getTables(params?: Record<string, any>): Promise<any[]> {
@@ -16,14 +15,14 @@ export class TableService {
       if (res?.success && res.data) {
         return res.data;
       }
-    } catch {}
+    } catch { }
 
     try {
       const postRes = await apiClient.post<{ success: boolean; data: any }>('/tables/scan-qr', { code: qrCode });
       if (postRes?.success && postRes.data) {
         return postRes.data;
       }
-    } catch {}
+    } catch { }
     return null;
   }
 

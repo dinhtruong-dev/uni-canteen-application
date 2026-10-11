@@ -61,10 +61,9 @@ export const AdminNotificationsView: React.FC = () => {
         setFormMessage('');
 
         showToast(
-          `Đã lưu CSDL & phát Socket.IO thông báo "${newNotif.title}" tới ${
-            formTarget === 'ALL'
-              ? 'toàn bộ người dùng'
-              : formTarget === 'STUDENTS'
+          `Đã lưu CSDL & phát Socket.IO thông báo "${newNotif.title}" tới ${formTarget === 'ALL'
+            ? 'toàn bộ người dùng'
+            : formTarget === 'STUDENTS'
               ? 'tất cả sinh viên'
               : 'đội ngũ nhân viên'
           }!`,
@@ -186,13 +185,12 @@ export const AdminNotificationsView: React.FC = () => {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase ${
-                        n.type === 'PROMO'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          : n.type === 'WALLET'
+                      className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase ${n.type === 'PROMO'
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        : n.type === 'WALLET'
                           ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                           : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                      }`}
+                        }`}
                     >
                       {n.type}
                     </span>

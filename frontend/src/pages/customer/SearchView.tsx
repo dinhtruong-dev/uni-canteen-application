@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import { FoodItem } from '../../types';
 import {
   ArrowLeft,
@@ -350,11 +350,10 @@ export const SearchView: React.FC = () => {
     <div className="max-w-2xl mx-auto space-y-3.5 pb-24 px-1 sm:px-0">
       {/* 1. HEADER TÌM KIẾM CHUẨN SHOPEEFOOD: Nút quay lại ← và Ô tìm kiếm Pill bo tròn toàn phần */}
       <div
-        className={`sticky top-0 z-30 transition-all duration-300 ${
-          isScrolled
-            ? 'bg-white/95 backdrop-blur-md py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-[#E9DDE3]/80 shadow-xs'
-            : 'pt-1 pb-1 bg-transparent'
-        }`}
+        className={`sticky top-0 z-30 transition-all duration-300 ${isScrolled
+          ? 'bg-white/95 backdrop-blur-md py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-[#E9DDE3]/80 shadow-xs'
+          : 'pt-1 pb-1 bg-transparent'
+          }`}
       >
         <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 sm:gap-3">
           {/* Nút quay lại trang chủ ← */}
@@ -422,11 +421,10 @@ export const SearchView: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsSortOpen(!isSortOpen)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer shadow-2xs border ${
-                activeSort !== 'popular'
-                  ? 'bg-[#FF4F8B] text-white border-[#FF4F8B]'
-                  : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#FF4F8B]'
-              }`}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer shadow-2xs border ${activeSort !== 'popular'
+                ? 'bg-[#FF4F8B] text-white border-[#FF4F8B]'
+                : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#FF4F8B]'
+                }`}
             >
               <span>Sắp xếp: {sortLabels[activeSort]}</span>
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
@@ -443,11 +441,10 @@ export const SearchView: React.FC = () => {
                       setIsSortOpen(false);
                       setCurrentPage(1);
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold rounded-xl text-left cursor-pointer transition-colors ${
-                      activeSort === s
-                        ? 'bg-[#FFF0F5] text-[#FF4F8B]'
-                        : 'text-[#1F2937] hover:bg-slate-50'
-                    }`}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold rounded-xl text-left cursor-pointer transition-colors ${activeSort === s
+                      ? 'bg-[#FFF0F5] text-[#FF4F8B]'
+                      : 'text-[#1F2937] hover:bg-slate-50'
+                      }`}
                   >
                     <span>{sortLabels[s]}</span>
                     {activeSort === s && <Check className="w-3.5 h-3.5 text-[#FF4F8B]" />}
@@ -464,11 +461,10 @@ export const SearchView: React.FC = () => {
               setPromoOnly(!promoOnly);
               setCurrentPage(1);
             }}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer shadow-2xs border ${
-              promoOnly
-                ? 'bg-[#FF4F8B] text-white border-[#FF4F8B]'
-                : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#FF4F8B]'
-            }`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer shadow-2xs border ${promoOnly
+              ? 'bg-[#FF4F8B] text-white border-[#FF4F8B]'
+              : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#FF4F8B]'
+              }`}
           >
             <span>🎟️ Khuyến mại</span>
           </button>
@@ -480,11 +476,10 @@ export const SearchView: React.FC = () => {
               setUnder30k(!under30k);
               setCurrentPage(1);
             }}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer shadow-2xs border ${
-              under30k
-                ? 'bg-[#FF4F8B] text-white border-[#FF4F8B]'
-                : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#FF4F8B]'
-            }`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer shadow-2xs border ${under30k
+              ? 'bg-[#FF4F8B] text-white border-[#FF4F8B]'
+              : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#FF4F8B]'
+              }`}
           >
             <span>⚡ Dưới 30k</span>
           </button>
@@ -495,11 +490,10 @@ export const SearchView: React.FC = () => {
             onClick={() => {
               setFreeshipOnly(!freeshipOnly);
             }}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer shadow-2xs border ${
-              freeshipOnly
-                ? 'bg-[#00BFA5] text-white border-[#00BFA5]'
-                : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#00BFA5]'
-            }`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer shadow-2xs border ${freeshipOnly
+              ? 'bg-[#00BFA5] text-white border-[#00BFA5]'
+              : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#00BFA5]'
+              }`}
           >
             <span>📦 Freeship</span>
           </button>
@@ -514,23 +508,20 @@ export const SearchView: React.FC = () => {
                 key={cat.id}
                 type="button"
                 onClick={() => handleSelectCategory(cat)}
-                className={`flex flex-col items-center gap-1 min-w-[62px] p-1.5 rounded-2xl transition-all cursor-pointer active:scale-95 ${
-                  isCatActive ? 'bg-[#FFF0F5] scale-105' : 'hover:bg-slate-50'
-                }`}
+                className={`flex flex-col items-center gap-1 min-w-[62px] p-1.5 rounded-2xl transition-all cursor-pointer active:scale-95 ${isCatActive ? 'bg-[#FFF0F5] scale-105' : 'hover:bg-slate-50'
+                  }`}
               >
                 <div
-                  className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shadow-2xs border transition-transform ${
-                    isCatActive
-                      ? 'border-[#FF4F8B] bg-linear-to-b from-[#FFF0F5] to-[#FFE0EB]'
-                      : 'border-[#E9DDE3] bg-linear-to-b from-slate-50 to-slate-100'
-                  }`}
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shadow-2xs border transition-transform ${isCatActive
+                    ? 'border-[#FF4F8B] bg-linear-to-b from-[#FFF0F5] to-[#FFE0EB]'
+                    : 'border-[#E9DDE3] bg-linear-to-b from-slate-50 to-slate-100'
+                    }`}
                 >
                   <span>{cat.icon}</span>
                 </div>
                 <span
-                  className={`text-[11px] font-bold text-center truncate w-full ${
-                    isCatActive ? 'text-[#FF4F8B]' : 'text-[#1F2937]'
-                  }`}
+                  className={`text-[11px] font-bold text-center truncate w-full ${isCatActive ? 'text-[#FF4F8B]' : 'text-[#1F2937]'
+                    }`}
                 >
                   {cat.label}
                 </span>
@@ -749,11 +740,10 @@ export const SearchView: React.FC = () => {
                             setCurrentPage(pNum);
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
-                          className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            isActive
-                              ? 'bg-[#FF4F8B] text-white shadow-xs'
-                              : 'bg-white text-[#1F2937] border border-[#E9DDE3] hover:border-[#FF4F8B]'
-                          }`}
+                          className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${isActive
+                            ? 'bg-[#FF4F8B] text-white shadow-xs'
+                            : 'bg-white text-[#1F2937] border border-[#E9DDE3] hover:border-[#FF4F8B]'
+                            }`}
                         >
                           {pNum}
                         </button>
@@ -1115,11 +1105,10 @@ export const SearchView: React.FC = () => {
                   key={kw.text}
                   type="button"
                   onClick={() => handleSelectKeyword(kw.text)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer active:scale-95 ${
-                    kw.isHot
-                      ? 'bg-[#FFF0F5] text-[#FF4F8B] hover:bg-[#FFE0EB]'
-                      : 'bg-[#F1F5F9] text-[#1F2937] hover:bg-[#FFF0F5] hover:text-[#FF4F8B]'
-                  }`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer active:scale-95 ${kw.isHot
+                    ? 'bg-[#FFF0F5] text-[#FF4F8B] hover:bg-[#FFE0EB]'
+                    : 'bg-[#F1F5F9] text-[#1F2937] hover:bg-[#FFF0F5] hover:text-[#FF4F8B]'
+                    }`}
                 >
                   <span>{kw.icon}</span>
                   <span>{kw.text}</span>

@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../store/AppContext';
 import { X, Camera, Flashlight, AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import jsQR from 'jsqr';
 
 export const QRScannerModal: React.FC = () => {
   const { qrScannerOpen, setQrScannerOpen, handleScannedQR, diningTables } = useApp();
-  
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -77,7 +77,7 @@ export const QRScannerModal: React.FC = () => {
       streamRef.current.getTracks().forEach((track) => {
         try {
           track.stop();
-        } catch (_) {}
+        } catch (_) { }
       });
       streamRef.current = null;
     }
@@ -209,9 +209,8 @@ export const QRScannerModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={toggleTorch}
-                  className={`p-2 rounded-full transition-colors cursor-pointer ${
-                    torchOn ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`p-2 rounded-full transition-colors cursor-pointer ${torchOn ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                   title="Bật đèn Flash"
                 >
                   <Flashlight className="w-4 h-4" />

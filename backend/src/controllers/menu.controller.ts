@@ -65,9 +65,16 @@ export class MenuController {
       }
       const newAvailability = typeof req.body.isAvailable === 'boolean' ? req.body.isAvailable : !product.isAvailable;
 
-      await AppDataSource.getRepository(Product).update(product.id, {
-        isAvailable: newAvailability,
-      });
+      await Product.update(
+        {
+          isAvailable: newAvailability,
+        },
+        {
+          where: {
+            id: product.id,
+          },
+        },
+      );
 
       await redisService.delPrefix('products');
 

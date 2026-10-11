@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import { ArrowLeft, Flashlight, Camera, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
 import jsQR from 'jsqr';
@@ -75,7 +75,7 @@ export const QRScannerView: React.FC = () => {
       streamRef.current.getTracks().forEach((track) => {
         try {
           track.stop();
-        } catch (_) {}
+        } catch (_) { }
       });
       streamRef.current = null;
     }
@@ -200,9 +200,8 @@ export const QRScannerView: React.FC = () => {
             <button
               type="button"
               onClick={toggleTorch}
-              className={`p-2 rounded-full transition-colors cursor-pointer ${
-                torchOn ? 'bg-amber-100 text-amber-600' : 'text-slate-600 hover:bg-slate-100'
-              }`}
+              className={`p-2 rounded-full transition-colors cursor-pointer ${torchOn ? 'bg-amber-100 text-amber-600' : 'text-slate-600 hover:bg-slate-100'
+                }`}
               title="Đèn Flash"
             >
               <Flashlight className="w-5 h-5" />

@@ -14,6 +14,7 @@ import searchRoutes from './search.routes';
 import staffRoutes from './staff.routes';
 import adminRoutes from './admin.routes';
 import { sequelize } from '../db/sequelize';
+import uploadRoute from './upload.route';
 import { User, Product, Category, Canteen, DiningTable, Voucher } from '../models';
 
 const apiRouter = Router();
@@ -81,7 +82,6 @@ apiRouter.get('/health', async (_req, res) => {
   });
 });
 
-// Trigger manual sync status check
 apiRouter.post('/health/sync-db', async (_req, res) => {
   let connected = false;
   try {
@@ -98,46 +98,34 @@ apiRouter.post('/health/sync-db', async (_req, res) => {
   });
 });
 
-// Authentication (JWT + Bcrypt)
 apiRouter.use('/auth', authRoutes);
 
-// Image Upload (Cloudinary)
 apiRouter.use('/upload', uploadRoutes);
 
-// Users & Profile
 apiRouter.use('/users', userRoutes);
 
-// Canteens
 apiRouter.use('/canteens', canteenRoutes);
 
-// Dining Tables & QR Codes
 apiRouter.use('/tables', tableRoutes);
 
-// Menu (Categories & Products)
 apiRouter.use('/menu', menuRoutes);
 
-// Cart (Shopping Cart)
 apiRouter.use('/cart', cartRoutes);
 
-// Orders
 apiRouter.use('/orders', orderRoutes);
 
-// Payment (VNPay & MoMo)
 apiRouter.use('/payments', paymentRoutes);
 
-// Marketing (Banners, Vouchers, Flash Sale)
 apiRouter.use('/marketing', marketingRoutes);
 
-// Interaction (Reviews & Notifications)
 apiRouter.use('/interaction', interactionRoutes);
 
-// Search & Filtering
 apiRouter.use('/search', searchRoutes);
 
-// Staff Portal (Pos, Kitchen, Orders, Tables)
 apiRouter.use('/staff', staffRoutes);
 
-// Admin Portal (Analytics, Users, System Management)
 apiRouter.use('/admin', adminRoutes);
+
+apiRouter.use('/upload', uploadRoute);
 
 export default apiRouter;

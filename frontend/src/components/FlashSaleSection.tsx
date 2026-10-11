@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Flame, Clock, Plus, Heart, Star, Gift, Sparkles, ChevronRight, Zap, Tag, BadgeCheck, Ticket, Package, ShoppingBag } from 'lucide-react';
 import { FoodItem } from '../types';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../store/AppContext';
 import { HorizontalScrollContainer } from './HorizontalScrollContainer';
 
 interface FlashSaleItem {
@@ -163,33 +163,33 @@ export const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ onSelectFood
   const flashSaleDeals: FlashSaleItem[] =
     flashSales && flashSales.length > 0
       ? flashSales.map((fs) => {
-          const foundFood = foods.find((f) => f.id === fs.productId);
-          const food: FoodItem = foundFood || {
-            id: fs.productId,
-            name: fs.productName,
-            canteenId: 'cant-a',
-            canteenName: 'Căng tin A2',
-            categoryId: 'cat-1',
-            price: fs.salePrice,
-            originalPrice: fs.originalPrice,
-            image: fs.productImage,
-            description: fs.description || '',
-            ingredients: ['Gia vị truyền thống'],
-            isBestSeller: true,
-            isAvailable: true,
-            rating: 4.9,
-            reviewCount: 180,
-            preparationTime: 10,
-          };
-          return {
-            food,
-            flashPrice: fs.salePrice,
-            originalPrice: fs.originalPrice,
-            soldCount: fs.soldSlots,
-            totalStock: fs.totalSlots,
-            badge: fs.discountPercent ? `-${fs.discountPercent}%` : 'GIỜ VÀNG',
-          };
-        })
+        const foundFood = foods.find((f) => f.id === fs.productId);
+        const food: FoodItem = foundFood || {
+          id: fs.productId,
+          name: fs.productName,
+          canteenId: 'cant-a',
+          canteenName: 'Căng tin A2',
+          categoryId: 'cat-1',
+          price: fs.salePrice,
+          originalPrice: fs.originalPrice,
+          image: fs.productImage,
+          description: fs.description || '',
+          ingredients: ['Gia vị truyền thống'],
+          isBestSeller: true,
+          isAvailable: true,
+          rating: 4.9,
+          reviewCount: 180,
+          preparationTime: 10,
+        };
+        return {
+          food,
+          flashPrice: fs.salePrice,
+          originalPrice: fs.originalPrice,
+          soldCount: fs.soldSlots,
+          totalStock: fs.totalSlots,
+          badge: fs.discountPercent ? `-${fs.discountPercent}%` : 'GIỜ VÀNG',
+        };
+      })
       : fallbackDeals;
 
   const formatTime = (num: number) => (num < 10 ? `0${num}` : `${num}`);

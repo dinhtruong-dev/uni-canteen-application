@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle2, Loader2, Copy, ExternalLink, ShieldCheck, QrCode } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../store/AppContext';
 
 interface OnlinePaymentModalProps {
   isOpen: boolean;

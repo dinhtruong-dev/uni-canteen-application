@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import { Order, OrderStatus } from '../../types';
 import {
   Bell,
@@ -96,11 +96,10 @@ export const StaffDashboardView: React.FC = () => {
 
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                soundEnabled
-                  ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
-                  : 'bg-slate-800 border-slate-700 text-slate-400'
-              }`}
+              className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${soundEnabled
+                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                : 'bg-slate-800 border-slate-700 text-slate-400'
+                }`}
               title="Âm báo đơn mới"
             >
               {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -116,11 +115,10 @@ export const StaffDashboardView: React.FC = () => {
             <button
               key={cant.id}
               onClick={() => setSelectedCanteen(cant)}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 ${
-                selectedCanteen?.id === cant.id
-                  ? 'bg-orange-500 text-white shadow-xs'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 ${selectedCanteen?.id === cant.id
+                ? 'bg-orange-500 text-white shadow-xs'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
             >
               {cant.name.split('-')[0]}
             </button>
@@ -133,11 +131,10 @@ export const StaffDashboardView: React.FC = () => {
         <div className="flex items-center gap-2 font-bold text-xs">
           <button
             onClick={() => setActiveTab('KITCHEN')}
-            className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 ${
-              activeTab === 'KITCHEN'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
+            className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 ${activeTab === 'KITCHEN'
+              ? 'bg-slate-900 text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100'
+              }`}
           >
             <CookingPot className="w-4 h-4" /> Bảng Đơn Hàng Realtime
             {pendingOrders.length > 0 && (
@@ -149,11 +146,10 @@ export const StaffDashboardView: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('MENU_STOCK')}
-            className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 ${
-              activeTab === 'MENU_STOCK'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
+            className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 ${activeTab === 'MENU_STOCK'
+              ? 'bg-slate-900 text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100'
+              }`}
           >
             <Power className="w-4 h-4" /> Quản Lý Kho & Hết Hàng
           </button>
@@ -165,21 +161,20 @@ export const StaffDashboardView: React.FC = () => {
               <button
                 key={st}
                 onClick={() => setFilterStatus(st)}
-                className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                  filterStatus === st
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`px-3 py-1 rounded-lg font-bold transition-all ${filterStatus === st
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 {st === 'ALL'
                   ? 'Đang chế biến'
                   : st === 'PENDING'
-                  ? 'Đơn Mới'
-                  : st === 'PREPARING'
-                  ? 'Đang Nấu'
-                  : st === 'READY'
-                  ? 'Sẵn Sàng'
-                  : 'Đã Hoàn Thành'}
+                    ? 'Đơn Mới'
+                    : st === 'PREPARING'
+                      ? 'Đang Nấu'
+                      : st === 'READY'
+                        ? 'Sẵn Sàng'
+                        : 'Đã Hoàn Thành'}
               </button>
             ))}
           </div>
@@ -199,15 +194,14 @@ export const StaffDashboardView: React.FC = () => {
             filteredOrders.map((order) => (
               <div
                 key={order.id}
-                className={`bg-white rounded-3xl border-2 p-5 shadow-sm space-y-4 transition-all ${
-                  order.status === 'PENDING'
-                    ? 'border-orange-500 ring-4 ring-orange-500/10'
-                    : order.status === 'PREPARING'
+                className={`bg-white rounded-3xl border-2 p-5 shadow-sm space-y-4 transition-all ${order.status === 'PENDING'
+                  ? 'border-orange-500 ring-4 ring-orange-500/10'
+                  : order.status === 'PREPARING'
                     ? 'border-amber-400'
                     : order.status === 'READY' || order.status === 'DELIVERING'
-                    ? 'border-blue-400'
-                    : 'border-slate-200'
-                }`}
+                      ? 'border-blue-400'
+                      : 'border-slate-200'
+                  }`}
               >
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -221,19 +215,18 @@ export const StaffDashboardView: React.FC = () => {
                   </div>
 
                   <span
-                    className={`text-[11px] font-extrabold px-3 py-1 rounded-full ${
-                      order.orderType === 'DINE_IN'
-                        ? 'bg-amber-100 text-amber-900'
-                        : order.orderType === 'PICKUP'
+                    className={`text-[11px] font-extrabold px-3 py-1 rounded-full ${order.orderType === 'DINE_IN'
+                      ? 'bg-amber-100 text-amber-900'
+                      : order.orderType === 'PICKUP'
                         ? 'bg-blue-100 text-blue-900'
                         : 'bg-emerald-100 text-emerald-900'
-                    }`}
+                      }`}
                   >
                     {order.orderType === 'DINE_IN'
                       ? '🍽️ Tại bàn'
                       : order.orderType === 'PICKUP'
-                      ? '🏃 Tại quầy'
-                      : '🏠 Giao phòng'}
+                        ? '🏃 Tại quầy'
+                        : '🏠 Giao phòng'}
                   </span>
                 </div>
 
@@ -377,11 +370,10 @@ export const StaffDashboardView: React.FC = () => {
 
                 <button
                   onClick={() => toggleFoodAvailability(food.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all ${
-                    food.isAvailable
-                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                      : 'bg-rose-100 text-rose-800 border border-rose-300'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all ${food.isAvailable
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                    : 'bg-rose-100 text-rose-800 border border-rose-300'
+                    }`}
                 >
                   {food.isAvailable ? 'Đang bán' : 'Hết hàng'}
                 </button>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import { FoodItem, Canteen } from '../../types';
 import { HeaderNav } from '../../components/HeaderNav';
 import {
@@ -113,8 +113,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
     isCanteenMode && activeCanteen
       ? activeCanteen.id
       : selectedCanteen
-      ? selectedCanteen.id
-      : viewParams?.canteenId || searchParams.get('canteenId') || 'ALL'
+        ? selectedCanteen.id
+        : viewParams?.canteenId || searchParams.get('canteenId') || 'ALL'
   );
 
   // Filter bar states
@@ -598,8 +598,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
               type="button"
               onClick={() => setSelectedCatId('ALL')}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${selectedCatId === 'ALL'
-                  ? 'bg-[#FF4F8B] text-white shadow-2xs'
-                  : 'bg-white text-[#64748B] border border-[#E9DDE3] hover:border-[#FF4F8B]/40 hover:text-[#1F2937]'
+                ? 'bg-[#FF4F8B] text-white shadow-2xs'
+                : 'bg-white text-[#64748B] border border-[#E9DDE3] hover:border-[#FF4F8B]/40 hover:text-[#1F2937]'
                 }`}
             >
               Tất cả
@@ -612,8 +612,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                   type="button"
                   onClick={() => setSelectedCatId(cat.id)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${isSelected
-                      ? 'bg-[#FF4F8B] text-white shadow-2xs'
-                      : 'bg-white text-[#64748B] border border-[#E9DDE3] hover:border-[#FF4F8B]/40 hover:text-[#1F2937]'
+                    ? 'bg-[#FF4F8B] text-white shadow-2xs'
+                    : 'bg-white text-[#64748B] border border-[#E9DDE3] hover:border-[#FF4F8B]/40 hover:text-[#1F2937]'
                     }`}
                 >
                   {cat.image ? (
@@ -638,8 +638,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
               type="button"
               onClick={() => setIsFilterModalOpen(true)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer border ${isPromoOnly || pricePreset !== 'ALL' || selectedCanteenId !== 'ALL'
-                  ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FFE4EE]'
-                  : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
+                ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FFE4EE]'
+                : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
                 }`}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -730,8 +730,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
               type="button"
               onClick={() => setIsPromoOnly((prev) => !prev)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 whitespace-nowrap transition-all cursor-pointer border ${isPromoOnly
-                  ? 'bg-[#FF4F8B] text-white border-[#FF4F8B] shadow-2xs'
-                  : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
+                ? 'bg-[#FF4F8B] text-white border-[#FF4F8B] shadow-2xs'
+                : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
                 }`}
             >
               <Tag className="w-3 h-3" />
@@ -745,8 +745,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                 setPricePreset((prev) => (prev === 'UNDER_30' ? 'ALL' : 'UNDER_30'))
               }
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border ${pricePreset === 'UNDER_30'
-                  ? 'bg-[#FF4F8B] text-white border-[#FF4F8B] shadow-2xs'
-                  : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
+                ? 'bg-[#FF4F8B] text-white border-[#FF4F8B] shadow-2xs'
+                : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
                 }`}
             >
               Dưới 30k
@@ -757,8 +757,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
               value={selectedCanteenId}
               onChange={(e) => setSelectedCanteenId(e.target.value)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border cursor-pointer focus:outline-none transition-all ${selectedCanteenId !== 'ALL'
-                  ? 'text-[#FF4F8B] border-[#FFE4EE] bg-[#FFF3F7]'
-                  : 'text-[#64748B] border-[#E9DDE3]'
+                ? 'text-[#FF4F8B] border-[#FFE4EE] bg-[#FFF3F7]'
+                : 'text-[#64748B] border-[#E9DDE3]'
                 }`}
             >
               <option value="ALL">Tất cả căng tin</option>
@@ -892,8 +892,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                     type="button"
                     onClick={() => setSelectedCanteenId('ALL')}
                     className={`px-3 py-2 rounded-xl text-xs font-semibold text-left border transition-all cursor-pointer ${selectedCanteenId === 'ALL'
-                        ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
-                        : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
+                      ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
+                      : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
                       }`}
                   >
                     Tất cả căng tin
@@ -904,8 +904,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                       type="button"
                       onClick={() => setSelectedCanteenId(c.id)}
                       className={`px-3 py-2 rounded-xl text-xs font-semibold text-left border truncate transition-all cursor-pointer ${selectedCanteenId === c.id
-                          ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
-                          : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
+                        ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
+                        : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
                         }`}
                     >
                       {c.name}
@@ -931,8 +931,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                       type="button"
                       onClick={() => setPricePreset(p.id as any)}
                       className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer text-center ${pricePreset === p.id
-                          ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
-                          : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
+                        ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
+                        : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
                         }`}
                     >
                       {p.label}
@@ -950,8 +950,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                   type="button"
                   onClick={() => setIsPromoOnly((prev) => !prev)}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${isPromoOnly
-                      ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
-                      : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
+                    ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
+                    : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
                     }`}
                 >
                   <span className="flex items-center gap-2">
@@ -960,8 +960,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                   </span>
                   <span
                     className={`w-5 h-5 rounded-md flex items-center justify-center border ${isPromoOnly
-                        ? 'bg-[#FF4F8B] border-[#FF4F8B] text-white'
-                        : 'border-[#CBD5E1]'
+                      ? 'bg-[#FF4F8B] border-[#FF4F8B] text-white'
+                      : 'border-[#CBD5E1]'
                       }`}
                   >
                     {isPromoOnly && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -986,8 +986,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({ categoryId, canteenI
                       type="button"
                       onClick={() => setSortBy(s.id as any)}
                       className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer text-center ${sortBy === s.id
-                          ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
-                          : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
+                        ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
+                        : 'bg-white text-[#64748B] border-[#E9DDE3] hover:border-[#FF4F8B]/40'
                         }`}
                     >
                       {s.label}

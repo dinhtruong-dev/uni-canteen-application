@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import {
   ArrowLeft,
   Star,
@@ -443,9 +443,8 @@ export const FoodReviewsView: React.FC<FoodReviewsViewProps> = ({ foodId }) => {
                     title={`${star} sao`}
                   >
                     <Star
-                      className={`w-7 h-7 transition-colors ${
-                        star <= newRating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'
-                      }`}
+                      className={`w-7 h-7 transition-colors ${star <= newRating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'
+                        }`}
                     />
                   </button>
                 ))}

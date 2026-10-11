@@ -252,10 +252,10 @@ export const KitchenKDSView: React.FC = () => {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
+      document.documentElement.requestFullscreen().catch(() => { });
     } else {
       if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
+        document.exitFullscreen().catch(() => { });
       }
     }
   };
@@ -418,9 +418,8 @@ export const KitchenKDSView: React.FC = () => {
       <div className="flex items-center gap-1.5">
         <span className="text-[11px] font-mono text-slate-400 font-semibold">{timeStr}</span>
         <span
-          className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
-            isUrgent ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-200 text-slate-700'
-          }`}
+          className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isUrgent ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-200 text-slate-700'
+            }`}
         >
           {elapsed}p
         </span>
@@ -494,11 +493,10 @@ export const KitchenKDSView: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsCompact(!isCompact)}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl font-bold text-xs cursor-pointer transition-all border ${
-              isCompact
-                ? 'bg-[#22c3d3]/20 text-[#22c3d3] border-[#22c3d3]/40'
-                : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
-            }`}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl font-bold text-xs cursor-pointer transition-all border ${isCompact
+              ? 'bg-[#22c3d3]/20 text-[#22c3d3] border-[#22c3d3]/40'
+              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
+              }`}
             title="Bật/Tắt chế độ thẻ nhỏ gọn để nhìn được nhiều đơn cùng lúc"
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -509,11 +507,10 @@ export const KitchenKDSView: React.FC = () => {
           <button
             type="button"
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl font-bold text-xs cursor-pointer transition-all border ${
-              soundEnabled
-                ? 'bg-emerald-600/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-600/30'
-                : 'bg-rose-950/40 text-rose-300 border-rose-800/40 hover:bg-rose-900/50'
-            }`}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl font-bold text-xs cursor-pointer transition-all border ${soundEnabled
+              ? 'bg-emerald-600/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-600/30'
+              : 'bg-rose-950/40 text-rose-300 border-rose-800/40 hover:bg-rose-900/50'
+              }`}
             title="Bật/Tắt âm thanh chuông báo"
           >
             {soundEnabled ? (
@@ -645,9 +642,8 @@ export const KitchenKDSView: React.FC = () => {
               readyToCookOrders.map((order) => (
                 <article
                   key={order.id}
-                  className={`bg-white rounded-xl border border-rose-200 shadow-xs flex flex-col justify-between transition-all ${
-                    isCompact ? 'p-2' : 'p-3'
-                  }`}
+                  className={`bg-white rounded-xl border border-rose-200 shadow-xs flex flex-col justify-between transition-all ${isCompact ? 'p-2' : 'p-3'
+                    }`}
                 >
                   {/* Dòng 1: Mã đơn, Loại nhận, Thời gian */}
                   <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 gap-1">
@@ -765,9 +761,8 @@ export const KitchenKDSView: React.FC = () => {
               cookingOrders.map((order) => (
                 <article
                   key={order.id}
-                  className={`bg-white rounded-xl border border-amber-200 shadow-xs flex flex-col justify-between transition-all ${
-                    isCompact ? 'p-2' : 'p-3'
-                  }`}
+                  className={`bg-white rounded-xl border border-amber-200 shadow-xs flex flex-col justify-between transition-all ${isCompact ? 'p-2' : 'p-3'
+                    }`}
                 >
                   {/* Dòng 1: Mã đơn, Loại nhận, Thời gian */}
                   <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 gap-1">
@@ -945,8 +940,8 @@ export const KitchenKDSView: React.FC = () => {
                           {order.orderType === 'DINE_IN'
                             ? `Bàn ${order.tableNumber || ''}`
                             : order.orderType === 'DELIVERY'
-                            ? 'Giao KTX'
-                            : 'Mang đi'}
+                              ? 'Giao KTX'
+                              : 'Mang đi'}
                         </p>
                       </div>
                     </div>
@@ -1026,17 +1021,15 @@ export const KitchenKDSView: React.FC = () => {
                     <div
                       key={prod.id}
                       onClick={() => handleToggleProductStock(prod)}
-                      className={`p-3 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all active:scale-95 ${
-                        prod.isAvailable
-                          ? 'bg-slate-800/80 border-slate-700 hover:border-emerald-500/50'
-                          : 'bg-rose-950/40 border-rose-600/70 hover:border-rose-500'
-                      }`}
+                      className={`p-3 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all active:scale-95 ${prod.isAvailable
+                        ? 'bg-slate-800/80 border-slate-700 hover:border-emerald-500/50'
+                        : 'bg-rose-950/40 border-rose-600/70 hover:border-rose-500'
+                        }`}
                     >
                       <div className="pr-2 truncate">
                         <h4
-                          className={`font-black text-xs sm:text-sm truncate ${
-                            prod.isAvailable ? 'text-white' : 'text-rose-300 line-through'
-                          }`}
+                          className={`font-black text-xs sm:text-sm truncate ${prod.isAvailable ? 'text-white' : 'text-rose-300 line-through'
+                            }`}
                         >
                           {prod.name}
                         </h4>
@@ -1047,11 +1040,10 @@ export const KitchenKDSView: React.FC = () => {
 
                       <button
                         type="button"
-                        className={`px-2.5 py-1 rounded-lg font-black text-xs shrink-0 transition-all ${
-                          prod.isAvailable
-                            ? 'bg-emerald-600 text-white hover:bg-emerald-500'
-                            : 'bg-rose-600 text-white hover:bg-rose-500'
-                        }`}
+                        className={`px-2.5 py-1 rounded-lg font-black text-xs shrink-0 transition-all ${prod.isAvailable
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-500'
+                          : 'bg-rose-600 text-white hover:bg-rose-500'
+                          }`}
                       >
                         {prod.isAvailable ? 'CÒN MÓN' : 'ĐÃ HẾT'}
                       </button>

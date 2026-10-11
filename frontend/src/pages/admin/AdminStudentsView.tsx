@@ -182,16 +182,16 @@ export const AdminStudentsView: React.FC = () => {
       prev.map((item) =>
         item.id === selectedStudent.id
           ? {
-              ...item,
-              studentId: formStudentId.trim(),
-              name: formName.trim(),
-              className: formClassName.trim(),
-              faculty: formFaculty,
-              email: formEmail.trim(),
-              phone: formPhone.trim(),
-              ktxAddress: formKtxAddress.trim(),
-              status: formStatus,
-            }
+            ...item,
+            studentId: formStudentId.trim(),
+            name: formName.trim(),
+            className: formClassName.trim(),
+            faculty: formFaculty,
+            email: formEmail.trim(),
+            phone: formPhone.trim(),
+            ktxAddress: formKtxAddress.trim(),
+            status: formStatus,
+          }
           : item
       )
     );
@@ -337,11 +337,10 @@ export const AdminStudentsView: React.FC = () => {
 
                     <td className="py-3.5 px-4">
                       <span
-                        className={`inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-full ${
-                          st.status === 'ACTIVE'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                        }`}
+                        className={`inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-full ${st.status === 'ACTIVE'
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                          }`}
                       >
                         {st.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm khóa'}
                       </span>
@@ -367,11 +366,10 @@ export const AdminStudentsView: React.FC = () => {
 
                         <button
                           onClick={() => handleToggleBlock(st)}
-                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                            st.status === 'ACTIVE'
-                              ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20'
-                              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
-                          }`}
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${st.status === 'ACTIVE'
+                            ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20'
+                            : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
+                            }`}
                           title={st.status === 'ACTIVE' ? 'Khóa quyền đặt món' : 'Mở khóa'}
                         >
                           {st.status === 'ACTIVE' ? (

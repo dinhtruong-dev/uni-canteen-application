@@ -1,5 +1,7 @@
 import { apiClient } from './apiClient';
-import { Category, FoodItem } from '../../types';
+import type { FoodItem } from '../../types/food.types';
+import type { Category } from '../../types/canteen.types';
+
 
 export const adaptProductToFood = (p: any): FoodItem => ({
   id: p.id,
@@ -26,17 +28,17 @@ export const adaptProductToFood = (p: any): FoodItem => ({
     .flatMap((o: any) =>
       o.items?.map((item: any) => ({ name: item.name, price: Number(item.extraPrice) || 0 }))
     ) || [
-    { name: 'Suất vừa (Tiêu chuẩn)', price: 0 },
-    { name: 'Suất lớn (+ Thêm đồ)', price: 10000 },
-  ],
+      { name: 'Suất vừa (Tiêu chuẩn)', price: 0 },
+      { name: 'Suất lớn (+ Thêm đồ)', price: 10000 },
+    ],
   toppings: p.options
     ?.filter((o: any) => o.type === 'TOPPING')
     .flatMap((o: any) =>
       o.items?.map((item: any) => ({ id: item.id, name: item.name, price: Number(item.extraPrice) || 0 }))
     ) || [
-    { id: 'top-1', name: 'Trứng ốp la lòng đào', price: 5000 },
-    { id: 'top-2', name: 'Canh rong biển thịt bằm', price: 5000 },
-  ],
+      { id: 'top-1', name: 'Trứng ốp la lòng đào', price: 5000 },
+      { id: 'top-2', name: 'Canh rong biển thịt bằm', price: 5000 },
+    ],
 });
 
 export class MenuService {

@@ -333,11 +333,10 @@ export const AdminFoodsView: React.FC = () => {
 
                     <td className="py-3.5 px-4">
                       <span
-                        className={`inline-flex items-center gap-1 font-bold text-[10px] px-2.5 py-0.5 rounded-full ${
-                          f.isAvailable
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                        }`}
+                        className={`inline-flex items-center gap-1 font-bold text-[10px] px-2.5 py-0.5 rounded-full ${f.isAvailable
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                          }`}
                       >
                         {f.isAvailable ? 'Còn hàng' : 'Tạm hết'}
                       </span>
@@ -347,11 +346,10 @@ export const AdminFoodsView: React.FC = () => {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => toggleFoodAvailability(f.id)}
-                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                            f.isAvailable
-                              ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20'
-                              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
-                          }`}
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${f.isAvailable
+                            ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20'
+                            : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
+                            }`}
                           title={f.isAvailable ? 'Đánh dấu tạm hết' : 'Đánh dấu còn hàng'}
                         >
                           <Power className="w-3.5 h-3.5" />

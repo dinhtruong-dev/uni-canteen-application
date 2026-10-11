@@ -176,11 +176,10 @@ export const AdminReviewsView: React.FC = () => {
           filteredReviews.map((r) => (
             <div
               key={r.id}
-              className={`bg-slate-900/90 border p-5 rounded-3xl transition-all shadow-md space-y-3 ${
-                r.status === 'VISIBLE'
-                  ? 'border-slate-800 hover:border-slate-700'
-                  : 'border-rose-900/40 bg-slate-950/60 opacity-70'
-              }`}
+              className={`bg-slate-900/90 border p-5 rounded-3xl transition-all shadow-md space-y-3 ${r.status === 'VISIBLE'
+                ? 'border-slate-800 hover:border-slate-700'
+                : 'border-rose-900/40 bg-slate-950/60 opacity-70'
+                }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-2 max-w-3xl">
@@ -201,11 +200,10 @@ export const AdminReviewsView: React.FC = () => {
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
-                          className={`w-3 h-3 ${
-                            star <= r.rating
-                              ? 'text-amber-400 fill-amber-400'
-                              : 'text-slate-700 fill-slate-700'
-                          }`}
+                          className={`w-3 h-3 ${star <= r.rating
+                            ? 'text-amber-400 fill-amber-400'
+                            : 'text-slate-700 fill-slate-700'
+                            }`}
                         />
                       ))}
                     </div>
@@ -235,22 +233,20 @@ export const AdminReviewsView: React.FC = () => {
                 {/* Status and Action Buttons */}
                 <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                   <span
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                      r.status === 'VISIBLE'
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                    }`}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${r.status === 'VISIBLE'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      }`}
                   >
                     {r.status === 'VISIBLE' ? 'HIỂN THỊ' : 'ĐÃ ẨN'}
                   </span>
 
                   <button
                     onClick={() => handleToggleVisibility(r.id, r.status)}
-                    className={`p-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                      r.status === 'VISIBLE'
-                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                        : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400'
-                    }`}
+                    className={`p-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${r.status === 'VISIBLE'
+                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                      : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400'
+                      }`}
                     title={r.status === 'VISIBLE' ? 'Ẩn đánh giá' : 'Hiện lại đánh giá'}
                   >
                     {r.status === 'VISIBLE' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

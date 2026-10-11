@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import { FoodItem } from '../../types';
 import { HeaderNav } from '../../components/HeaderNav';
 import {
@@ -197,7 +197,7 @@ export const SectionListView: React.FC = () => {
 
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({ title: pageTitle, url: window.location.href }).catch(() => {});
+      navigator.share({ title: pageTitle, url: window.location.href }).catch(() => { });
     } else {
       showToast('Đã sao chép liên kết chia sẻ', 'info');
     }
@@ -235,11 +235,10 @@ export const SectionListView: React.FC = () => {
             {/* Round Filter Icon Button */}
             <button
               onClick={() => setActiveDropdown(activeDropdown === 'FILTER' ? 'NONE' : 'FILTER')}
-              className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 transition-all cursor-pointer ${
-                activeDropdown === 'FILTER' || discountFilter > 0 || pricePreset !== 'ALL'
-                  ? 'bg-[#FF4F8B] text-white border-[#FF4F8B]'
-                  : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#FF4F8B]'
-              }`}
+              className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 transition-all cursor-pointer ${activeDropdown === 'FILTER' || discountFilter > 0 || pricePreset !== 'ALL'
+                ? 'bg-[#FF4F8B] text-white border-[#FF4F8B]'
+                : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#FF4F8B]'
+                }`}
             >
               <SlidersHorizontal className="w-4 h-4" />
             </button>
@@ -247,11 +246,10 @@ export const SectionListView: React.FC = () => {
             {/* Pill 1: Món có giảm giá */}
             <button
               onClick={() => setActiveDropdown(activeDropdown === 'DISCOUNT' ? 'NONE' : 'DISCOUNT')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                discountFilter > 0
-                  ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
-                  : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#FF4F8B]'
-              }`}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${discountFilter > 0
+                ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
+                : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#FF4F8B]'
+                }`}
             >
               <span>🎟️ {getDiscountPillLabel()}</span>
               <ChevronDown className="w-3.5 h-3.5" />
@@ -260,11 +258,10 @@ export const SectionListView: React.FC = () => {
             {/* Pill 2: Khoảng giá món */}
             <button
               onClick={() => setActiveDropdown(activeDropdown === 'PRICE' ? 'NONE' : 'PRICE')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                pricePreset !== 'ALL'
-                  ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
-                  : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#FF4F8B]'
-              }`}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${pricePreset !== 'ALL'
+                ? 'bg-[#FFF3F7] text-[#FF4F8B] border-[#FF4F8B]'
+                : 'bg-white text-[#1F2937] border-[#E9DDE3] hover:border-[#FF4F8B]'
+                }`}
             >
               <span>⚡ {getPricePillLabel()}</span>
               <ChevronDown className="w-3.5 h-3.5" />
@@ -306,11 +303,10 @@ export const SectionListView: React.FC = () => {
                           setDiscountFilter(opt.val);
                           if (activeDropdown === 'DISCOUNT') setActiveDropdown('NONE');
                         }}
-                        className={`px-2.5 py-1.5 rounded-xl text-xs font-bold text-center cursor-pointer ${
-                          discountFilter === opt.val
-                            ? 'bg-[#FF4F8B] text-white'
-                            : 'bg-slate-100 text-[#1F2937] hover:bg-slate-200'
-                        }`}
+                        className={`px-2.5 py-1.5 rounded-xl text-xs font-bold text-center cursor-pointer ${discountFilter === opt.val
+                          ? 'bg-[#FF4F8B] text-white'
+                          : 'bg-slate-100 text-[#1F2937] hover:bg-slate-200'
+                          }`}
                       >
                         {opt.label}
                       </button>
@@ -338,11 +334,10 @@ export const SectionListView: React.FC = () => {
                           setCustomMaxPrice('');
                           if (activeDropdown === 'PRICE') setActiveDropdown('NONE');
                         }}
-                        className={`px-2.5 py-1.5 rounded-xl text-xs font-bold text-center cursor-pointer ${
-                          pricePreset === p.id
-                            ? 'bg-[#FF4F8B] text-white'
-                            : 'bg-slate-100 text-[#1F2937] hover:bg-slate-200'
-                        }`}
+                        className={`px-2.5 py-1.5 rounded-xl text-xs font-bold text-center cursor-pointer ${pricePreset === p.id
+                          ? 'bg-[#FF4F8B] text-white'
+                          : 'bg-slate-100 text-[#1F2937] hover:bg-slate-200'
+                          }`}
                       >
                         {p.label}
                       </button>
@@ -394,9 +389,8 @@ export const SectionListView: React.FC = () => {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <span
-                  className={`absolute top-1 left-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
-                    canteen.isOpen ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-200'
-                  }`}
+                  className={`absolute top-1 left-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md ${canteen.isOpen ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-200'
+                    }`}
                 >
                   {canteen.isOpen ? 'Mở cửa' : 'Đóng cửa'}
                 </span>

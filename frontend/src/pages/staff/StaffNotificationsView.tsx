@@ -99,20 +99,18 @@ export const StaffNotificationsView: React.FC = () => {
           notifications.map((n) => (
             <div
               key={n.id}
-              className={`p-4 rounded-3xl border transition-all flex items-start gap-4 ${
-                n.isRead
-                  ? 'bg-slate-900/60 border-slate-800 text-slate-300'
-                  : 'bg-slate-900 border-emerald-500/30 shadow-lg shadow-emerald-950/20'
-              }`}
+              className={`p-4 rounded-3xl border transition-all flex items-start gap-4 ${n.isRead
+                ? 'bg-slate-900/60 border-slate-800 text-slate-300'
+                : 'bg-slate-900 border-emerald-500/30 shadow-lg shadow-emerald-950/20'
+                }`}
             >
               <div
-                className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-                  n.type === 'ORDER'
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                    : n.type === 'CAPACITY'
+                className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${n.type === 'ORDER'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                  : n.type === 'CAPACITY'
                     ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
                     : 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
-                }`}
+                  }`}
               >
                 <Bell className="w-5 h-5" />
               </div>

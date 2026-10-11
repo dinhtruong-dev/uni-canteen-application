@@ -211,8 +211,8 @@ export const AdminOrdersView: React.FC = () => {
                         {o.orderType === 'DINE_IN'
                           ? 'Tại bàn'
                           : o.orderType === 'PICKUP'
-                          ? 'Nhận quầy'
-                          : 'Giao KTX'}
+                            ? 'Nhận quầy'
+                            : 'Giao KTX'}
                       </span>
                     </td>
 
@@ -226,11 +226,10 @@ export const AdminOrdersView: React.FC = () => {
 
                     <td className="py-3.5 px-4">
                       <span
-                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
-                          o.paymentStatus === 'PAID'
-                            ? 'bg-emerald-500/20 text-emerald-300'
-                            : 'bg-amber-500/20 text-amber-300'
-                        }`}
+                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${o.paymentStatus === 'PAID'
+                          ? 'bg-emerald-500/20 text-emerald-300'
+                          : 'bg-amber-500/20 text-amber-300'
+                          }`}
                       >
                         {o.paymentStatus === 'PAID' ? 'ĐÃ TRẢ' : 'CHƯA TRẢ'}
                       </span>

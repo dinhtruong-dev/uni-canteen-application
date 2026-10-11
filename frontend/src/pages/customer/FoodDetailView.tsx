@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import { FoodTopping, FoodSize } from '../../types';
 import { HeaderNav } from '../../components/HeaderNav';
 import {
@@ -71,8 +71,8 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
     food.categoryId === 'cat-2'
       ? ['Nước dùng ninh xương truyền thống', 'Nước dùng cay nồng Sa Tế', 'Nước dùng thanh ngọt ít mỡ', 'Nước lẩu Thái chua cay']
       : food.categoryId === 'cat-1'
-      ? ['Nước sốt mắm tỏi đậm đà', 'Nước sốt bơ tỏi thơm ngậy', 'Nước sốt xá xíu ngọt nhẹ', 'Sốt ớt cay nồng']
-      : ['Chuẩn vị căng tin', 'Nhiều sốt/nước dùng', 'Ít sốt/nước dùng'];
+        ? ['Nước sốt mắm tỏi đậm đà', 'Nước sốt bơ tỏi thơm ngậy', 'Nước sốt xá xíu ngọt nhẹ', 'Sốt ớt cay nồng']
+        : ['Chuẩn vị căng tin', 'Nhiều sốt/nước dùng', 'Ít sốt/nước dùng'];
 
   const [selectedBroth, setSelectedBroth] = useState<string>(defaultBrothOptions[0]);
   const [notes, setNotes] = useState('');
@@ -129,7 +129,7 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
         title: food.name,
         text: `Món ngon căng tin: ${food.name} - ${food.price.toLocaleString('vi-VN')}đ`,
         url: window.location.href,
-      }).catch(() => {});
+      }).catch(() => { });
     } else {
       showToast('Đã sao chép liên kết món ăn!', 'info');
     }
@@ -166,7 +166,7 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
         {/* Food Banner Image */}
         <div className="relative aspect-16/9 bg-slate-100 rounded-2xl overflow-hidden border border-[#E9DDE3] shadow-2xs">
           <img src={food.image} alt={food.name} className="w-full h-full object-cover" />
-          
+
           {/* Overlay Badges */}
           <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
             {food.isNew && (
@@ -293,11 +293,10 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
                     key={size.name}
                     type="button"
                     onClick={() => setSelectedSize(size)}
-                    className={`p-2.5 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-[#FF4F8B] bg-[#FFF3F7] text-[#FF4F8B] ring-2 ring-[#FF4F8B]/20'
-                        : 'border-[#E9DDE3] hover:border-[#FF4F8B]/50 text-[#1F2937] bg-white'
-                    }`}
+                    className={`p-2.5 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${isSelected
+                      ? 'border-[#FF4F8B] bg-[#FFF3F7] text-[#FF4F8B] ring-2 ring-[#FF4F8B]/20'
+                      : 'border-[#E9DDE3] hover:border-[#FF4F8B]/50 text-[#1F2937] bg-white'
+                      }`}
                   >
                     <span>{size.name}</span>
                     <span className="text-[#1F2937] text-[11px] font-bold">
@@ -316,8 +315,8 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
             {food.categoryId === 'cat-2'
               ? '🍲 Chọn loại nước dùng / nước lẩu:'
               : food.categoryId === 'cat-1'
-              ? '🍛 Chọn loại nước sốt / canh kèm:'
-              : '🥣 Lựa chọn hương vị / nước sốt:'}
+                ? '🍛 Chọn loại nước sốt / canh kèm:'
+                : '🥣 Lựa chọn hương vị / nước sốt:'}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {defaultBrothOptions.map((option) => {
@@ -327,11 +326,10 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
                   key={option}
                   type="button"
                   onClick={() => setSelectedBroth(option)}
-                  className={`p-2.5 rounded-xl border text-left text-xs font-medium flex items-center justify-between transition-all cursor-pointer ${
-                    isSelected
-                      ? 'border-[#FF4F8B] bg-[#FFF3F7] text-[#FF4F8B] ring-2 ring-[#FF4F8B]/20 font-semibold'
-                      : 'border-[#E9DDE3] hover:border-[#FF4F8B]/50 text-[#1F2937] bg-white'
-                  }`}
+                  className={`p-2.5 rounded-xl border text-left text-xs font-medium flex items-center justify-between transition-all cursor-pointer ${isSelected
+                    ? 'border-[#FF4F8B] bg-[#FFF3F7] text-[#FF4F8B] ring-2 ring-[#FF4F8B]/20 font-semibold'
+                    : 'border-[#E9DDE3] hover:border-[#FF4F8B]/50 text-[#1F2937] bg-white'
+                    }`}
                 >
                   <span className="line-clamp-1">{option}</span>
                   {isSelected && <Check className="w-4 h-4 text-[#FF4F8B] shrink-0 ml-1" />}
@@ -352,19 +350,17 @@ export const FoodDetailView: React.FC<FoodDetailViewProps> = ({ foodId }) => {
                   <div
                     key={topping.id}
                     onClick={() => toggleTopping(topping)}
-                    className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer text-xs font-medium transition-all ${
-                      isChecked
-                        ? 'border-[#FF4F8B] bg-[#FFF3F7] text-[#1F2937]'
-                        : 'border-[#E9DDE3] hover:border-[#FF4F8B]/50 text-[#1F2937] bg-white'
-                    }`}
+                    className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer text-xs font-medium transition-all ${isChecked
+                      ? 'border-[#FF4F8B] bg-[#FFF3F7] text-[#1F2937]'
+                      : 'border-[#E9DDE3] hover:border-[#FF4F8B]/50 text-[#1F2937] bg-white'
+                      }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <div
-                        className={`w-4 h-4 rounded-md border flex items-center justify-center transition-colors ${
-                          isChecked
-                            ? 'bg-[#FF4F8B] border-[#FF4F8B] text-white'
-                            : 'border-[#CBD5E1] bg-white'
-                        }`}
+                        className={`w-4 h-4 rounded-md border flex items-center justify-center transition-colors ${isChecked
+                          ? 'bg-[#FF4F8B] border-[#FF4F8B] text-white'
+                          : 'border-[#CBD5E1] bg-white'
+                          }`}
                       >
                         {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
                       </div>

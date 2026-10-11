@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import { FoodCard } from '../../components/FoodCard';
 import { BannerSlider } from '../../components/BannerSlider';
 import { FlashSaleSection } from '../../components/FlashSaleSection';
@@ -102,11 +102,10 @@ export const HomeView: React.FC = () => {
     <div className="space-y-4 pb-12">
       {/* 1. Sticky Search Bar - Anchored at the top when scrolling, smoothly reveals blurred backdrop when scrolled */}
       <div
-        className={`sticky top-0 z-30 transition-all duration-300 ${
-          isScrolled
-            ? 'bg-[#FFFDFE]/95 backdrop-blur-md py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-[#E9DDE3]/80 shadow-xs'
-            : 'pt-1 pb-2 bg-transparent'
-        }`}
+        className={`sticky top-0 z-30 transition-all duration-300 ${isScrolled
+          ? 'bg-[#FFFDFE]/95 backdrop-blur-md py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-[#E9DDE3]/80 shadow-xs'
+          : 'pt-1 pb-2 bg-transparent'
+          }`}
       >
         <div
           onClick={() => navigateTo('search')}
@@ -293,11 +292,10 @@ export const HomeView: React.FC = () => {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <span
-                  className={`absolute top-1.5 left-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-md shadow-2xs ${
-                    canteen.isOpen
-                      ? 'bg-[#22C55E] text-white'
-                      : 'bg-slate-800 text-slate-200'
-                  }`}
+                  className={`absolute top-1.5 left-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-md shadow-2xs ${canteen.isOpen
+                    ? 'bg-[#22C55E] text-white'
+                    : 'bg-slate-800 text-slate-200'
+                    }`}
                 >
                   {canteen.isOpen ? 'Mở cửa' : 'Đóng cửa'}
                 </span>

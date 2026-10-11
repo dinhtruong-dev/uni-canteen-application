@@ -244,11 +244,10 @@ export const AdminTablesView: React.FC = () => {
                 </div>
 
                 <span
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                    t.status === 'AVAILABLE'
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                  }`}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${t.status === 'AVAILABLE'
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                    }`}
                 >
                   {t.status === 'AVAILABLE' ? 'Bàn trống' : 'Đang phục vụ'}
                 </span>

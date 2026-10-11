@@ -265,22 +265,21 @@ export const AdminPaymentsView: React.FC = () => {
                       {t.method === 'STUDENT_WALLET'
                         ? 'Ví Sinh Viên'
                         : t.method === 'MOMO'
-                        ? 'MoMo'
-                        : t.method === 'VNPAY_QR'
-                        ? 'VNPay QR'
-                        : 'Tiền mặt'}
+                          ? 'MoMo'
+                          : t.method === 'VNPAY_QR'
+                            ? 'VNPay QR'
+                            : 'Tiền mặt'}
                     </span>
                   </td>
 
                   <td className="py-3.5 px-4">
                     <span
-                      className={`inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-full ${
-                        t.type === 'TOPUP'
-                          ? 'bg-blue-500/10 text-blue-400'
-                          : t.type === 'PAYMENT'
+                      className={`inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-full ${t.type === 'TOPUP'
+                        ? 'bg-blue-500/10 text-blue-400'
+                        : t.type === 'PAYMENT'
                           ? 'bg-purple-500/10 text-purple-300'
                           : 'bg-emerald-500/10 text-emerald-400'
-                      }`}
+                        }`}
                     >
                       {t.type === 'TOPUP' ? 'Nạp ví' : t.type === 'PAYMENT' ? 'Thanh toán' : 'Hoàn tiền'}
                     </span>

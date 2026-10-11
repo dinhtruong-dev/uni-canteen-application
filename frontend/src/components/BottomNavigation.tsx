@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../store/AppContext';
 import { Home, Clock, Heart, User, Bell, ShoppingBag } from 'lucide-react';
 
 export const BottomNavigation: React.FC = () => {
@@ -93,11 +93,10 @@ export const BottomNavigation: React.FC = () => {
 
   return (
     <div
-      className={`fixed bottom-4 left-0 right-0 z-50 pointer-events-none flex items-center justify-center px-4 transition-all duration-300 ease-in-out ${
-        isVisible
-          ? 'translate-y-0 opacity-100'
-          : 'translate-y-24 opacity-0 pointer-events-none'
-      }`}
+      className={`fixed bottom-4 left-0 right-0 z-50 pointer-events-none flex items-center justify-center px-4 transition-all duration-300 ease-in-out ${isVisible
+        ? 'translate-y-0 opacity-100'
+        : 'translate-y-24 opacity-0 pointer-events-none'
+        }`}
     >
       <div className="flex items-center gap-3 pointer-events-auto">
         {/* Floating Capsule Taskbar */}
@@ -116,11 +115,10 @@ export const BottomNavigation: React.FC = () => {
                 key={item.id}
                 id={`taskbar-btn-${item.id}`}
                 onClick={() => handleItemClick(item.id)}
-                className={`relative flex items-center justify-center rounded-full transition-all cursor-pointer ${
-                  isActive
-                    ? 'w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-tr from-[#9af4ed] to-[#cbfcf8] text-[#007068] shadow-xs scale-105'
-                    : 'w-10 h-10 text-slate-500 hover:text-slate-900 hover:bg-white/50'
-                }`}
+                className={`relative flex items-center justify-center rounded-full transition-all cursor-pointer ${isActive
+                  ? 'w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-tr from-[#9af4ed] to-[#cbfcf8] text-[#007068] shadow-xs scale-105'
+                  : 'w-10 h-10 text-slate-500 hover:text-slate-900 hover:bg-white/50'
+                  }`}
                 aria-label={item.label}
                 title={item.label}
               >
@@ -139,18 +137,16 @@ export const BottomNavigation: React.FC = () => {
         <button
           id="taskbar-quick-hub-btn"
           onClick={() => navigateTo('cart')}
-          className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full border shadow-[0_8px_30px_rgba(0,0,0,0.1)] flex items-center justify-center relative cursor-pointer active:scale-95 transition-all hover:shadow-lg group ${
-            currentView === 'cart'
-              ? 'bg-gradient-to-tr from-[#9af4ed] to-[#cbfcf8] text-[#007068] border-[#81ece5]'
-              : 'bg-white/95 backdrop-blur-md border-slate-200/80 text-slate-700 hover:text-slate-900 hover:bg-white'
-          }`}
+          className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full border shadow-[0_8px_30px_rgba(0,0,0,0.1)] flex items-center justify-center relative cursor-pointer active:scale-95 transition-all hover:shadow-lg group ${currentView === 'cart'
+            ? 'bg-gradient-to-tr from-[#9af4ed] to-[#cbfcf8] text-[#007068] border-[#81ece5]'
+            : 'bg-white/95 backdrop-blur-md border-slate-200/80 text-slate-700 hover:text-slate-900 hover:bg-white'
+            }`}
           aria-label="Giỏ hàng"
           title="Giỏ hàng của bạn"
         >
           <ShoppingBag
-            className={`w-5.5 h-5.5 transition-transform group-hover:scale-110 ${
-              currentView === 'cart' ? 'stroke-[2.3]' : 'stroke-[1.9]'
-            }`}
+            className={`w-5.5 h-5.5 transition-transform group-hover:scale-110 ${currentView === 'cart' ? 'stroke-[2.3]' : 'stroke-[1.9]'
+              }`}
           />
 
           {cartItemCount > 0 && (

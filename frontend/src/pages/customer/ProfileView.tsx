@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import { DeliveryAddress } from '../../types';
 import {
   User as UserIcon,
@@ -480,11 +480,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenWalletModal }) =
                   <div key={tx.id} className="py-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
                       <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          tx.type === 'TOPUP' || tx.type === 'REFUND'
-                            ? 'bg-emerald-100 text-emerald-600'
-                            : 'bg-rose-100 text-rose-600'
-                        }`}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center ${tx.type === 'TOPUP' || tx.type === 'REFUND'
+                          ? 'bg-emerald-100 text-emerald-600'
+                          : 'bg-rose-100 text-rose-600'
+                          }`}
                       >
                         {tx.type === 'TOPUP' || tx.type === 'REFUND' ? (
                           <ArrowDownRight className="w-4 h-4 stroke-[3]" />
@@ -499,11 +498,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenWalletModal }) =
                     </div>
 
                     <span
-                      className={`font-black text-sm ${
-                        tx.type === 'TOPUP' || tx.type === 'REFUND'
-                          ? 'text-emerald-600'
-                          : 'text-slate-900'
-                      }`}
+                      className={`font-black text-sm ${tx.type === 'TOPUP' || tx.type === 'REFUND'
+                        ? 'text-emerald-600'
+                        : 'text-slate-900'
+                        }`}
                     >
                       {tx.type === 'TOPUP' || tx.type === 'REFUND' ? '+' : '-'}
                       {tx.amount.toLocaleString('vi-VN')}đ

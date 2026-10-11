@@ -75,8 +75,8 @@ export const AdminOrderDetailModal: React.FC<AdminOrderDetailModalProps> = ({
                   {order.orderType === 'DINE_IN'
                     ? 'ĂN TẠI BÀN'
                     : order.orderType === 'PICKUP'
-                    ? 'NHẬN TẠI QUẦY'
-                    : 'GIAO TẬN PHÒNG'}
+                      ? 'NHẬN TẠI QUẦY'
+                      : 'GIAO TẬN PHÒNG'}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 mt-0.5">Đặt lúc: {order.createdAt}</p>
@@ -122,10 +122,10 @@ export const AdminOrderDetailModal: React.FC<AdminOrderDetailModalProps> = ({
                 {order.tableInfo
                   ? `Bàn ăn: ${order.tableInfo.tableName}`
                   : order.pickupTimeSlot
-                  ? `Khung giờ nhận: ${order.pickupTimeSlot}`
-                  : order.deliveryAddress
-                  ? `Phòng: ${order.deliveryAddress.building} - ${order.deliveryAddress.room}`
-                  : 'Tại quầy'}
+                    ? `Khung giờ nhận: ${order.pickupTimeSlot}`
+                    : order.deliveryAddress
+                      ? `Phòng: ${order.deliveryAddress.building} - ${order.deliveryAddress.room}`
+                      : 'Tại quầy'}
               </p>
             </div>
           </div>
@@ -202,11 +202,10 @@ export const AdminOrderDetailModal: React.FC<AdminOrderDetailModalProps> = ({
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-slate-400">Trạng thái thanh toán:</span>
               <span
-                className={`font-bold px-2 py-0.5 rounded-full ${
-                  order.paymentStatus === 'PAID'
-                    ? 'bg-emerald-500/20 text-emerald-300'
-                    : 'bg-amber-500/20 text-amber-300'
-                }`}
+                className={`font-bold px-2 py-0.5 rounded-full ${order.paymentStatus === 'PAID'
+                  ? 'bg-emerald-500/20 text-emerald-300'
+                  : 'bg-amber-500/20 text-amber-300'
+                  }`}
               >
                 {order.paymentStatus === 'PAID' ? 'ĐÃ THANH TOÁN' : 'CHƯA THANH TOÁN'}
               </span>

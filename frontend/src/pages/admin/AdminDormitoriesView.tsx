@@ -129,14 +129,14 @@ export const AdminDormitoriesView: React.FC = () => {
         prev.map((d) =>
           d.id === editingDorm.id
             ? {
-                ...d,
-                name: formName.trim(),
-                code: formCode.trim(),
-                floorsCount: Number(formFloors) || 5,
-                roomsCount: Number(formRooms) || 80,
-                deliveryFee: Number(formDeliveryFee) || 5000,
-                notes: formNotes.trim(),
-              }
+              ...d,
+              name: formName.trim(),
+              code: formCode.trim(),
+              floorsCount: Number(formFloors) || 5,
+              roomsCount: Number(formRooms) || 80,
+              deliveryFee: Number(formDeliveryFee) || 5000,
+              notes: formNotes.trim(),
+            }
             : d
         )
       );
@@ -195,11 +195,10 @@ export const AdminDormitoriesView: React.FC = () => {
         {dormitories.map((dorm) => (
           <div
             key={dorm.id}
-            className={`bg-slate-900/90 border rounded-3xl p-6 transition-all shadow-md flex flex-col justify-between ${
-              dorm.isDeliveryActive
-                ? 'border-slate-800 hover:border-emerald-500/40'
-                : 'border-rose-900/40 opacity-80'
-            }`}
+            className={`bg-slate-900/90 border rounded-3xl p-6 transition-all shadow-md flex flex-col justify-between ${dorm.isDeliveryActive
+              ? 'border-slate-800 hover:border-emerald-500/40'
+              : 'border-rose-900/40 opacity-80'
+              }`}
           >
             <div>
               <div className="flex items-start justify-between">
@@ -216,11 +215,10 @@ export const AdminDormitoriesView: React.FC = () => {
                 </div>
 
                 <span
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                    dorm.isDeliveryActive
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                  }`}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${dorm.isDeliveryActive
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}
                 >
                   {dorm.isDeliveryActive ? 'NHẬN GIAO' : 'TẠM NGỪNG'}
                 </span>
@@ -258,11 +256,10 @@ export const AdminDormitoriesView: React.FC = () => {
             <div className="mt-5 pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
               <button
                 onClick={() => handleToggle(dorm.id)}
-                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
-                  dorm.isDeliveryActive
-                    ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20'
-                    : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20'
-                }`}
+                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${dorm.isDeliveryActive
+                  ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20'
+                  : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20'
+                  }`}
               >
                 <Power className="w-3.5 h-3.5" />
                 <span>{dorm.isDeliveryActive ? 'Tạm Dừng Giao' : 'Mở Giao Hàng'}</span>

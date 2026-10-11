@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import { HeaderNav } from '../../components/HeaderNav';
 import confetti from 'canvas-confetti';
 import {
@@ -77,8 +77,8 @@ export const OrderSuccessView: React.FC<{ orderId?: string }> = ({ orderId: prop
               {currentOrder.orderType === 'DINE_IN'
                 ? '🍽️ Ăn tại căng tin'
                 : currentOrder.orderType === 'PICKUP'
-                ? '🏃 Nhận tại quầy'
-                : '🏠 Giao tận phòng'}
+                  ? '🏃 Nhận tại quầy'
+                  : '🏠 Giao tận phòng'}
             </span>
           </div>
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import {
   ShoppingBag,
   Search,
@@ -224,11 +224,10 @@ export const MyOrdersView: React.FC = () => {
                 key={cat.id}
                 id={`category-pill-${cat.id}`}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-3.5 py-1 rounded-full text-xs font-extrabold shrink-0 transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-[#2f323a] text-white shadow-xs'
-                    : 'bg-[#f3f4f6] text-slate-700 hover:bg-slate-200 border border-slate-200/60'
-                }`}
+                className={`px-3.5 py-1 rounded-full text-xs font-extrabold shrink-0 transition-all cursor-pointer ${isActive
+                  ? 'bg-[#2f323a] text-white shadow-xs'
+                  : 'bg-[#f3f4f6] text-slate-700 hover:bg-slate-200 border border-slate-200/60'
+                  }`}
               >
                 {cat.label}
               </button>
@@ -313,8 +312,8 @@ export const MyOrdersView: React.FC = () => {
                             {order.orderType === 'DINE_IN'
                               ? `Bàn: ${order.tableInfo?.tableName || 'Tại chỗ'}`
                               : order.orderType === 'DELIVERY'
-                              ? `Giao KTX: ${order.deliveryAddress?.building || 'KTX'} - ${order.deliveryAddress?.room || ''}`
-                              : `Nhận tại quầy: ${order.pickupTimeSlot || 'Quầy số 1'}`}
+                                ? `Giao KTX: ${order.deliveryAddress?.building || 'KTX'} - ${order.deliveryAddress?.room || ''}`
+                                : `Nhận tại quầy: ${order.pickupTimeSlot || 'Quầy số 1'}`}
                           </span>
                         </div>
 
@@ -373,14 +372,14 @@ export const MyOrdersView: React.FC = () => {
                         {['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'DELIVERING'].includes(
                           order.status
                         ) && (
-                          <button
-                            id={`track-btn-${order.id}`}
-                            onClick={(e) => handleTracking(e, order)}
-                            className="bg-[#2b2f33] hover:bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors cursor-pointer shadow-2xs active:scale-95"
-                          >
-                            Theo dõi
-                          </button>
-                        )}
+                            <button
+                              id={`track-btn-${order.id}`}
+                              onClick={(e) => handleTracking(e, order)}
+                              className="bg-[#2b2f33] hover:bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors cursor-pointer shadow-2xs active:scale-95"
+                            >
+                              Theo dõi
+                            </button>
+                          )}
                       </div>
                     </div>
                   </div>

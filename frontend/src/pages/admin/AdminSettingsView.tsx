@@ -204,11 +204,10 @@ export const AdminSettingsView: React.FC = () => {
                   !isMaintenanceMode ? 'warning' : 'success'
                 );
               }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                isMaintenanceMode
-                  ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${isMaintenanceMode
+                ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
             >
               {isMaintenanceMode ? 'Đang BẢO TRÌ (Bật)' : 'Đang HOẠT ĐỘNG (Tắt)'}
             </button>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../store/AppContext';
 import { Canteen } from '../types';
 import { X, Store, MapPin, Clock, Star, CheckCircle2, ChevronRight, Utensils } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -80,11 +80,10 @@ export const PickupCanteenModal: React.FC<PickupCanteenModalProps> = ({
                     key={canteen.id}
                     type="button"
                     onClick={() => handleSelectCanteen(canteen)}
-                    className={`w-full p-3 sm:p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3.5 group relative ${
-                      isSelected
-                        ? 'border-orange-500 bg-orange-50/70 shadow-xs ring-2 ring-orange-500/20'
-                        : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50'
-                    }`}
+                    className={`w-full p-3 sm:p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3.5 group relative ${isSelected
+                      ? 'border-orange-500 bg-orange-50/70 shadow-xs ring-2 ring-orange-500/20'
+                      : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50'
+                      }`}
                   >
                     {/* Canteen Image */}
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100 relative">
@@ -94,9 +93,8 @@ export const PickupCanteenModal: React.FC<PickupCanteenModalProps> = ({
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
                       <span
-                        className={`absolute top-1 left-1 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
-                          canteen.isOpen ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-200'
-                        }`}
+                        className={`absolute top-1 left-1 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md ${canteen.isOpen ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-200'
+                          }`}
                       >
                         {canteen.isOpen ? 'Mở cửa' : 'Đóng'}
                       </span>
@@ -106,9 +104,8 @@ export const PickupCanteenModal: React.FC<PickupCanteenModalProps> = ({
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center justify-between gap-1">
                         <h4
-                          className={`text-xs sm:text-sm font-bold truncate group-hover:text-orange-600 transition-colors ${
-                            isSelected ? 'text-orange-950' : 'text-slate-800'
-                          }`}
+                          className={`text-xs sm:text-sm font-bold truncate group-hover:text-orange-600 transition-colors ${isSelected ? 'text-orange-950' : 'text-slate-800'
+                            }`}
                         >
                           {canteen.name}
                         </h4>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import { FoodCard } from '../../components/FoodCard';
 import { HeaderNav } from '../../components/HeaderNav';
 import { Heart } from 'lucide-react';

@@ -19,15 +19,14 @@ export const ToastContainer: React.FC = () => {
           <div
             key={toast.id}
             role="alert"
-            className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300 transform translate-y-0 animate-in fade-in slide-in-from-top-2 ${
-              isSuccess
-                ? 'bg-emerald-950/90 border-emerald-500/30 text-emerald-100'
-                : isError
+            className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-2xl shadow-xl border backdrop-blur-md transition-all duration-300 transform translate-y-0 animate-in fade-in slide-in-from-top-2 ${isSuccess
+              ? 'bg-emerald-950/90 border-emerald-500/30 text-emerald-100'
+              : isError
                 ? 'bg-rose-950/90 border-rose-500/30 text-rose-100'
                 : isWarning
-                ? 'bg-amber-950/90 border-amber-500/30 text-amber-100'
-                : 'bg-slate-900/95 border-cyan-500/30 text-slate-100'
-            }`}
+                  ? 'bg-amber-950/90 border-amber-500/30 text-amber-100'
+                  : 'bg-slate-900/95 border-cyan-500/30 text-slate-100'
+              }`}
           >
             <div className="shrink-0 mt-0.5">
               {isSuccess && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}

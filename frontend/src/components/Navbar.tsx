@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../store/AppContext';
 import {
   Home,
   UtensilsCrossed,
@@ -93,41 +93,37 @@ export const Navbar: React.FC<{ onOpenWalletModal?: () => void }> = ({ onOpenWal
             <nav className="hidden lg:flex items-center gap-1 font-medium text-sm">
               <button
                 onClick={() => navigateTo('home')}
-                className={`px-3.5 py-2 rounded-lg transition-colors ${
-                  currentView === 'home'
-                    ? 'text-[#FF4F8B] bg-[#FFF3F7] font-semibold'
-                    : 'text-[#64748B] hover:text-[#FF4F8B] hover:bg-[#FFF3F7]'
-                }`}
+                className={`px-3.5 py-2 rounded-lg transition-colors ${currentView === 'home'
+                  ? 'text-[#FF4F8B] bg-[#FFF3F7] font-semibold'
+                  : 'text-[#64748B] hover:text-[#FF4F8B] hover:bg-[#FFF3F7]'
+                  }`}
               >
                 Trang chủ
               </button>
               <button
                 onClick={() => navigateTo('category')}
-                className={`px-3.5 py-2 rounded-lg transition-colors ${
-                  currentView === 'category'
-                    ? 'text-[#FF4F8B] bg-[#FFF3F7] font-semibold'
-                    : 'text-[#64748B] hover:text-[#FF4F8B] hover:bg-[#FFF3F7]'
-                }`}
+                className={`px-3.5 py-2 rounded-lg transition-colors ${currentView === 'category'
+                  ? 'text-[#FF4F8B] bg-[#FFF3F7] font-semibold'
+                  : 'text-[#64748B] hover:text-[#FF4F8B] hover:bg-[#FFF3F7]'
+                  }`}
               >
                 Danh mục món
               </button>
               <button
                 onClick={() => navigateTo('orders')}
-                className={`px-3.5 py-2 rounded-lg transition-colors ${
-                  currentView === 'orders' || currentView === 'order-detail'
-                    ? 'text-[#FF4F8B] bg-[#FFF3F7] font-semibold'
-                    : 'text-[#64748B] hover:text-[#FF4F8B] hover:bg-[#FFF3F7]'
-                }`}
+                className={`px-3.5 py-2 rounded-lg transition-colors ${currentView === 'orders' || currentView === 'order-detail'
+                  ? 'text-[#FF4F8B] bg-[#FFF3F7] font-semibold'
+                  : 'text-[#64748B] hover:text-[#FF4F8B] hover:bg-[#FFF3F7]'
+                  }`}
               >
                 Hoạt động
               </button>
               <button
                 onClick={() => navigateTo('favorites')}
-                className={`px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
-                  currentView === 'favorites'
-                    ? 'text-[#FF4F8B] bg-[#FFF3F7] font-semibold'
-                    : 'text-[#64748B] hover:text-[#FF4F8B] hover:bg-[#FFF3F7]'
-                }`}
+                className={`px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${currentView === 'favorites'
+                  ? 'text-[#FF4F8B] bg-[#FFF3F7] font-semibold'
+                  : 'text-[#64748B] hover:text-[#FF4F8B] hover:bg-[#FFF3F7]'
+                  }`}
               >
                 <Heart className="w-4 h-4 text-[#FF4F8B]" />
                 Yêu thích
@@ -137,31 +133,28 @@ export const Navbar: React.FC<{ onOpenWalletModal?: () => void }> = ({ onOpenWal
             <nav className="hidden lg:flex items-center gap-1 font-medium text-sm">
               <button
                 onClick={() => navigateTo('staff-dashboard')}
-                className={`px-3.5 py-2 rounded-lg transition-colors ${
-                  currentView === 'staff-dashboard'
-                    ? 'text-emerald-600 bg-emerald-50 font-semibold'
-                    : 'text-slate-600 hover:text-emerald-600 hover:bg-slate-50'
-                }`}
+                className={`px-3.5 py-2 rounded-lg transition-colors ${currentView === 'staff-dashboard'
+                  ? 'text-emerald-600 bg-emerald-50 font-semibold'
+                  : 'text-slate-600 hover:text-emerald-600 hover:bg-slate-50'
+                  }`}
               >
                 Quản lý đơn
               </button>
               <button
                 onClick={() => navigateTo('staff-foods')}
-                className={`px-3.5 py-2 rounded-lg transition-colors ${
-                  currentView === 'staff-foods'
-                    ? 'text-emerald-600 bg-emerald-50 font-semibold'
-                    : 'text-slate-600 hover:text-emerald-600 hover:bg-slate-50'
-                }`}
+                className={`px-3.5 py-2 rounded-lg transition-colors ${currentView === 'staff-foods'
+                  ? 'text-emerald-600 bg-emerald-50 font-semibold'
+                  : 'text-slate-600 hover:text-emerald-600 hover:bg-slate-50'
+                  }`}
               >
                 Món ăn & Thực đơn
               </button>
               <button
                 onClick={() => navigateTo('staff-tables')}
-                className={`px-3.5 py-2 rounded-lg transition-colors ${
-                  currentView === 'staff-tables'
-                    ? 'text-emerald-600 bg-emerald-50 font-semibold'
-                    : 'text-slate-600 hover:text-emerald-600 hover:bg-slate-50'
-                }`}
+                className={`px-3.5 py-2 rounded-lg transition-colors ${currentView === 'staff-tables'
+                  ? 'text-emerald-600 bg-emerald-50 font-semibold'
+                  : 'text-slate-600 hover:text-emerald-600 hover:bg-slate-50'
+                  }`}
               >
                 Sơ đồ bàn & QR Code
               </button>
@@ -170,31 +163,28 @@ export const Navbar: React.FC<{ onOpenWalletModal?: () => void }> = ({ onOpenWal
             <nav className="hidden lg:flex items-center gap-1 font-medium text-sm">
               <button
                 onClick={() => navigateTo('admin-dashboard')}
-                className={`px-3.5 py-2 rounded-lg transition-colors ${
-                  currentView === 'admin-dashboard'
-                    ? 'text-purple-600 bg-purple-50 font-semibold'
-                    : 'text-slate-600 hover:text-purple-600 hover:bg-slate-50'
-                }`}
+                className={`px-3.5 py-2 rounded-lg transition-colors ${currentView === 'admin-dashboard'
+                  ? 'text-purple-600 bg-purple-50 font-semibold'
+                  : 'text-slate-600 hover:text-purple-600 hover:bg-slate-50'
+                  }`}
               >
                 Dashboard Thống kê
               </button>
               <button
                 onClick={() => navigateTo('admin-users')}
-                className={`px-3.5 py-2 rounded-lg transition-colors ${
-                  currentView === 'admin-users'
-                    ? 'text-purple-600 bg-purple-50 font-semibold'
-                    : 'text-slate-600 hover:text-purple-600 hover:bg-slate-50'
-                }`}
+                className={`px-3.5 py-2 rounded-lg transition-colors ${currentView === 'admin-users'
+                  ? 'text-purple-600 bg-purple-50 font-semibold'
+                  : 'text-slate-600 hover:text-purple-600 hover:bg-slate-50'
+                  }`}
               >
                 Người dùng & Phân quyền
               </button>
               <button
                 onClick={() => navigateTo('admin-canteens')}
-                className={`px-3.5 py-2 rounded-lg transition-colors ${
-                  currentView === 'admin-canteens'
-                    ? 'text-purple-600 bg-purple-50 font-semibold'
-                    : 'text-slate-600 hover:text-purple-600 hover:bg-slate-50'
-                }`}
+                className={`px-3.5 py-2 rounded-lg transition-colors ${currentView === 'admin-canteens'
+                  ? 'text-purple-600 bg-purple-50 font-semibold'
+                  : 'text-slate-600 hover:text-purple-600 hover:bg-slate-50'
+                  }`}
               >
                 Căng tin & Địa điểm
               </button>
@@ -222,11 +212,10 @@ export const Navbar: React.FC<{ onOpenWalletModal?: () => void }> = ({ onOpenWal
                 setUserDropdownOpen(false);
                 setNotifDropdownOpen(false);
               }}
-              className={`p-2 rounded-full relative transition-colors cursor-pointer shrink-0 ${
-                currentView === 'notifications'
-                  ? 'bg-[#FFE4EE] text-[#FF4F8B] font-bold'
-                  : 'text-[#64748B] hover:text-[#1F2937] hover:bg-slate-100'
-              }`}
+              className={`p-2 rounded-full relative transition-colors cursor-pointer shrink-0 ${currentView === 'notifications'
+                ? 'bg-[#FFE4EE] text-[#FF4F8B] font-bold'
+                : 'text-[#64748B] hover:text-[#1F2937] hover:bg-slate-100'
+                }`}
               aria-label="Thông báo"
               title="Xem trang thông báo"
             >
@@ -275,8 +264,8 @@ export const Navbar: React.FC<{ onOpenWalletModal?: () => void }> = ({ onOpenWal
                           {currentUser.role === 'STUDENT'
                             ? `MSSV: ${currentUser.studentId || 'N/A'}`
                             : currentUser.role === 'STAFF'
-                            ? 'Nhân viên Căng tin'
-                            : 'Quản trị viên (Admin)'}
+                              ? 'Nhân viên Căng tin'
+                              : 'Quản trị viên (Admin)'}
                         </div>
                       </div>
 
@@ -392,11 +381,10 @@ export const Navbar: React.FC<{ onOpenWalletModal?: () => void }> = ({ onOpenWal
                       navigateTo('home');
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer ${
-                      currentView === 'home'
-                        ? 'text-[#FF4F8B] bg-[#FFF3F7]'
-                        : 'text-slate-700 hover:bg-slate-50'
-                    }`}
+                    className={`w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer ${currentView === 'home'
+                      ? 'text-[#FF4F8B] bg-[#FFF3F7]'
+                      : 'text-slate-700 hover:bg-slate-50'
+                      }`}
                   >
                     <Home className="w-4 h-4" />
                     <span>Trang chủ</span>
@@ -463,11 +451,10 @@ export const Navbar: React.FC<{ onOpenWalletModal?: () => void }> = ({ onOpenWal
                       navigateTo('home');
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer ${
-                      currentView === 'home'
-                        ? 'bg-orange-500 text-white'
-                        : 'text-slate-700 hover:bg-slate-50'
-                    }`}
+                    className={`w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer ${currentView === 'home'
+                      ? 'bg-orange-500 text-white'
+                      : 'text-slate-700 hover:bg-slate-50'
+                      }`}
                   >
                     <UtensilsCrossed className="w-4 h-4" />
                     <span>Trang chủ</span>
@@ -478,11 +465,10 @@ export const Navbar: React.FC<{ onOpenWalletModal?: () => void }> = ({ onOpenWal
                       navigateTo('menu');
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer ${
-                      currentView === 'menu'
-                        ? 'bg-orange-500 text-white'
-                        : 'text-slate-700 hover:bg-slate-50'
-                    }`}
+                    className={`w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer ${currentView === 'menu'
+                      ? 'bg-orange-500 text-white'
+                      : 'text-slate-700 hover:bg-slate-50'
+                      }`}
                   >
                     <Search className="w-4 h-4" />
                     <span>Menu Thực Đơn</span>
@@ -493,11 +479,10 @@ export const Navbar: React.FC<{ onOpenWalletModal?: () => void }> = ({ onOpenWal
                       navigateTo('orders');
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer ${
-                      currentView === 'orders' || currentView === 'order-detail'
-                        ? 'bg-orange-500 text-white'
-                        : 'text-slate-700 hover:bg-slate-50'
-                    }`}
+                    className={`w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer ${currentView === 'orders' || currentView === 'order-detail'
+                      ? 'bg-orange-500 text-white'
+                      : 'text-slate-700 hover:bg-slate-50'
+                      }`}
                   >
                     <ShoppingCart className="w-4 h-4" />
                     <span>Hoạt động</span>
@@ -508,11 +493,10 @@ export const Navbar: React.FC<{ onOpenWalletModal?: () => void }> = ({ onOpenWal
                       navigateTo('favorites');
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer ${
-                      currentView === 'favorites'
-                        ? 'bg-orange-500 text-white'
-                        : 'text-slate-700 hover:bg-slate-50'
-                    }`}
+                    className={`w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer ${currentView === 'favorites'
+                      ? 'bg-orange-500 text-white'
+                      : 'text-slate-700 hover:bg-slate-50'
+                      }`}
                   >
                     <Heart className="w-4 h-4 text-rose-500" />
                     <span>Món ăn yêu thích</span>
@@ -523,11 +507,10 @@ export const Navbar: React.FC<{ onOpenWalletModal?: () => void }> = ({ onOpenWal
                       navigateTo('profile');
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer ${
-                      currentView === 'profile'
-                        ? 'bg-orange-500 text-white'
-                        : 'text-slate-700 hover:bg-slate-50'
-                    }`}
+                    className={`w-full text-left py-2.5 px-3 rounded-xl text-xs font-bold flex items-center gap-2.5 cursor-pointer ${currentView === 'profile'
+                      ? 'bg-orange-500 text-white'
+                      : 'text-slate-700 hover:bg-slate-50'
+                      }`}
                   >
                     <UserIcon className="w-4 h-4 text-slate-500" />
                     <span>Hồ sơ & Địa điểm KTX</span>

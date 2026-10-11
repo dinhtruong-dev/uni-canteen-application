@@ -164,15 +164,15 @@ export const AdminStaffView: React.FC = () => {
       prev.map((item) =>
         item.id === selectedStaff.id
           ? {
-              ...item,
-              name: formName.trim(),
-              email: formEmail.trim(),
-              phone: formPhone.trim(),
-              canteenId: formCanteenId,
-              canteenName: matchedCanteen?.name || item.canteenName,
-              position: formPosition.trim(),
-              status: formStatus,
-            }
+            ...item,
+            name: formName.trim(),
+            email: formEmail.trim(),
+            phone: formPhone.trim(),
+            canteenId: formCanteenId,
+            canteenName: matchedCanteen?.name || item.canteenName,
+            position: formPosition.trim(),
+            status: formStatus,
+          }
           : item
       )
     );
@@ -214,10 +214,10 @@ export const AdminStaffView: React.FC = () => {
       prev.map((item) =>
         item.id === selectedStaff.id
           ? {
-              ...item,
-              canteenId: formCanteenId,
-              canteenName: matchedCanteen?.name || item.canteenName,
-            }
+            ...item,
+            canteenId: formCanteenId,
+            canteenName: matchedCanteen?.name || item.canteenName,
+          }
           : item
       )
     );
@@ -347,11 +347,10 @@ export const AdminStaffView: React.FC = () => {
 
                     <td className="py-3.5 px-4">
                       <span
-                        className={`inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-full ${
-                          s.status === 'ACTIVE'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                        }`}
+                        className={`inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-full ${s.status === 'ACTIVE'
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                          }`}
                       >
                         {s.status === 'ACTIVE' ? 'Đang hoạt động' : 'Tạm khóa'}
                       </span>
@@ -389,11 +388,10 @@ export const AdminStaffView: React.FC = () => {
 
                         <button
                           onClick={() => handleToggleBlock(s)}
-                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                            s.status === 'ACTIVE'
-                              ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20'
-                              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
-                          }`}
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${s.status === 'ACTIVE'
+                            ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20'
+                            : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
+                            }`}
                           title={s.status === 'ACTIVE' ? 'Khóa nhân viên' : 'Mở khóa'}
                         >
                           {s.status === 'ACTIVE' ? (

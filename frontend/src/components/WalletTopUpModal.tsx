@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../store/AppContext';
 import { X, Wallet, QrCode, CreditCard, Sparkles, Check, ArrowUpRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -85,11 +85,10 @@ export const WalletTopUpModal: React.FC<WalletTopUpModalProps> = ({ isOpen, onCl
                           setSelectedAmount(amt);
                           setCustomAmount('');
                         }}
-                        className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all ${
-                          selectedAmount === amt && !customAmount
-                            ? 'border-emerald-500 bg-emerald-50 text-emerald-950 ring-2 ring-emerald-500/20'
-                            : 'border-slate-200 text-slate-700 hover:border-slate-300'
-                        }`}
+                        className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all ${selectedAmount === amt && !customAmount
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-950 ring-2 ring-emerald-500/20'
+                          : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                          }`}
                       >
                         {amt.toLocaleString('vi-VN')}đ
                       </button>
@@ -117,21 +116,19 @@ export const WalletTopUpModal: React.FC<WalletTopUpModalProps> = ({ isOpen, onCl
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setPaymentMethod('VNPAY')}
-                      className={`p-3 rounded-xl border flex items-center gap-2.5 text-xs font-bold transition-all ${
-                        paymentMethod === 'VNPAY'
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-950'
-                          : 'border-slate-200 text-slate-700'
-                      }`}
+                      className={`p-3 rounded-xl border flex items-center gap-2.5 text-xs font-bold transition-all ${paymentMethod === 'VNPAY'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-950'
+                        : 'border-slate-200 text-slate-700'
+                        }`}
                     >
                       <QrCode className="w-4 h-4 text-emerald-600" /> VNPay QR
                     </button>
                     <button
                       onClick={() => setPaymentMethod('BANK')}
-                      className={`p-3 rounded-xl border flex items-center gap-2.5 text-xs font-bold transition-all ${
-                        paymentMethod === 'BANK'
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-950'
-                          : 'border-slate-200 text-slate-700'
-                      }`}
+                      className={`p-3 rounded-xl border flex items-center gap-2.5 text-xs font-bold transition-all ${paymentMethod === 'BANK'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-950'
+                        : 'border-slate-200 text-slate-700'
+                        }`}
                     >
                       <CreditCard className="w-4 h-4 text-teal-600" /> Chuyển khoản
                     </button>

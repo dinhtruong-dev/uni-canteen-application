@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../../store/AppContext';
 import { HeaderNav } from '../../components/HeaderNav';
 import {
   ArrowLeft,
@@ -783,11 +783,10 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Star
                           key={s}
-                          className={`w-3.5 h-3.5 ${
-                            s <= (existingOrderReview?.rating || rating)
-                              ? 'fill-amber-400 text-amber-400'
-                              : 'text-slate-200 fill-slate-100'
-                          }`}
+                          className={`w-3.5 h-3.5 ${s <= (existingOrderReview?.rating || rating)
+                            ? 'fill-amber-400 text-amber-400'
+                            : 'text-slate-200 fill-slate-100'
+                            }`}
                         />
                       ))}
                     </div>
@@ -834,9 +833,8 @@ export const OrderTrackingView: React.FC<OrderTrackingViewProps> = ({ orderId: p
                         key={star}
                         type="button"
                         onClick={() => setRating(star)}
-                        className={`p-1 cursor-pointer transition-transform hover:scale-115 active:scale-90 ${
-                          star <= rating ? 'text-amber-500' : 'text-slate-300'
-                        }`}
+                        className={`p-1 cursor-pointer transition-transform hover:scale-115 active:scale-90 ${star <= rating ? 'text-amber-500' : 'text-slate-300'
+                          }`}
                       >
                         <Star className="w-6 h-6 fill-current" />
                       </button>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../store/AppContext';
 import { BannerItem } from '../types';
 
 const DEFAULT_BANNERS: BannerItem[] = [
@@ -159,9 +159,8 @@ export const BannerSlider: React.FC<BannerSliderProps> = ({ onBannerClick }) => 
                 e.stopPropagation();
                 setCurrentIndex(idx);
               }}
-              className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                idx === currentIndex ? 'w-5 bg-[#FF4F8B]' : 'w-1.5 bg-white/50 hover:bg-white'
-              }`}
+              className={`h-1.5 rounded-full transition-all cursor-pointer ${idx === currentIndex ? 'w-5 bg-[#FF4F8B]' : 'w-1.5 bg-white/50 hover:bg-white'
+                }`}
               aria-label={`Chuyển tới slide ${idx + 1}`}
             />
           ))}

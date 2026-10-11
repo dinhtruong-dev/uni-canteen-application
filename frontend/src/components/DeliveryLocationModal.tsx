@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../store/AppContext';
 import { DeliveryAddress } from '../types';
 import { X, MapPin, Building, Home, Phone, FileText, Check, Navigation, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -199,11 +199,10 @@ export const DeliveryLocationModal: React.FC<DeliveryLocationModalProps> = ({
                         key={bld.id}
                         type="button"
                         onClick={() => handleSelectBuilding(bld.name)}
-                        className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                          isSelected
-                            ? 'border-emerald-600 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-500/20'
-                            : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
-                        }`}
+                        className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${isSelected
+                          ? 'border-emerald-600 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-500/20'
+                          : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
+                          }`}
                       >
                         <div className="flex items-center justify-between">
                           <span className={`text-xs font-bold ${isSelected ? 'text-emerald-900' : 'text-slate-800'}`}>
@@ -255,11 +254,10 @@ export const DeliveryLocationModal: React.FC<DeliveryLocationModalProps> = ({
                     key={sug}
                     type="button"
                     onClick={() => setRoom(sug)}
-                    className={`px-2 py-0.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer ${
-                      room === sug
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
+                    className={`px-2 py-0.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer ${room === sug
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
                   >
                     {sug}
                   </button>

@@ -212,31 +212,28 @@ export const AdminOverviewView: React.FC = () => {
           <div className="flex items-center gap-2 bg-slate-950/60 p-1.5 rounded-2xl border border-purple-800/60 shrink-0">
             <button
               onClick={() => setTimeRange('today')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                timeRange === 'today'
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${timeRange === 'today'
+                ? 'bg-purple-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+                }`}
             >
               Hôm nay
             </button>
             <button
               onClick={() => setTimeRange('7days')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                timeRange === '7days'
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${timeRange === '7days'
+                ? 'bg-purple-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+                }`}
             >
               7 ngày qua
             </button>
             <button
               onClick={() => setTimeRange('30days')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                timeRange === '30days'
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${timeRange === '30days'
+                ? 'bg-purple-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+                }`}
             >
               30 ngày qua
             </button>
@@ -554,11 +551,10 @@ export const AdminOverviewView: React.FC = () => {
               <div key={food.id} className="pt-3 flex items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-3 min-w-0">
                   <span
-                    className={`w-6 h-6 rounded-lg font-black flex items-center justify-center text-xs shrink-0 ${
-                      idx === 0
-                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                        : 'bg-slate-800 text-slate-400'
-                    }`}
+                    className={`w-6 h-6 rounded-lg font-black flex items-center justify-center text-xs shrink-0 ${idx === 0
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                      : 'bg-slate-800 text-slate-400'
+                      }`}
                   >
                     #{idx + 1}
                   </span>
@@ -618,9 +614,8 @@ export const AdminOverviewView: React.FC = () => {
                   <div className="flex items-center justify-between text-xs font-bold">
                     <span className="flex items-center gap-2 text-slate-200">
                       <span
-                        className={`w-2.5 h-2.5 rounded-full ${
-                          cant.isOpen ? 'bg-emerald-400' : 'bg-rose-500'
-                        }`}
+                        className={`w-2.5 h-2.5 rounded-full ${cant.isOpen ? 'bg-emerald-400' : 'bg-rose-500'
+                          }`}
                       />
                       {cant.name}
                     </span>

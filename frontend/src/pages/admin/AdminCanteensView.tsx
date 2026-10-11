@@ -215,9 +215,8 @@ export const AdminCanteensView: React.FC = () => {
           return (
             <div
               key={cant.id}
-              className={`bg-slate-900/90 border rounded-3xl overflow-hidden shadow-lg flex flex-col justify-between transition-all ${
-                cant.isOpen ? 'border-slate-800 hover:border-emerald-500/40' : 'border-rose-900/40 opacity-80'
-              }`}
+              className={`bg-slate-900/90 border rounded-3xl overflow-hidden shadow-lg flex flex-col justify-between transition-all ${cant.isOpen ? 'border-slate-800 hover:border-emerald-500/40' : 'border-rose-900/40 opacity-80'
+                }`}
             >
               <div>
                 {/* Image Banner */}
@@ -236,11 +235,10 @@ export const AdminCanteensView: React.FC = () => {
                     </span>
 
                     <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold shadow-md ${
-                        cant.isOpen
-                          ? 'bg-emerald-500 text-slate-950'
-                          : 'bg-rose-500 text-white'
-                      }`}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold shadow-md ${cant.isOpen
+                        ? 'bg-emerald-500 text-slate-950'
+                        : 'bg-rose-500 text-white'
+                        }`}
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                       {cant.isOpen ? 'Đang mở cửa' : 'Tạm đóng'}
@@ -299,11 +297,10 @@ export const AdminCanteensView: React.FC = () => {
               <div className="p-4 pt-0 border-t border-slate-800 flex items-center justify-between gap-2">
                 <button
                   onClick={() => handleToggle(cant.id)}
-                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    cant.isOpen
-                      ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30'
-                      : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30'
-                  }`}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${cant.isOpen
+                    ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30'
+                    : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30'
+                    }`}
                 >
                   <Power className="w-3.5 h-3.5" />
                   <span>{cant.isOpen ? 'Đang Hoạt Động' : 'Đang Tạm Dừng'}</span>
