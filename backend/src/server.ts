@@ -7,6 +7,7 @@ import { socketManager } from './socket';
 import { connectDB } from './db/sequelize';
 import { db } from './services/database.service';
 import { redisWarmupService } from './services/redis-warmup.service';
+import uploadRoute from './routes/upload.route';
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 

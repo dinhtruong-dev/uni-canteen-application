@@ -19,7 +19,9 @@ import {
   Product,
   Voucher,
   Review,
+  Canteen,
 } from '../models';
+import { uploadToCloudinary } from '../utils/uploadToCloudinary';
 
 import { OrderStatus, OrderType } from '../types';
 
@@ -971,6 +973,139 @@ export class StaffController {
     } catch (err: any) {
       console.error('[StaffController getStatistics Error]:', err);
       return res.status(500).json({ success: false, message: 'Lỗi tạo báo cáo thống kê' });
+    }
+  }
+
+  // ===========================================================================
+  // 12. CANTEEN INFO & SETTINGS
+  // ===========================================================================
+  public async getCanteen(req: Request, res: Response) {
+    try {
+      const canteenId = (req.query.canteenId as string) || 'cant-a';
+      const canteen = await canteenService.getCanteenById(canteenId);
+      if (!canteen) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy căn tin' });
+      }
+      return res.json({
+        success: true,
+        data: typeof (canteen as any).toJSON === 'function' ? (canteen as any).toJSON() : canteen,
+      });
+    } catch (err: any) {
+      console.error('[StaffController getCanteen Error]:', err);
+      return res.status(500).json({ success: false, message: 'Lỗi tải thông tin căn tin' });
+    }
+  }
+
+  public async updateCanteen(req: Request, res: Response) {
+    try {
+      const canteenId = (req.body.canteenId || req.query.canteenId || 'cant-a') as string;
+      const {
+        displayName,
+        location,
+        openingHours,
+        isOpen,
+        phone,
+        voucher,
+        freeship,
+        image,
+      } = req.body;
+
+      const canteen = await Canteen.findByPk(canteenId);
+      if (!canteen) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy căn tin' });
+      }
+
+      const updateData: any = {};
+      if (displayName !== undefined) updateData.displayName = displayName;
+      if (location !== undefined) updateData.location = location;
+      if (openingHours !== undefined) updateData.openingHours = openingHours;
+      if (isOpen !== undefined) updateData.isOpen = Boolean(isOpen);
+      if (phone !== undefined) updateData.phone = phone;
+      if (voucher !== undefined) updateData.voucher = voucher;
+      if (freeship !== undefined) updateData.freeship = freeship;
+      if (image !== undefined) updateData.image = image;
+
+      await canteen.update(updateData);
+      await redisService.delPrefix('canteens');
+
+      return res.json({
+        success: true,
+        message: 'Đã cập nhật thông tin căn tin thành công',
+        data: typeof (canteen as any).toJSON === 'function' ? (canteen as any).toJSON() : canteen,
+      });
+    } catch (err: any) {
+      console.error('[StaffController updateCanteen Error]:', err);
+      return res.status(500).json({ success: false, message: 'Lỗi cập nhật thông tin căn tin' });
+    }
+  }
+
+  // ===========================================================================
+  // 13. PRODUCT STOCK AVAILABILITY TOGGLE
+  // ===========================================================================
+  public async toggleFoodStock(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { isAvailable } = req.body;
+
+      const prod = await Product.findByPk(id);
+      if (!prod) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy món ăn' });
+      }
+
+      await prod.update({ isAvailable: Boolean(isAvailable) });
+      await redisService.delPrefix('products');
+
+      return res.json({
+        success: true,
+        message: `Đã chuyển trạng thái món sang: ${isAvailable ? 'Còn hàng' : 'Tạm hết món'}`,
+        data: typeof (prod as any).toJSON === 'function' ? (prod as any).toJSON() : prod,
+      });
+    } catch (err: any) {
+      console.error('[StaffController toggleFoodStock Error]:', err);
+      return res.status(500).json({ success: false, message: 'Lỗi cập nhật trạng thái món' });
+    }
+  }
+
+  // ===========================================================================
+  // 14. UPLOAD PRODUCT IMAGE (Cloudinary folder: uni-canteen/products/{productId})
+  // ===========================================================================
+  public async uploadFoodImage(req: Request, res: Response) {
+    try {
+      let buffer: Buffer | null = null;
+      const productId = req.body.productId || req.query.productId || `prod-${Date.now()}`;
+      const folder = `uni-canteen/products/${productId}`;
+
+      if (req.file) {
+        buffer = req.file.buffer;
+      } else if (req.body.image && typeof req.body.image === 'string') {
+        const base64Data = req.body.image.replace(/^data:image\/\w+;base64,/, '');
+        buffer = Buffer.from(base64Data, 'base64');
+      }
+
+      if (!buffer) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng cung cấp tệp ảnh hoặc chuỗi base64 hợp lệ',
+        });
+      }
+
+      const result = await uploadToCloudinary(buffer, folder);
+
+      return res.json({
+        success: true,
+        message: 'Tải ảnh món ăn lên Cloudinary thành công',
+        url: result.secure_url,
+        data: {
+          url: result.secure_url,
+          publicId: result.public_id,
+        },
+      });
+    } catch (err: any) {
+      console.error('[StaffController uploadFoodImage Error]:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi tải ảnh lên Cloudinary: ' + (err.message || 'Lỗi hệ thống'),
+      });
     }
   }
 }

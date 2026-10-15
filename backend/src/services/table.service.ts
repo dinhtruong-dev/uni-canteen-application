@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import { DiningTable, TableStatus, Canteen } from '../models';
 import { redisService } from './redis.service';
 
@@ -88,7 +88,8 @@ export class TableService {
   public async updateTableStatus(
     tableId: string,
     status: TableStatus | string,
-    orderId?: string
+    orderId?: string,
+    transaction?: Transaction
   ): Promise<DiningTable | null> {
     const normStatus: TableStatus = (status === 'EMPTY' ? 'AVAILABLE' : status) as TableStatus;
     const table = await this.getTableById(tableId);
@@ -104,7 +105,7 @@ export class TableService {
     }
 
     try {
-      await table.save();
+      await table.save({ transaction });
     } catch (err: any) {
       console.error('[TableService.updateTableStatus Error]:', err.message);
       throw err;

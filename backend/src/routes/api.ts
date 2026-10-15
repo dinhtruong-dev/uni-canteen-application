@@ -14,7 +14,6 @@ import searchRoutes from './search.routes';
 import staffRoutes from './staff.routes';
 import adminRoutes from './admin.routes';
 import { sequelize } from '../db/sequelize';
-import uploadRoute from './upload.route';
 import { User, Product, Category, Canteen, DiningTable, Voucher } from '../models';
 
 const apiRouter = Router();
@@ -125,7 +124,5 @@ apiRouter.use('/search', searchRoutes);
 apiRouter.use('/staff', staffRoutes);
 
 apiRouter.use('/admin', adminRoutes);
-
-apiRouter.use('/upload', uploadRoute);
 
 export default apiRouter;

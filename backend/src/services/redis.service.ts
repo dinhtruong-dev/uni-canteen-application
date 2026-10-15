@@ -46,10 +46,6 @@ export class RedisService {
     return RedisService.instance;
   }
 
-  // ===========================================================================
-  // INIT
-  // ===========================================================================
-
   private initRedisClient(): void {
     try {
       console.log(
@@ -76,21 +72,20 @@ export class RedisService {
 
       this.client.on('connect', () => {
         console.log(
-          `[Redis] ✅ Đã kết nối TCP tới ${redisConfig.host}:${redisConfig.port}`
+          `[Redis] Đã kết nối TCP tới ${redisConfig.host}:${redisConfig.port}`
         );
       });
 
       this.client.on('ready', () => {
         this.isConnected = true;
 
-        // 👈 Fix: xóa fallback cũ khi reconnect
         if (this.inMemoryFallback.size > 0) {
           console.log(
             `[Redis] Đã reconnect. Xóa ${this.inMemoryFallback.size} key fallback cũ.`
           );
           this.inMemoryFallback.clear();
         }
-        console.log(`[Redis] 🚀 Redis Client sẵn sàng!`);
+        console.log(`[Redis] Redis Client sẵn sàng!`);
       });
 
       this.client.on('error', (err: any) => {
@@ -113,25 +108,12 @@ export class RedisService {
     return this.isConnected;
   }
 
-  /**
-   * ⚠️ Chỉ dùng khi THỰC SỰ cần (VD: pipeline bulk set).
-   * Không nên expose ra controller/service khác.
-   */
+
   public getRawClient(): Redis | null {
     return this.client;
   }
 
-  // ===========================================================================
-  // KEY NORMALIZE
-  // ===========================================================================
-
-  /**
-   * Chuẩn hóa tiền tố khóa Redis.
-   *
-   * Quy ước: mọi key PHẢI đi qua normalizeKey trước khi ghi/đọc.
-   * - Nếu key đã có prefix hệ thống -> giữ nguyên.
-   * - Nếu không -> prepend `unieat:cache:`.
-   */
+ 
   public normalizeKey(key: string): string {
     if (
       key.startsWith('unieat:') ||
@@ -143,10 +125,6 @@ export class RedisService {
     }
     return `${redisConfig.prefixes.CACHE}${key}`;
   }
-
-  // ===========================================================================
-  // BASIC OPS
-  // ===========================================================================
 
   public async set(
     key: string,
@@ -262,14 +240,7 @@ export class RedisService {
     return remaining > 0 ? remaining : -2;
   }
 
-  // ===========================================================================
-  // BULK OPS (dùng SCAN — không block Redis)
-  // ===========================================================================
-
-  /**
-   * Xóa tất cả key có prefix.
-   * Dùng SCAN thay vì KEYS để không block Redis.
-   */
+  
   public async delPrefix(prefix: string): Promise<boolean> {
     const fullPrefix = this.normalizeKey(prefix);
 
@@ -294,7 +265,6 @@ export class RedisService {
       }
     }
 
-    // Xóa trong fallback
     for (const k of Array.from(this.inMemoryFallback.keys())) {
       if (k.startsWith(fullPrefix)) {
         this.inMemoryFallback.delete(k);
@@ -303,10 +273,6 @@ export class RedisService {
     return true;
   }
 
-  /**
-   * Liệt kê key theo pattern.
-   * Dùng SCAN thay vì KEYS.
-   */
   public async keys(pattern: string = '*'): Promise<string[]> {
     if (this.isConnected && this.client) {
       try {
@@ -348,25 +314,14 @@ export class RedisService {
     };
   }
 
-  // ===========================================================================
-  // CACHE-ASIDE PATTERN (remember)
-  // ===========================================================================
-
-  /**
-   * Cache-Aside: Redis -> miss -> fetch DB -> cache -> return.
-   *
-   * Có lock để tránh nhiều request cùng fetch 1 key khi cache miss.
-   */
   public async remember<T>(
     key: string,
     ttlSeconds: number,
     fetchCallback: () => Promise<T>
   ): Promise<T> {
-    // 1. Đọc cache
     const cached = await this.get<T>(key);
     if (cached !== null) return cached;
 
-    // 2. Nếu đã có request khác đang fetch cùng key -> chờ
     if (this.pendingFetches.has(key)) {
       return this.pendingFetches.get(key)!;
     }
@@ -387,7 +342,6 @@ export class RedisService {
     this.pendingFetches.set(key, promise);
     return promise;
   }
-
 
   public async disconnect(): Promise<void> {
     try {

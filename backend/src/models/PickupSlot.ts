@@ -6,30 +6,30 @@ export type PickupSlotStatus = 'AVAILABLE' | 'FULL' | 'DISABLED';
 @Table({ tableName: 'pickup_slots', timestamps: true, underscored: true })
 export class PickupSlot extends Model {
   @Column({ type: DataType.STRING(50), primaryKey: true })
-  public id!: string;
+  declare id: string;
 
   @ForeignKey(() => Canteen)
   @Column({ type: DataType.STRING(50), allowNull: false, field: 'canteen_id' })
-  public canteenId!: string;
+  declare canteenId: string;
 
   @Column({ type: DataType.STRING(50), allowNull: false, field: 'time_range' })
-  public timeRange!: string;
+  declare timeRange: string;
 
   @Column({ type: DataType.INTEGER, defaultValue: 30, field: 'max_orders' })
-  public maxOrders!: number;
+  declare maxOrders: number;
 
   @Column({ type: DataType.INTEGER, defaultValue: 0, field: 'current_orders' })
-  public currentOrders!: number;
+  declare currentOrders: number;
 
   @Column({
     type: DataType.ENUM('AVAILABLE', 'FULL', 'DISABLED'),
     defaultValue: 'AVAILABLE',
   })
-  public status!: PickupSlotStatus;
+  declare status: PickupSlotStatus;
 
   // Associations
   @BelongsTo(() => Canteen)
-  public canteen!: Canteen;
+  declare canteen: Canteen;
 
   public toJSON() {
     const values = { ...this.get() };

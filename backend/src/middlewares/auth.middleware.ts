@@ -120,13 +120,29 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
   }
 
   const customUserId = (req.headers['x-user-id'] as string) || 'user-stu-1';
-  req.user = {
-    id: customUserId,
-    name: customUserId === 'user-stu-1' ? 'Đặng Hoàng Minh' : 'Sinh viên',
-    email: customUserId === 'user-stu-1' ? 'minh.dh22@university.edu.vn' : '',
-    role: 'STUDENT' as UserRole,
-    studentId: customUserId === 'user-stu-1' ? '20230012' : undefined,
-  };
+  if (customUserId === 'user-staff-1') {
+    req.user = {
+      id: 'user-staff-1',
+      name: 'Nguyễn Văn An (Trưởng Quầy Căn Tin A2)',
+      email: 'staff.a@canteen.edu.vn',
+      role: 'STAFF' as UserRole,
+    };
+  } else if (customUserId === 'user-admin-1') {
+    req.user = {
+      id: 'user-admin-1',
+      name: 'Quản Trị Viên Hệ Thống',
+      email: 'admin@university.edu.vn',
+      role: 'ADMIN' as UserRole,
+    };
+  } else {
+    req.user = {
+      id: customUserId,
+      name: customUserId === 'user-stu-1' ? 'Đặng Hoàng Minh' : 'Sinh viên',
+      email: customUserId === 'user-stu-1' ? 'minh.dh22@university.edu.vn' : '',
+      role: 'STUDENT' as UserRole,
+      studentId: customUserId === 'user-stu-1' ? '20230012' : undefined,
+    };
+  }
 
   next();
 }
