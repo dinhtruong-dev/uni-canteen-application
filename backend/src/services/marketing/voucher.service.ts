@@ -1,7 +1,7 @@
 // src/services/marketing/voucher.service.ts
 import { Op, literal } from 'sequelize';
 import { Voucher, UserVoucher } from '../../models';
-import { redisService } from '../redis.service';
+import { redisService } from '../infrastructure/redis.service';
 
 export class VoucherService {
     // ===========================================================================
@@ -193,6 +193,41 @@ export class VoucherService {
             console.error('[VoucherService.claimVoucherForUser Error]:', err.message);
             throw err;
         }
+    }
+
+    public async createVoucher(data: any): Promise<Voucher> {
+        const id = data.id || `vouch-${Date.now()}`;
+        const voucher = await Voucher.create({
+            id,
+            code: (data.code || `KM${Date.now()}`).toUpperCase().trim(),
+            title: data.title || 'Mã giảm giá',
+            description: data.description,
+            discountType: data.discountType || 'PERCENTAGE',
+            discountValue: Number(data.discountValue) || 10,
+            minOrderAmount: Number(data.minOrderAmount) || 0,
+            maxDiscount: Number(data.maxDiscount) || 50000,
+            usageLimit: Number(data.usageLimit) || 100,
+            usedCount: 0,
+            isActive: true,
+            startDate: data.startDate || new Date(),
+            endDate: data.endDate || new Date(Date.now() + 30 * 86400000),
+        });
+        await redisService.del('vouchers:all');
+        return voucher;
+    }
+
+    public async updateVoucher(id: string, data: any): Promise<Voucher | null> {
+        const voucher = await Voucher.findByPk(id);
+        if (!voucher) return null;
+        await voucher.update(data);
+        await redisService.del('vouchers:all');
+        return voucher;
+    }
+
+    public async deleteVoucher(id: string): Promise<boolean> {
+        const affected = await Voucher.destroy({ where: { id } });
+        await redisService.del('vouchers:all');
+        return affected > 0;
     }
 }
 

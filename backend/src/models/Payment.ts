@@ -20,15 +20,7 @@ export class Payment extends Model {
   declare amount: number;
 
   @Column({
-    type: DataType.ENUM(
-      'STUDENT_WALLET',
-      'CAMPUS_WALLET',
-      'MOMO',
-      'ZALOPAY',
-      'VNPAY_QR',
-      'VNPAY',
-      'CASH'
-    ),
+    type: DataType.STRING(50),
     allowNull: false,
     field: 'method',
   })

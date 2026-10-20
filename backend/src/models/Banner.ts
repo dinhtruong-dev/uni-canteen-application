@@ -10,23 +10,23 @@ export class Banner extends Model {
   declare title: string;
 
   @Column({ type: DataType.STRING(255), allowNull: true })
-  declare subtitle?: string;
+  declare subtitle: string;
 
   @Column({ type: DataType.STRING(500), allowNull: false, field: 'image_url' })
   declare imageUrl: string;
 
   @Column({ type: DataType.STRING(500), allowNull: true, field: 'link_url' })
-  declare linkUrl?: string;
+  declare linkUrl: string;
 
   @Column({ type: DataType.STRING(50), allowNull: true, field: 'target_type' })
-  declare targetType?: 'PRODUCT' | 'CATEGORY' | 'EXTERNAL';
+  declare targetType: 'PRODUCT' | 'CATEGORY' | 'EXTERNAL';
 
   @Column({ type: DataType.STRING(50), allowNull: true, field: 'target_id' })
-  declare targetId?: string;
+  declare targetId: string;
 
   @ForeignKey(() => Canteen)
   @Column({ type: DataType.STRING(50), allowNull: true, field: 'canteen_id' })
-  declare canteenId?: string;
+  declare canteenId: string;
 
   @Column({ type: DataType.INTEGER, defaultValue: 0, field: 'display_order' })
   declare displayOrder: number;
@@ -35,7 +35,7 @@ export class Banner extends Model {
   declare isActive: boolean;
 
   @Column({ type: DataType.DATE, allowNull: true, field: 'start_date' })
-  declare startDate?: Date;
+  declare startDate: Date;
 
   @Column({ type: DataType.DATE, allowNull: true, field: 'end_date' })
   declare endDate?: Date;

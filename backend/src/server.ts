@@ -5,8 +5,8 @@ dotenv.config();
 import { createApp } from './app';
 import { socketManager } from './socket';
 import { connectDB } from './db/sequelize';
-import { db } from './services/database.service';
-import { redisWarmupService } from './services/redis-warmup.service';
+import { db } from './services/infrastructure/database.service';
+import { redisWarmupService } from './services/infrastructure/redis-warmup.service';
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 

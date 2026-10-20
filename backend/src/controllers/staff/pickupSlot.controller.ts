@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import { staffService } from '../../services/staff.service';
+import { pickupSlotService } from '../../services';
 import { toPlainList } from '../../utils/serialize';
 
 export class PickupSlotController {
     public async getPickupSlots(req: Request, res: Response) {
         try {
             const canteenId = req.query.canteenId as string;
-            const slots = await staffService.getPickupSlots(canteenId);
+            const slots = await pickupSlotService.getPickupSlots(canteenId);
             const data = toPlainList(slots);
             return res.json({ success: true, total: data.length, data });
         } catch (err: any) {
@@ -23,7 +23,7 @@ export class PickupSlotController {
                     .status(400)
                     .json({ success: false, message: 'Vui lòng cung cấp khung giờ (VD: 11:30 - 11:45)' });
             }
-            const slot = await staffService.createPickupSlot({
+            const slot = await pickupSlotService.createPickupSlot({
                 canteenId,
                 timeRange,
                 maxOrders,
@@ -41,7 +41,7 @@ export class PickupSlotController {
     public async updatePickupSlot(req: Request, res: Response) {
         try {
             const { timeRange, maxOrders, status } = req.body;
-            await staffService.updatePickupSlot(req.params.id, { timeRange, maxOrders, status });
+            await pickupSlotService.updatePickupSlot(req.params.id, { timeRange, maxOrders, status });
             return res.json({
                 success: true,
                 message: 'Đã cập nhật khung giờ nhận món',
@@ -56,7 +56,7 @@ export class PickupSlotController {
 
     public async deletePickupSlot(req: Request, res: Response) {
         try {
-            await staffService.deletePickupSlot(req.params.id);
+            await pickupSlotService.deletePickupSlot(req.params.id);
             return res.json({ success: true, message: 'Đã xóa khung giờ nhận món' });
         } catch (err: any) {
             return res

@@ -1,26 +1,32 @@
-import { Router, Request, Response } from 'express';
-import { cloudinaryService } from '../services/cloudinary.service';
+import { Router } from 'express';
+import multer from 'multer';
+import { uploadController } from '../controllers/upload.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-router.post('/image', authMiddleware, async (req: Request, res: Response) => {
-  const { image, folder } = req.body;
-
-  if (!image) {
-    return res.status(400).json({ success: false, message: 'Thiếu dữ liệu ảnh (image)' });
-  }
-
-  try {
-    const result = await cloudinaryService.uploadImage(image, folder || 'foods');
-    res.json({
-      success: true,
-      message: 'Tải ảnh lên Cloudinary thành công',
-      data: result,
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, message: err.message || 'Lỗi tải ảnh lên Cloudinary' });
-  }
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Chỉ chấp nhận tệp hình ảnh (jpg, png, webp, jpeg)!'));
+    }
+  },
 });
+
+// 1. Upload ảnh Base64
+router.post('/image', authMiddleware, (req, res) => uploadController.uploadBase64(req, res));
+
+// 2. Upload Avatar (File)
+router.post('/avatar', authMiddleware, upload.single('image'), (req, res) => uploadController.uploadAvatar(req, res));
+
+// 3. Upload ảnh Món ăn (File)
+router.post('/product', authMiddleware, upload.single('image'), (req, res) => uploadController.uploadProduct(req, res));
+
+// 4. Xóa ảnh
+router.delete('/image', authMiddleware, (req, res) => uploadController.deleteImage(req, res));
 
 export default router;

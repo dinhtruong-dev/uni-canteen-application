@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppProvider } from './store/AppContext';
-import { MainLayout } from './layouts/MainLayout';
+import { MainLayout } from './layouts/MainLayout/index';
 import { AppRoutes } from './routes/AppRoutes';
 
 export const App: React.FC = () => {

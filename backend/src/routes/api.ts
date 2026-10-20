@@ -2,24 +2,27 @@ import { Router } from 'express';
 import authRoutes from './auth.routes';
 import userRoutes from './user.routes';
 import uploadRoutes from './upload.routes';
-import tableRoutes from './table.routes';
-import menuRoutes from './menu.routes';
-import cartRoutes from './cart.routes';
-import orderRoutes from './order.routes';
-import paymentRoutes from './payment.routes';
-import marketingRoutes from './marketing.routes';
-import interactionRoutes from './interaction.routes';
-import canteenRoutes from './canteen.routes';
-import searchRoutes from './search.routes';
-import staffRoutes from './staff.routes';
-import adminRoutes from './admin.routes';
+
+import adminRoutes from './admin';
+import staffRoutes from './staff';
+import sharedRoutes, {
+  canteenRoutes,
+  tableRoutes,
+  menuRoutes,
+  cartRoutes,
+  orderRoutes,
+  paymentRoutes,
+  marketingRoutes,
+  interactionRoutes,
+  searchRoutes,
+  foodRoutes,
+} from './shared';
+
 import { sequelize } from '../db/sequelize';
-import uploadRoute from './upload.route';
 import { User, Product, Category, Canteen, DiningTable, Voucher } from '../models';
 
 const apiRouter = Router();
 
-// Health Check & Database Status
 apiRouter.get('/health', async (_req, res) => {
   let connected = false;
   let stats = {
@@ -98,34 +101,28 @@ apiRouter.post('/health/sync-db', async (_req, res) => {
   });
 });
 
+// Root common routes
 apiRouter.use('/auth', authRoutes);
-
 apiRouter.use('/upload', uploadRoutes);
-
 apiRouter.use('/users', userRoutes);
 
-apiRouter.use('/canteens', canteenRoutes);
-
-apiRouter.use('/tables', tableRoutes);
-
-apiRouter.use('/menu', menuRoutes);
-
-apiRouter.use('/cart', cartRoutes);
-
-apiRouter.use('/orders', orderRoutes);
-
-apiRouter.use('/payments', paymentRoutes);
-
-apiRouter.use('/marketing', marketingRoutes);
-
-apiRouter.use('/interaction', interactionRoutes);
-
-apiRouter.use('/search', searchRoutes);
-
+// Admin & Staff Role Routes
+apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/staff', staffRoutes);
 
-apiRouter.use('/admin', adminRoutes);
+// Shared / Customer Routes (mount trực tiếp để tương thích hoàn toàn URL frontend)
+apiRouter.use('/canteens', canteenRoutes);
+apiRouter.use('/tables', tableRoutes);
+apiRouter.use('/menu', menuRoutes);
+apiRouter.use('/cart', cartRoutes);
+apiRouter.use('/orders', orderRoutes);
+apiRouter.use('/payments', paymentRoutes);
+apiRouter.use('/marketing', marketingRoutes);
+apiRouter.use('/interaction', interactionRoutes);
+apiRouter.use('/search', searchRoutes);
+apiRouter.use('/foods', foodRoutes);
 
-apiRouter.use('/upload', uploadRoute);
+// Shared router prefix /shared/...
+apiRouter.use('/shared', sharedRoutes);
 
 export default apiRouter;

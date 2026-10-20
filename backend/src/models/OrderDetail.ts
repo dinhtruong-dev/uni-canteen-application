@@ -5,45 +5,45 @@ import { Product } from './Product';
 @Table({ tableName: 'order_details', timestamps: false, underscored: true })
 export class OrderDetail extends Model {
   @Column({ type: DataType.STRING(50), primaryKey: true })
-  public id!: string;
+  declare id: string;
 
   @ForeignKey(() => Order)
   @Column({ type: DataType.STRING(50), allowNull: false, field: 'order_id' })
-  public orderId!: string;
+  declare orderId: string;
 
   @ForeignKey(() => Product)
   @Column({ type: DataType.STRING(50), allowNull: false, field: 'product_id' })
-  public productId!: string;
+  declare productId: string;
 
   @Column({ type: DataType.STRING(150), allowNull: false, field: 'product_name' })
-  public productName!: string;
+  declare productName: string;
 
   @Column({ type: DataType.STRING(500), allowNull: false, field: 'product_image' })
-  public productImage!: string;
+  declare productImage: string;
 
   @Column({ type: DataType.DECIMAL(10, 2), allowNull: false, field: 'unit_price' })
-  public unitPrice!: number;
+  declare unitPrice: number;
 
   @Column({ type: DataType.INTEGER, defaultValue: 1 })
-  public quantity!: number;
+  declare quantity: number;
 
   @Column({ type: DataType.JSON, allowNull: true, field: 'selected_options_json' })
-  public selectedOptionsJson?: any;
+  declare selectedOptionsJson?: any;
 
   @Column({ type: DataType.DECIMAL(12, 2), allowNull: false, field: 'item_subtotal' })
-  public itemSubtotal!: number;
+  declare itemSubtotal: number;
 
   @Column({ type: DataType.STRING(255), allowNull: true })
-  public notes?: string;
+  declare notes?: string;
 
   // Associations
   @BelongsTo(() => Order)
-  public order!: Order;
+  declare order: Order;
 
   @BelongsTo(() => Product)
-  public product!: Product;
+  declare product: Product;
 
-  public selectedOptions?: any;
+  declare selectedOptions?: any;
 
   public toJSON() {
     const values = { ...this.get() };

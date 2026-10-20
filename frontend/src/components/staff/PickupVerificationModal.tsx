@@ -13,7 +13,7 @@ import {
   Sparkles,
   Camera,
 } from 'lucide-react';
-import { staffService } from '../../services/api';
+import { staffOrderService } from '../../services/api/client';
 
 interface PickupVerificationModalProps {
   isOpen: boolean;
@@ -47,7 +47,7 @@ export const PickupVerificationModal: React.FC<PickupVerificationModalProps> = (
     setSuccessOrder(null);
 
     try {
-      const res = await staffService.verifyPickup(code.trim(), canteenId);
+      const res = await staffOrderService.verifyPickup(code.trim(), canteenId);
       if (res.success && res.data) {
         setSuccessOrder(res.data);
         if (onSuccess) onSuccess(res.data);

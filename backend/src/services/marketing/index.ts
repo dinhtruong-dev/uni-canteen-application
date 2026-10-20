@@ -1,3 +1,3 @@
-export { bannerService, BannerService } from './banner.service';
-export { flashSaleService, FlashSaleService } from './flashSale.service';
-export { voucherService, VoucherService } from './voucher.service';
+export * from './banner.service';
+export * from './flashSale.service';
+export * from './voucher.service';

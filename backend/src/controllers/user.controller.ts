@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { userService } from '../services/user.service';
+import { userService } from '../services/shared/user.service';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export class UserController {

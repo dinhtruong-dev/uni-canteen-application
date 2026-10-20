@@ -1,4 +1,20 @@
-import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany, HasOne } from 'sequelize-typescript';
+import {
+  Table,
+  Column,
+  Model,
+  DataType,
+  ForeignKey,
+  BelongsTo,
+  HasMany,
+  HasOne,
+} from 'sequelize-typescript';
+
+import type {
+  OrderType,
+  OrderStatus,
+  PaymentMethod,
+} from '../types/order.types';
+
 import { User } from './User';
 import { Canteen } from './Canteen';
 import { Voucher } from './Voucher';
@@ -7,46 +23,67 @@ import { DeliveryAddress } from './DeliveryAddress';
 import { OrderDetail } from './OrderDetail';
 import { Payment } from './Payment';
 import { Review } from './Review';
-import { OrderType, OrderStatus, PaymentMethod } from '../types/order.types';
-
 
 @Table({ tableName: 'orders', timestamps: true, underscored: true })
 export class Order extends Model {
+  // ---------------------------------------------------------------------------
+  // PRIMARY KEY
+  // ---------------------------------------------------------------------------
+
   @Column({ type: DataType.STRING(50), primaryKey: true })
   declare id: string;
 
-  @Column({ type: DataType.STRING(30), allowNull: false, unique: true, field: 'order_code' })
+  @Column({ type: DataType.STRING(30), allowNull: false, unique: true })
   declare orderCode: string;
 
+  // ---------------------------------------------------------------------------
+  // USER INFO
+  // ---------------------------------------------------------------------------
+
   @ForeignKey(() => User)
-  @Column({ type: DataType.STRING(50), allowNull: false, field: 'user_id' })
+  @Column({ type: DataType.STRING(50), allowNull: false })
   declare userId: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false, field: 'user_name' })
+  @Column({ type: DataType.STRING(100), allowNull: false })
   declare userName: string;
 
-  @Column({ type: DataType.STRING(20), allowNull: false, field: 'user_phone' })
+  @Column({ type: DataType.STRING(20), allowNull: false })
   declare userPhone: string;
 
+  // ---------------------------------------------------------------------------
+  // CANTEEN INFO
+  // ---------------------------------------------------------------------------
+
   @ForeignKey(() => Canteen)
-  @Column({ type: DataType.STRING(50), allowNull: false, field: 'canteen_id' })
+  @Column({ type: DataType.STRING(50), allowNull: false })
   declare canteenId: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false, field: 'canteen_name' })
+  @Column({ type: DataType.STRING(100), allowNull: false })
   declare canteenName: string;
 
+  // ---------------------------------------------------------------------------
+  // VOUCHER + AMOUNTS
+  // ---------------------------------------------------------------------------
+
   @ForeignKey(() => Voucher)
-  @Column({ type: DataType.STRING(50), allowNull: true, field: 'voucher_id' })
+  @Column({ type: DataType.STRING(50), allowNull: true })
   declare voucherId?: string;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false, field: 'total_amount' })
+  /** Tổng tiền món TRƯỚC giảm giá */
+  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false })
   declare totalAmount: number;
 
-  @Column({ type: DataType.DECIMAL(12, 2), defaultValue: 0, field: 'discount_amount' })
+  /** Số tiền được giảm từ voucher */
+  @Column({ type: DataType.DECIMAL(12, 2), defaultValue: 0 })
   declare discountAmount: number;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false, field: 'final_amount' })
+  /** Số tiền user phải trả = totalAmount - discountAmount */
+  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false })
   declare finalAmount: number;
+
+  // ---------------------------------------------------------------------------
+  // STATUS + TYPE
+  // ---------------------------------------------------------------------------
 
   @Column({
     type: DataType.ENUM(
@@ -67,45 +104,70 @@ export class Order extends Model {
   @Column({
     type: DataType.ENUM('DINE_IN', 'TAKEAWAY', 'DELIVERY'),
     allowNull: false,
-    field: 'order_type',
   })
   declare orderType: OrderType;
 
+  // ---------------------------------------------------------------------------
+  // TABLE (DINE_IN)
+  // ---------------------------------------------------------------------------
+
   @ForeignKey(() => DiningTable)
-  @Column({ type: DataType.STRING(50), allowNull: true, field: 'table_id' })
+  @Column({ type: DataType.STRING(50), allowNull: true })
   declare tableId?: string;
 
-  @Column({ type: DataType.STRING(30), allowNull: true, field: 'table_number' })
+  @Column({ type: DataType.STRING(30), allowNull: true })
   declare tableNumber?: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: true, field: 'pickup_slot' })
+  // ---------------------------------------------------------------------------
+  // PICKUP (TAKEAWAY)
+  // ---------------------------------------------------------------------------
+
+  @Column({ type: DataType.STRING(50), allowNull: true })
   declare pickupSlot?: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: true, field: 'pickup_code' })
+  @Column({ type: DataType.STRING(50), allowNull: true })
   declare pickupCode?: string;
 
+  // ---------------------------------------------------------------------------
+  // DELIVERY
+  // ---------------------------------------------------------------------------
+
   @ForeignKey(() => DeliveryAddress)
-  @Column({ type: DataType.STRING(50), allowNull: true, field: 'delivery_address_id' })
+  @Column({ type: DataType.STRING(50), allowNull: true })
   declare deliveryAddressId?: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: true, field: 'delivery_address_text' })
+  @Column({ type: DataType.STRING(255), allowNull: true })
   declare deliveryAddressText?: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, field: 'payment_method' })
+  // ---------------------------------------------------------------------------
+  // PAYMENT
+  // ---------------------------------------------------------------------------
+
+  @Column({ type: DataType.STRING(50), allowNull: false })
   declare paymentMethod: PaymentMethod;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'is_paid' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: false })
   declare isPaid: boolean;
+
+  @Column({ type: DataType.DATE, allowNull: true })
+  declare paidAt?: Date;
+
+  // ---------------------------------------------------------------------------
+  // NOTES
+  // ---------------------------------------------------------------------------
 
   @Column({ type: DataType.TEXT, allowNull: true })
   declare notes?: string;
 
-  // Associations
+  // ---------------------------------------------------------------------------
+  // ASSOCIATIONS
+  // ---------------------------------------------------------------------------
+
   @BelongsTo(() => User)
-  declare user: User;
+  declare user?: User;
 
   @BelongsTo(() => Canteen)
-  declare canteen: Canteen;
+  declare canteen?: Canteen;
 
   @BelongsTo(() => Voucher)
   declare voucher?: Voucher;
@@ -125,35 +187,78 @@ export class Order extends Model {
   @HasMany(() => Review)
   declare reviews?: Review[];
 
+  // ---------------------------------------------------------------------------
+  // TO JSON
+  // ---------------------------------------------------------------------------
+
   public toJSON() {
-    const values = { ...this.get() };
+    const values: any = { ...this.get() };
     const details = this.orderDetails || values.orderDetails || [];
+
     return {
       id: values.id,
       orderCode: values.orderCode,
+
       userId: values.userId,
       userName: values.userName,
       userPhone: values.userPhone,
+
       canteenId: values.canteenId,
       canteenName: values.canteenName,
+
       voucherId: values.voucherId,
-      orderDetails: (details || []).map((detail: any) => (typeof detail?.toJSON === 'function' ? detail.toJSON() : detail)),
+
+      orderDetails: (details || []).map((detail: any) =>
+        typeof detail?.toJSON === 'function' ? detail.toJSON() : detail
+      ),
+      items: (details || []).map((detail: any, idx: number) => {
+        const d = typeof detail?.toJSON === 'function' ? detail.toJSON() : detail;
+        return {
+          id: d.id || `item-${values.id}-${idx}`,
+          food: {
+            id: d.productId,
+            name: d.productName,
+            price: Number(d.unitPrice) || 0,
+            image: d.productImage || '',
+            canteenId: values.canteenId,
+            canteenName: values.canteenName,
+          },
+          quantity: d.quantity || 1,
+          unitPrice: Number(d.unitPrice) || 0,
+          notes: d.notes || '',
+        };
+      }),
+
       totalAmount: Number(values.totalAmount) || 0,
       discountAmount: Number(values.discountAmount) || 0,
       finalAmount: Number(values.finalAmount) || 0,
+
       status: values.status,
       orderType: values.orderType,
+
       tableId: values.tableId,
       tableNumber: values.tableNumber,
+
       pickupSlot: values.pickupSlot,
       pickupCode: values.pickupCode,
+
       deliveryAddressId: values.deliveryAddressId,
       deliveryAddressText: values.deliveryAddressText,
+
       paymentMethod: values.paymentMethod,
       isPaid: Boolean(values.isPaid),
+      paidAt: values.paidAt
+        ? new Date(values.paidAt).toISOString()
+        : null,
+
       notes: values.notes,
-      createdAt: values.createdAt ? new Date(values.createdAt).toISOString() : new Date().toISOString(),
-      updatedAt: values.updatedAt ? new Date(values.updatedAt).toISOString() : new Date().toISOString(),
+
+      createdAt: values.createdAt
+        ? new Date(values.createdAt).toISOString()
+        : new Date().toISOString(),
+      updatedAt: values.updatedAt
+        ? new Date(values.updatedAt).toISOString()
+        : new Date().toISOString(),
     };
   }
 }
