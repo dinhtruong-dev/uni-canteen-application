@@ -1,12 +1,13 @@
 export type Role = 'STUDENT' | 'STAFF' | 'ADMIN';
 
-export type OrderType = 'DINE_IN' | 'PICKUP' | 'DELIVERY';
+export type OrderType = 'DINE_IN' | 'PICKUP' | 'TAKEAWAY' | 'DELIVERY';
 
 export type OrderStatus =
     | 'PENDING'
     | 'CONFIRMED'
     | 'PREPARING'
     | 'READY'
+    | 'WAITING_PICKUP'
     | 'DELIVERING'
     | 'SERVED'
     | 'COMPLETED'

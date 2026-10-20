@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { authService } from '../services/auth.service';
-import { otpService, OtpChannel, OtpType } from '../services/otp.service';
+import { authService } from '../services/shared/auth.service';
+import { otpService, OtpChannel, OtpType } from '../services/infrastructure/otp.service';
 import { AuthenticatedRequest, recordFailedLogin, resetFailedLogin } from '../middlewares/auth.middleware';
 
 export class AuthController {

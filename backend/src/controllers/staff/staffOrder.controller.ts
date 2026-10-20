@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
-import { staffService } from '../../services/staff.service';
-import { orderService } from '../../services/order.service';
-import { socketService } from '../../services/socket.service';
+import { staffOrderService, orderService, socketService } from '../../services';
 import { toPlain } from '../../utils/serialize';
 import type { OrderStatus } from '../../types/order.types';
 
@@ -19,7 +17,7 @@ export class StaffOrderController {
                 limit = '20',
             } = req.query;
 
-            const result = await staffService.getOrders({
+            const result = await staffOrderService.getOrders({
                 canteenId: canteenId as string,
                 receiveMethod: receiveMethod as string,
                 orderType: orderType as string,
@@ -70,7 +68,7 @@ export class StaffOrderController {
                 });
             }
 
-            const check = staffService.isTransitionAllowed(order, targetStatus);
+            const check = staffOrderService.isTransitionAllowed(order, targetStatus);
             if (!check.ok) {
                 return res.status(400).json({ success: false, message: check.message });
             }
@@ -83,7 +81,7 @@ export class StaffOrderController {
 
             return res.json({
                 success: true,
-                message: staffService.buildStatusMessage(order, targetStatus),
+                message: staffOrderService.buildStatusMessage(order, targetStatus),
                 data: toPlain(updated) || toPlain(order),
             });
         } catch (err: any) {
@@ -104,7 +102,7 @@ export class StaffOrderController {
                 });
             }
 
-            const result = await staffService.verifyPickup(String(code).trim(), canteenId);
+            const result = await staffOrderService.verifyPickup(String(code).trim(), canteenId);
 
             if (!result.ok) {
                 return res.status(result.status).json({

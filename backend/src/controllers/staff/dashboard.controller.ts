@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
-import { staffService } from '../../services/staff.service';
+import { staffOrderService } from '../../services';
 import { toPlain } from '../../utils/serialize';
 
 export class StaffDashboardController {
     public async getDashboard(req: Request, res: Response) {
         try {
             const canteenId = (req.query.canteenId as string) || 'cant-a';
-            const data = await staffService.getDashboard(canteenId);
+            const data = await staffOrderService.getDashboard(canteenId);
 
             return res.json({
                 success: true,
@@ -28,7 +28,7 @@ export class StaffDashboardController {
     public async getStatistics(req: Request, res: Response) {
         try {
             const canteenId = (req.query.canteenId as string) || 'cant-a';
-            const data = await staffService.getStatistics(canteenId);
+            const data = await staffOrderService.getStatistics(canteenId);
             return res.json({ success: true, data });
         } catch (err: any) {
             console.error('[StaffDashboardController.getStatistics]', err);

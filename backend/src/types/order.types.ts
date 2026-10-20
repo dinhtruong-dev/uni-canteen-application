@@ -12,7 +12,16 @@ export type OrderStatus =
     | 'CANCELLED';
 
 export type OrderType = 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY';
-export type PaymentMethod = 'CASH' | 'MOMO' | 'VNPAY' | 'WALLET' | 'BANKING';
+export type PaymentMethod =
+    | 'CASH'
+    | 'MOMO'
+    | 'VNPAY'
+    | 'WALLET'
+    | 'BANKING'
+    | 'STUDENT_WALLET'
+    | 'CAMPUS_WALLET'
+    | 'E_GREEN'
+    | (string & {});
 export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
 
 export interface CreateOrderItemDTO {

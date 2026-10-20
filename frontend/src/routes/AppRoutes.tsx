@@ -23,15 +23,44 @@ import {
   DeliveryLocationView,
   SelectCanteenView,
 } from '../pages/customer';
-import { StaffPortalView } from '../pages/staff/StaffPortalView';
-import { KitchenKDSView } from '../pages/staff/KitchenKDSView';
-import { AdminPortalView } from '../pages/admin/AdminPortalView';
+import { StaffPortalView } from '../pages/staff/Portal';
+import { KitchenKDSView } from '../pages/staff/KitchenKDS';
+import { AdminPortalView } from '../pages/admin/Portal';
+import { AdminStaffLoginView } from '../pages/admin/StaffLogin';
 
 export const AppRoutes: React.FC = () => {
   const { currentView, viewParams, currentUser } = useApp();
 
-  // 1. Khi chưa đăng nhập: Luôn hiển thị màn hình đăng nhập
+  // Luôn đưa màn hình về đầu trang khi chuyển view
+  React.useEffect(() => {
+    if (!viewParams?.preserveScroll && (viewParams?.scrollY === undefined || viewParams?.scrollY === null)) {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, [currentView]);
+
+  // 1. Khi chưa đăng nhập: Luôn hiển thị màn hình đăng nhập tương ứng
   if (!currentUser) {
+    if (
+      currentView === 'admin-login' ||
+      currentView === 'admin' ||
+      currentView === 'admin/login' ||
+      currentView.startsWith('admin-')
+    ) {
+      return <AdminStaffLoginView initialRole="ADMIN" />;
+    }
+    if (
+      currentView === 'staff-login' ||
+      currentView === 'staff' ||
+      currentView === 'staff/login' ||
+      currentView.startsWith('staff-')
+    ) {
+      return <AdminStaffLoginView initialRole="STAFF" />;
+    }
+    if (currentView === 'portal-login' || currentView === 'portal/login') {
+      return <AdminStaffLoginView initialRole="ADMIN" />;
+    }
     if (currentView === 'register' || currentView === 'buyer/register') {
       return <RegisterView />;
     }
@@ -121,12 +150,21 @@ export const AppRoutes: React.FC = () => {
       return <NotificationsView />;
     case 'login':
     case 'buyer/login':
-      return <HomeView />;
+      return <LoginView />;
+    case 'admin-login':
+    case 'admin/login':
+      return <AdminStaffLoginView initialRole="ADMIN" />;
+    case 'staff-login':
+    case 'staff/login':
+      return <AdminStaffLoginView initialRole="STAFF" />;
+    case 'portal-login':
+    case 'portal/login':
+      return <AdminStaffLoginView initialRole="ADMIN" />;
     case 'register':
     case 'buyer/register':
-      return <HomeView />;
+      return <RegisterView />;
     case 'forgot-password':
-      return <HomeView />;
+      return <ForgotPasswordView />;
     default:
       return <HomeView />;
   }

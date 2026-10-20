@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { staffService } from '../../services/staff.service';
+import { interactionService } from '../../services';
 
 export class ReviewController {
     public async getReviews(req: Request, res: Response) {
         try {
             const { rating, canteenId } = req.query;
-            const reviews = await staffService.getReviews(
+            const reviews = await interactionService.getAllReviewsForAdmin(
                 canteenId as string,
                 rating as string
             );
@@ -30,7 +30,7 @@ export class ReviewController {
                     .json({ success: false, message: 'Nội dung phản hồi không được để trống' });
             }
 
-            const ok = await staffService.replyReview(id, replyText.trim());
+            const ok = await interactionService.replyReview(id, replyText.trim());
             if (!ok) {
                 return res
                     .status(404)

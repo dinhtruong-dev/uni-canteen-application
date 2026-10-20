@@ -1,6 +1,6 @@
 // src/services/marketing/banner.service.ts
 import { Banner } from '../../models';
-import { redisService } from '../redis.service';
+import { redisService } from '../infrastructure/redis.service';
 
 export class BannerService {
     public async getBanners(): Promise<Banner[]> {

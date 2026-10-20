@@ -211,6 +211,23 @@ export class Order extends Model {
       orderDetails: (details || []).map((detail: any) =>
         typeof detail?.toJSON === 'function' ? detail.toJSON() : detail
       ),
+      items: (details || []).map((detail: any, idx: number) => {
+        const d = typeof detail?.toJSON === 'function' ? detail.toJSON() : detail;
+        return {
+          id: d.id || `item-${values.id}-${idx}`,
+          food: {
+            id: d.productId,
+            name: d.productName,
+            price: Number(d.unitPrice) || 0,
+            image: d.productImage || '',
+            canteenId: values.canteenId,
+            canteenName: values.canteenName,
+          },
+          quantity: d.quantity || 1,
+          unitPrice: Number(d.unitPrice) || 0,
+          notes: d.notes || '',
+        };
+      }),
 
       totalAmount: Number(values.totalAmount) || 0,
       discountAmount: Number(values.discountAmount) || 0,

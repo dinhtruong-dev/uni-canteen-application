@@ -29,7 +29,7 @@ import {
     canteenApiService,
     userService,
     cartApiService,
-} from '../services/api';
+} from '../services/api/client';
 
 interface ToastMessage {
     id: string;
@@ -376,6 +376,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 const rawPath = window.location.pathname.replace(/^\//, '');
                 if (rawPath === 'register' || rawPath === 'buyer/register') return 'register';
                 if (rawPath === 'forgot-password') return 'forgot-password';
+                if (rawPath === 'admin' || rawPath === 'admin/login' || rawPath === 'admin-login' || rawPath.startsWith('admin-')) return 'admin-login';
+                if (rawPath === 'staff' || rawPath === 'staff/login' || rawPath === 'staff-login' || rawPath.startsWith('staff-')) return 'staff-login';
+                if (rawPath.startsWith('portal') || rawPath === 'portal-login') return 'admin-login';
             }
             return 'login';
         }
@@ -469,6 +472,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             let pathSegment = '';
             if (targetView === 'login') pathSegment = 'buyer/login';
             else if (targetView === 'register') pathSegment = 'buyer/register';
+            else if (targetView === 'admin-login') pathSegment = 'admin/login';
+            else if (targetView === 'staff-login') pathSegment = 'staff/login';
             else if (targetView === 'home') pathSegment = '';
             else pathSegment = targetView;
 
@@ -482,7 +487,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 window.scrollTo({ top: isNaN(targetY) ? 0 : targetY, behavior: 'auto' });
             }, 50);
         } else if (!params.preserveScroll) {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
         }
     };
 
@@ -508,7 +515,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     ? 'login'
                     : (rawPath === 'buyer/register' || rawPath === 'register')
                         ? 'register'
-                        : (rawPath || 'home');
+                        : (rawPath === 'admin/login' || rawPath === 'admin-login' || rawPath === 'admin')
+                            ? 'admin-login'
+                            : (rawPath === 'staff/login' || rawPath === 'staff-login' || rawPath === 'staff')
+                                ? 'staff-login'
+                                : (rawPath || 'home');
             }
 
             const savedUserStr = localStorage.getItem('unieat_current_user');
@@ -682,7 +693,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     orderType: orderData.orderType === 'TAKEAWAY' ? 'PICKUP' : (orderData.orderType || 'PICKUP'),
                     canteenId: orderData.canteenId || 'cant-a',
                     canteenName: orderData.canteenName || 'Căng tin A2',
-                    items: orderData.items || [],
+                    items: (orderData.items && orderData.items.length > 0)
+                        ? orderData.items
+                        : (orderData.orderDetails || []).map((d: any, idx: number) => ({
+                            id: d.id || `it-${idx}`,
+                            food: {
+                                id: d.productId,
+                                name: d.productName,
+                                price: Number(d.unitPrice) || 0,
+                                image: d.productImage || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600',
+                                canteenId: orderData.canteenId || 'cant-a',
+                                canteenName: orderData.canteenName || 'Căng tin A2',
+                                categoryId: 'cat-1',
+                                description: '',
+                                ingredients: [],
+                                isAvailable: true,
+                                rating: 5,
+                                reviewCount: 10,
+                                preparationTime: 10,
+                            },
+                            quantity: d.quantity || 1,
+                            unitPrice: Number(d.unitPrice) || 0,
+                            notes: d.notes || '',
+                        })),
                     subtotal: orderData.subtotal || orderData.finalAmount || orderData.totalAmount || 0,
                     shippingFee: orderData.shippingFee || 0,
                     discountAmount: orderData.discountAmount || 0,
@@ -981,6 +1014,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     const logout = () => {
+        const prevRole = currentUser?.role;
         disconnectSocket();
         authService.logout();
         localStorage.removeItem('token');
@@ -989,7 +1023,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         localStorage.removeItem('unieat_current_view');
         setCurrentUser(null);
         showToast('Đã đăng xuất khỏi tài khoản', 'info');
-        navigateTo('login');
+        if (prevRole === 'ADMIN') {
+            navigateTo('admin-login');
+        } else if (prevRole === 'STAFF') {
+            navigateTo('staff-login');
+        } else {
+            navigateTo('login');
+        }
     };
 
     const register = async (userData: Partial<User> & { password?: string }, redirectPath?: string): Promise<boolean> => {
@@ -1672,6 +1712,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         unitPrice: it.unitPrice,
                         notes: it.notes,
                         selectedOptions: it.selectedToppings?.map((t) => ({ optionName: t.name, price: t.price })),
+                    })),
+                    orderDetails: newOrder.items.map((it, idx) => ({
+                        id: `od-${newOrder.id}-${idx}`,
+                        orderId: newOrder.id,
+                        productId: it.food.id,
+                        productName: it.food.name,
+                        productImage: it.food.image,
+                        quantity: it.quantity,
+                        unitPrice: it.unitPrice,
+                        itemSubtotal: it.unitPrice * it.quantity,
+                        notes: it.notes,
                     })),
                     tableNumber: tableInfo?.tableName || tableInfo?.tableNumber,
                     pickupSlot: pickupTimeSlot,

@@ -1,7 +1,7 @@
 // src/services/marketing/flashSale.service.ts
 import { Op, literal } from 'sequelize';
 import { FlashSale, Product } from '../../models';
-import { redisService } from '../redis.service';
+import { redisService } from '../infrastructure/redis.service';
 
 export class FlashSaleService {
     public async getFlashSales(): Promise<FlashSale[]> {

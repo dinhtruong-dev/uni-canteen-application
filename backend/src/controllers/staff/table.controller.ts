@@ -1,14 +1,12 @@
 import { Request, Response } from 'express';
-import { staffService } from '../../services/staff.service';
-import { tableService } from '../../services/table.service';
-import { socketService } from '../../services/socket.service';
+import { tableService, socketService } from '../../services';
 import { toPlain } from '../../utils/serialize';
 
 export class TableController {
     public async getTables(req: Request, res: Response) {
         try {
             const canteenId = req.query.canteenId as string;
-            const tables = await staffService.getTables(canteenId);
+            const tables = await tableService.getAllTables(canteenId);
             return res.json({ success: true, total: tables.length, data: tables });
         } catch (err: any) {
             return res
@@ -83,12 +81,11 @@ export class TableController {
 
     public async cleanTable(req: Request, res: Response) {
         try {
-            const result = await staffService.cleanTable(req.params.id);
-            if (!result.ok) {
-                return res.status(result.status).json({ success: false, message: result.message });
+            const table = await tableService.updateTableStatus(req.params.id, 'AVAILABLE' as any);
+            if (!table) {
+                return res.status(404).json({ success: false, message: 'Không tìm thấy bàn ăn' });
             }
 
-            const table = result.table!;
             socketService.emitTableStatus({
                 tableNumber: table.tableNumber,
                 isOccupied: false,
@@ -97,7 +94,7 @@ export class TableController {
             return res.json({
                 success: true,
                 message: `Đã dọn dẹp và làm sạch ${table.tableNumber} thành công. Bàn hiện đã sẵn sàng đón khách mới!`,
-                data: toPlain(result.updated) || toPlain(table),
+                data: toPlain(table),
             });
         } catch (err: any) {
             console.error('[TableController.cleanTable]', err);
